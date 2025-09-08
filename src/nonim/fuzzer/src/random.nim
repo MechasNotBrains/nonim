@@ -63,7 +63,8 @@ func bool *() :bool= random.integer(1) == 1
 #_____________________________
 func float *[T: SomeFloat](H :T) :T=
   {.cast(noSideEffect).}:
-    return R.rand(state, H)
+    let limit = if H == T.high: 12_345.6789012.T else: H
+    return R.rand(state, limit)
 #___________________
 func float *[T: SomeFloat](S :Slice[T]) :T=
   {.cast(noSideEffect).}:
