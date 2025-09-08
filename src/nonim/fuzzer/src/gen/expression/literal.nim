@@ -14,7 +14,7 @@ import ../../typetools
 func integer *(T :string) :PNode=  newIntNode(T.toNodeKind(), R.integer(int.low..int.high))
   ## @descr Generates a random integer literal node of the given type
 #___________________
-func float *(T :string) :PNode=  newFloatNode(T.toNodeKind(), R.float(system.float.low..system.float.high))
+func float *(T :string) :PNode=  newFloatNode(T.toNodeKind(), R.float(system.float.high))
   ## @descr Generates a random integer literal node of the given type
 #___________________
 func random *() :PNode=
