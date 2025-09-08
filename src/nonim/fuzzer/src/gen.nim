@@ -13,13 +13,19 @@ import ./gen/statement/variable as gen_variable
 #_______________________________________
 # @section AST Render tools
 #_____________________________
-# TODO: Move to its own render file when implemented
+# TODO: Move to its own render file
 type RootData * = tuple[node :PNode, info :TLineInfo]
+func renderConst *(root :RootData) :string=
+  result = ""
+  debugEcho "........................."
+  for entry in root.node[0].sons:
+    debugEcho entry.repr
+#___________________
 proc render *(
     root        : RootData;
     allowBlocks : bool = true;
   ) :string=
-  # FIX: Remove const blocks
+  if root.node.kind == nkConstSection: return renderConst(root) # Remove const blocks
   renderTree(root.node, {renderNoComments, renderNoPragmas})
 
 

@@ -8,7 +8,7 @@ import "$nim"/compiler/[ idents ]
 var gIdentCache *{.threadvar.}: IdentCache
 gIdentCache = newIdentCache()
 
-  # Define the list of type names for Nim
+# Define the list of type names for Nim
 const basicTypes * = [
   # Integers
   "int", "int8", "int16", "int32", "int64",
