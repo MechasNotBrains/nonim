@@ -21,8 +21,8 @@ func name *(length :Positive= 8, underscore :bool= false) :string=
   ## * Total length will be `length` characters (minimum 1)
   ##
   ## Parameters:
-  ## * `length`: The desired length of the identifier (default: 8)
-  ## * `underscore`: Whether to allow underscore as first character (default: false)
+  ## * `length`     : (default:     8) The desired length of the identifier
+  ## * `underscore` : (default: false) Whether Nim underscore rules should be applied or not
   ##
   ## Returns:
   ## * A string containing a valid Nim identifier
@@ -33,16 +33,21 @@ func name *(length :Positive= 8, underscore :bool= false) :string=
     if underscore : characters.IdentifierFirst
     else          : characters.Letters
   result = $R.sample(firstCharSet)
+  if length == 1: return
 
   # Remaining characters can be letters, digits, or underscores
-  for id in 1..<max(1, length-1): result.add $R.sample(characters.Identifier)
-  if length == 1: return
+  for id in 1..<max(1, length-2):
+    let prevUnderscore = result[^1] == '_'
+    let nextCharSet =
+      if underscore and prevUnderscore : characters.Identifier
+      else                             : characters.Letters + characters.Digits
+    result.add $R.sample(nextCharSet)
 
   # Last character cannot be an underscore if not allowed
   let lastCharSet =
     if underscore : characters.Identifier
     else          : characters.Letters + characters.Digits
-  result.add $R.sample(lastCharSet )
+  result.add $R.sample(lastCharSet)
 
 
 #_______________________________________
