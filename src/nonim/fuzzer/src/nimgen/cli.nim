@@ -7,7 +7,7 @@ from std/strutils import join, toHex
 from std/strformat import `&`
 # @deps nim.gen
 import ./random
-import ./gen
+import ./generate
 
 #_______________________________________
 # @section nim.gen Logging
@@ -19,7 +19,7 @@ func info *(msg :varargs[string, `$`]) :void=
 #_______________________________________
 # @section nim.gen Entry Point
 #_____________________________
-proc run (args :seq[string])=
+proc run *(args :seq[string]) :void=
   doAssert args.len in {2,3}
   let choice = args[0]
   let file   = args[1]
@@ -33,9 +33,9 @@ proc run (args :seq[string])=
   info(&"Generating {choice} code at {file} with seed {seed}")
   # Run the generator
   let code = case choice # FIX: Pass allowBlocks option from cli
-  of "variable" : gen.variable()
-  of "proc"     : gen.procs()
-  else          : gen.nim()
+  of "variable" : generate.variable()
+  of "proc"     : generate.procs()
+  else          : generate.nim()
   # Write to the file
   if not os.dirExists(dir): os.createDir dir
   file.writeFile(code)

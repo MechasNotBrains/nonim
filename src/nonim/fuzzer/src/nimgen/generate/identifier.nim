@@ -6,7 +6,7 @@ import "$nim"/compiler/[ ast, idents, lineinfos ]
 # @deps nim.gen
 import ../random as R
 import ./shared
-import ./chars
+import ./characters
 
 
 #_______________________________________
@@ -30,18 +30,18 @@ func name *(length :Positive= 8, underscore :bool= false) :string=
   #! IDENTIFIER = letter ( ['_'] (letter | digit) )*
   # First character must be a letter (or underscore if allowed)
   let firstCharSet =
-    if underscore : chars.IdentifierFirst
-    else          : chars.Letters
+    if underscore : characters.IdentifierFirst
+    else          : characters.Letters
   result = $R.sample(firstCharSet)
 
   # Remaining characters can be letters, digits, or underscores
-  for id in 1..<max(1, length-1): result.add $R.sample(chars.Identifier)
+  for id in 1..<max(1, length-1): result.add $R.sample(characters.Identifier)
   if length == 1: return
 
   # Last character cannot be an underscore if not allowed
   let lastCharSet =
-    if underscore : chars.Identifier
-    else          : chars.Letters + chars.Digits
+    if underscore : characters.Identifier
+    else          : characters.Letters + characters.Digits
   result.add $R.sample(lastCharSet )
 
 
@@ -63,7 +63,7 @@ func random *(
   ) :PNode=
   ## Generate a random identifier node
   # 1. Name
-  let name_str     = ident.name(length, underscore) # Generate random proc name
+  let name_str     = identifier.name(length, underscore) # Generate random proc name
   {.cast(noSideEffect).}: # Access to gIdentCache is safe
     let name_ident = gIdentCache.getIdent(name_str)
   let name_node    = newIdentNode(name_ident, info)

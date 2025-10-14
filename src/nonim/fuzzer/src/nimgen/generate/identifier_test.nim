@@ -3,7 +3,7 @@
 #:____________________________________________________________________
 import unittest, os, strutils, strformat
 import ../tests/base
-import ../gen/ident
+import ./identifier
 
 const TmplTestCode = """
 # Generated test code - testing identifier validity
@@ -27,14 +27,14 @@ suite "Identifier Generation Tests":
   test "Basic valid identifiers":
     var declarations = newSeq[string]()
     for i in 1..100:
-      let identifier = ident.name(underscore=false)
+      let identifier = identifier.name(underscore=false)
       declarations.add("  var " & identifier & " = " & $i)
     check compileTest(declarations)
 
   test "Edge case lengths":
     var declarations = newSeq[string]()
     for length in [1, 2, 100, 1000]:
-      let identifier = ident.name(length)
+      let identifier = identifier.name(length)
       declarations.add("  var " & identifier & " = " & $length)
     check compileTest(declarations)
 
@@ -42,7 +42,7 @@ suite "Identifier Generation Tests":
     var declarations = newSeq[string]()
     # Test without underscore
     for id in 51..100:
-      let identifier = ident.name(8, underscore=false)
+      let identifier = identifier.name(8, underscore=false)
       declarations.add("  var " & identifier & " = " & $(id + 50))
     check compileTest(declarations)
 
@@ -50,7 +50,7 @@ suite "Identifier Generation Tests":
     var declarations = newSeq[string]()
     # Test with underscore allowed
     for id in 1..50:
-      let identifier = ident.name(8, underscore=true)
+      let identifier = identifier.name(8, underscore=true)
       declarations.add("  var " & identifier & " = " & $id)
     check not compileTest(declarations)
     # Add invalid underscore cases

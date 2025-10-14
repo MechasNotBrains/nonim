@@ -9,8 +9,12 @@ description = "codegen.nim | Random Code Generator for the Nim Programming Langu
 license     = "GPL-3.0-or-later"
 #___________________
 # Folders
-srcDir = "src"
-binDir = "bin"
+srcDir  = "src"
+binDir  = "bin"
+#___________________
+# Build Options
+backend = "c"
+bin     = @["nimgen"]
 #___________________
 # Build requirements
 requires "nim >= 2.0.0"
@@ -25,7 +29,7 @@ import std/os
 #___________________
 task tests, "Internal:  Runs all unit tests of the project.":
   if dirExists("./bin/.tests"): rmDir("./bin/.tests")
-  for testFile in os.walkDirRec("./src", yieldFilter= {pcFile}, relative= true):
+  for testFile in os.walkDirRec("./src", yieldFilter= {pcFile}, relative= false):
     if not testFile.endsWith("_test.nim"): continue
-    selfExec &"c {testFile} --outDir:./bin/.tests"
+    selfExec &"c --outDir:./bin/.tests {testFile}"
 

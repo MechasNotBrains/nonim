@@ -5,7 +5,7 @@
 import "$nim"/compiler/[ ast, lineinfos ]
 # @deps nim.gen
 import ../../random
-import ../ident
+import ../identifier
 import ../expression
 
 #_______________________________________
@@ -23,9 +23,9 @@ func runtime (
   result = newNodeI(kind, info)
   for id in 1..count:
     let identDefs = newNodeI(nkIdentDefs, info)
-    identDefs.add(ident.random(info, public))  # Child 0: Name (with export)
-    identDefs.add(ident.typ(info, T))          # Child 1: Type
-    identDefs.add(expression.random(info, T))  # Child 2: Value
+    identDefs.add(identifier.random(info, public))  # Child 0: Name (with export)
+    identDefs.add(identifier.typ(info, T))          # Child 1: Type
+    identDefs.add(expression.random(info, T))       # Child 2: Value
     result.add(identDefs)
 #___________________
 func comptime (
@@ -38,9 +38,9 @@ func comptime (
   result = newNodeI(nkConstSection, info)
   for id in 1..count:
     let constDef = newNodeI(nkConstDef, info)
-    constDef.add(ident.random(info, public))  # Child 0: Name (with export)
-    constDef.add(ident.typ(info, T))          # Child 1: Type
-    constDef.add(expression.random(info, T))  # Child 2: Value
+    constDef.add(identifier.random(info, public))  # Child 0: Name (with export)
+    constDef.add(identifier.typ(info, T))          # Child 1: Type
+    constDef.add(expression.random(info, T))       # Child 2: Value
     result.add constDef
 
 
@@ -49,16 +49,11 @@ func comptime (
 #_____________________________
 func random *(
     info    : TLineInfo;
-    public  : bool;
-    mutable : bool;
-    runtime : bool;
-    T       : string;
+    public  : bool   = random.bool();
+    mutable : bool   = random.bool();
+    runtime : bool   = random.bool();
+    T       : string = random.typename();
   ) :PNode=
   if runtime : variable.runtime(info, public, mutable, T)
   else       : variable.comptime(info, public, T)
-#___________________
-func random *(
-    info   : TLineInfo;
-    public : bool = random.bool();
-  ) :PNode= info.random(public, random.bool(), random.bool(), random.typename())
 

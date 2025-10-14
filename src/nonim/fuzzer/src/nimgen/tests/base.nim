@@ -2,7 +2,7 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps std
-import os
+import std/os
 
 proc compileTest *(
     subDir   : string;
@@ -17,6 +17,6 @@ proc compileTest *(
   if fileExists(filePath)    : removeFile(filePath)
   # Compile the generated code
   writeFile(filePath, code)
-  let command  = "./bin/.nim/bin/nim check --hints:off --warnings:off --nimcache:" & cacheDir & " " & filePath
+  let command  = "nimc check --hints:off --warnings:off --nimcache:" & cacheDir & " " & filePath
   return os.execShellCmd(command) == 0
 

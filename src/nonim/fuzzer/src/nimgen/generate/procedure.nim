@@ -7,14 +7,14 @@ import std/sets
 import "$nim"/compiler/[ ast, idents, lineinfos ]
 # @deps nim.gen
 import ../random as R
-import ./ident
+import ./identifier
 import ./shared
 
 
 # Generate a random procedure node
 func random*(info: TLineInfo; public :bool= false): PNode =
   # 1. Name (Postfix node for export)
-  let nameNode = ident.random(info, public) # Create postfix node for name
+  let nameNode = identifier.random(info, public) # Create postfix node for name
 
   # 2. Formal Params
   let randomRetType  = R.sample(basicTypes) # Randomly select a return type from basic types only
@@ -33,7 +33,7 @@ func random*(info: TLineInfo; public :bool= false): PNode =
     # Ensure unique name
     var nameStr = ""
     while true:
-      nameStr = ident.name(length=initialNameLength)
+      nameStr = identifier.name(length=initialNameLength)
       if nameStr notin usedParamNames:
         usedParamNames.incl(nameStr)
         break

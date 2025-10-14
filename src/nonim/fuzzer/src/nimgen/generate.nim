@@ -6,8 +6,8 @@ import "$nim"/compiler/[ ast, options, lineinfos, msgs, pathutils ]
 from   "$nim"/compiler/renderer import renderTree, renderNoComments, renderNoPragmas
 # @deps generator
 import ./random
-import ./gen/procs as gen_proc
-import ./gen/statement/variable as gen_variable
+import ./generate/procedure as gen_proc
+import ./generate/statement/variable as gen_variable
 
 
 #_______________________________________
@@ -43,7 +43,7 @@ proc root *(path :string) :RootData=
 #_______________________________________
 # @section Code Generation: Generic
 #_____________________________
-proc generate *(
+proc codegen *(
     kind        : string = "variable";
     path        : string = "generated.nim";
     allowBlocks : bool   = false;
@@ -51,13 +51,13 @@ proc generate *(
   ## @descr Generates random Nim code of the given {@arg kind}
   ## @arg allowBlocks (default: false) Will allow generating let/var/const/etc blocks when true.
   doAssert kind in ["variable", "proc"]
-  let root = gen.root(path)
+  let root = generate.root(path)
   for _ in 0..<random.integer(128):
     case kind
     of "variable" : root.node.add gen_variable.random(root.info)
     of "proc"     : root.node.add gen_proc.random(root.info)
     else:discard # unreachable
-  return gen.render(root, allowBlocks)
+  return generate.render(root, allowBlocks)
 
 
 #_______________________________________
@@ -66,14 +66,14 @@ proc generate *(
 proc variable *(
     path        : string = "generated.nim";
     allowBlocks : bool   = false;
-  ) :string= "variable".generate(path, allowBlocks)
+  ) :string= "variable".codegen(path, allowBlocks)
   ## @descr Generates Nim code with random Variable statements
   ## @arg allowBlocks (default: false) Will allow generating let/var/const/etc blocks when true.
 #___________________
 proc procs *(
     path        : string = "generated.nim";
     allowBlocks : bool   = false;
-  ) :string= "proc".generate(path, allowBlocks)
+  ) :string= "proc".codegen(path, allowBlocks)
   ## @descr Generates Nim code with random Variable statements
   ## @arg allowBlocks (default: false) Will allow generating let/var/const/etc blocks when true.
 
@@ -87,7 +87,7 @@ proc nim *(
   ) :string=
   ## @descr Generates random Nim code
   ## @arg allowBlocks (default: false) Will allow generating let/var/const/etc blocks when true.
-  let root = gen.root(path)
+  let root = generate.root(path)
 
   # Generate a random amount of TopLevel statements
   for _ in 0..<random.integer(128):
@@ -97,5 +97,5 @@ proc nim *(
     else:discard
 
   # Convert the AST to a string
-  return gen.render(root, allowBlocks)
+  return generate.render(root, allowBlocks)
 
