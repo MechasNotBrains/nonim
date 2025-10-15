@@ -22,13 +22,13 @@ when isMainModule:
 
 
 suite "Identifier Generation Tests":
-  let testCacheDir = "bin/.tests/nimcache/ident"
+  let testCacheDir = "bin/.tests/nimcache/identifier"
   if not dirExists(testCacheDir): createDir(testCacheDir)
 
   var testID = 0
-  proc compileTest(declarations: seq[string]): bool =
+  proc compileTest (declarations :seq[string]) :bool=
     let testCode = TmplTestCode % [declarations.join("\n")]
-    result = base.compileTest("ident", &"identifiers{testID}.nim", testCode)
+    result = base.compileTest("identifier", &"identifiers{testID}.nim", testCode)
     testID.inc
 
   test "Basic valid identifiers":

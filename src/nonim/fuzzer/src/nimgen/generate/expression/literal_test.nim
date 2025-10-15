@@ -7,7 +7,6 @@ import std/os
 import std/strutils
 import std/strformat
 # @deps compiler
-import "$nim"/compiler/[ options, lineinfos, msgs, pathutils, ast ]
 from   "$nim"/compiler/renderer import renderTree, renderNoComments, renderNoPragmas
 # @deps tests
 import ../../tests/base
@@ -37,7 +36,6 @@ suite "Literal Generation Tests":
 
   test "Integer Expressions":
     var declarations = newSeq[string]()
-    let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let varNode = literal.integer(random.integer_lit())
       declarations.add("  discard " & varNode.renderTree({renderNoComments, renderNoPragmas}).replace("\n", "\n  "))  # Add indentation for proper formatting
@@ -45,7 +43,6 @@ suite "Literal Generation Tests":
 
   test "Float Expressions":
     var declarations = newSeq[string]()
-    let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let varNode = literal.float(random.float_lit())
       declarations.add("  discard " & varNode.renderTree({renderNoComments, renderNoPragmas}).replace("\n", "\n  "))  # Add indentation for proper formatting
@@ -53,7 +50,6 @@ suite "Literal Generation Tests":
 
   test "Random Literal Expressions":
     var declarations = newSeq[string]()
-    let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let varNode = literal.random()
       declarations.add("  discard " & varNode.renderTree({renderNoComments, renderNoPragmas}).replace("\n", "\n  "))  # Add indentation for proper formatting
