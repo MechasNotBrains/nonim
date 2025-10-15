@@ -2,7 +2,10 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps std
-import unittest, os, strutils, strformat
+import std/unittest
+import std/os
+import std/strutils
+import std/strformat
 # @deps compiler
 import "$nim"/compiler/[ options, lineinfos, msgs, pathutils, ast ]
 from   "$nim"/compiler/renderer import renderTree, renderNoComments, renderNoPragmas
@@ -10,6 +13,7 @@ from   "$nim"/compiler/renderer import renderTree, renderNoComments, renderNoPra
 import ./variable
 # @deps nim.gen.tests
 import ../../tests/base
+
 
 const TmplTestCode = """
 # Generated test code - testing variable declarations
@@ -19,6 +23,7 @@ $1
 when isMainModule:
   testVariables()
 """
+
 
 suite "Variable Generation Tests":
   let testCacheDir = "bin/.tests/variable"

@@ -1,9 +1,15 @@
 #:____________________________________________________________________
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
-import unittest, os, strutils, strformat
+# @deps std
+import std/unittest
+import std/os
+import std/strutils
+import std/strformat
+# @deps tests
 import ../tests/base
 import ./identifier
+
 
 const TmplTestCode = """
 # Generated test code - testing identifier validity
@@ -13,6 +19,7 @@ $1
 when isMainModule:
   testIdentifiers()
 """
+
 
 suite "Identifier Generation Tests":
   let testCacheDir = "bin/.tests/nimcache/ident"
