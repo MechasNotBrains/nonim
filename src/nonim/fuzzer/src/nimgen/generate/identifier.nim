@@ -58,6 +58,8 @@ func name *(length :Positive= 8, underscore :bool= false) :string=
     else          : characters.Letters + characters.Digits
   result.add $R.sample(lastCharSet)
 
+  # Fix edge case of the randomly generated name not having any invalid `_` when underscore is true
+  if underscore and '_' notin result: result.insert("__", result.len div 2)
   # Fix edge case of the randomly generated name being a keyword  (eg: aS As AS A_S etc)
   if result.isKeyword(): result.add $R.sample(lastCharSet)
 
