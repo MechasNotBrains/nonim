@@ -2,11 +2,20 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps compiler
-import "$nim"/compiler/[ ast, idents, lineinfos ]
+import "$nim"/compiler/[ ast, idents, lineinfos, lexer ]
+# @deps std
+from std/sequtils import mapIt, toSeq
+from std/strutils import nimIdentNormalize
 # @deps nim.gen
 import ../random as R
 import ./shared
 import ./characters
+
+
+#_______________________________________
+# @section Identifier Generation: Helpers
+#_____________________________
+func is_keyword *(name :string) :bool=  name.nimIdentNormalize in lexer.TokType.items.toSeq()[lexer.tokKeywordLow..lexer.tokKeywordHigh].mapIt($it)
 
 
 #_______________________________________
@@ -48,6 +57,9 @@ func name *(length :Positive= 8, underscore :bool= false) :string=
     if underscore : characters.Identifier
     else          : characters.Letters + characters.Digits
   result.add $R.sample(lastCharSet)
+
+  # Fix edge case of the randomly generated name being a keyword  (eg: aS As AS A_S etc)
+  if result.is_keyword(): result.add $R.sample(lastCharSet)
 
 
 #_______________________________________
