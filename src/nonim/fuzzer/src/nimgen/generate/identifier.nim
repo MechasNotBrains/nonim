@@ -15,7 +15,7 @@ import ./characters
 #_______________________________________
 # @section Identifier Generation: Helpers
 #_____________________________
-func is_keyword *(name :string) :bool=  name.nimIdentNormalize in lexer.TokType.items.toSeq()[lexer.tokKeywordLow..lexer.tokKeywordHigh].mapIt($it)
+func isKeyword *(name :string) :bool=  name.nimIdentNormalize in lexer.TokType.items.toSeq()[lexer.tokKeywordLow..lexer.tokKeywordHigh].mapIt($it)
 
 
 #_______________________________________
@@ -59,7 +59,7 @@ func name *(length :Positive= 8, underscore :bool= false) :string=
   result.add $R.sample(lastCharSet)
 
   # Fix edge case of the randomly generated name being a keyword  (eg: aS As AS A_S etc)
-  if result.is_keyword(): result.add $R.sample(lastCharSet)
+  if result.isKeyword(): result.add $R.sample(lastCharSet)
 
 
 #_______________________________________
