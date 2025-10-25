@@ -8,8 +8,8 @@ import std/strutils
 import std/strformat
 # @deps compiler
 import "$nim"/compiler/[ options, lineinfos, msgs, pathutils, ast ]
-from   "$nim"/compiler/renderer import renderTree, renderNoComments, renderNoPragmas
 # @deps nim.gen
+import ../../generate
 import ./variable
 # @deps nim.gen.tests
 import ../../tests/base
@@ -40,8 +40,9 @@ suite "Variable Generation Tests":
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
-      let varNode = variable.random(newLineInfo(config, absPath, id, 0), mutable=true, runtime=true, public=false)
-      declarations.add("  " & varNode.renderTree({renderNoComments, renderNoPragmas}).replace("\n", "\n  "))  # Add indentation for proper formatting
+      let info    = newLineInfo(config, absPath, id, 0)
+      let varNode = variable.random(info, mutable=true, runtime=true, public=false)
+      declarations.add("  " & generate.render((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
     check compileTest(declarations)
 
   test "Let declarations":
@@ -49,8 +50,9 @@ suite "Variable Generation Tests":
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
-      let varNode = variable.random(newLineInfo(config, absPath, id, 0), mutable=false, runtime=true, public=false)
-      declarations.add("  " & varNode.renderTree({renderNoComments, renderNoPragmas}).replace("\n", "\n  "))  # Add indentation for proper formatting
+      let info    = newLineInfo(config, absPath, id, 0)
+      let varNode = variable.random(info, mutable=false, runtime=true, public=false)
+      declarations.add("  " & generate.render((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
     check compileTest(declarations)
 
   test "Const declarations":
@@ -58,7 +60,8 @@ suite "Variable Generation Tests":
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
-      let varNode = variable.random(newLineInfo(config, absPath, id, 0), mutable=false, runtime=false, public=false)
-      declarations.add("  " & varNode.renderTree({renderNoComments, renderNoPragmas}).replace("\n", "\n  "))  # Add indentation for proper formatting
+      let info    = newLineInfo(config, absPath, id, 0)
+      let varNode = variable.random(info, mutable=false, runtime=false, public=false)
+      declarations.add("  " & generate.render((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
     check compileTest(declarations)
 

@@ -75,12 +75,27 @@ func float_lit *() :string=
 
 
 #_______________________________________
+# @section Characters
+#_____________________________
+type SomeChar = char | cchar | cschar | cuchar
+#___________________
+func char *[T: SomeChar]() :T=
+  {.cast(noSideEffect).}:
+    return system.char(R.rand(state, T.high.int))
+#___________________
+func char_lit *() :string=
+  if random.bool() : "char"
+  else             : "cchar"
+
+
+#_______________________________________
 # @section General Typedef
 #_____________________________
 func typename *() :string=
   case random.integer(3):
   of 1: return random.float_lit()
-  # of 2: return $bool
-  # of 3: return $string
+  of 2: return random.char_lit()
+  # of 3: return $bool
+  # of 4: return $string
   else: return random.integer_lit()
 

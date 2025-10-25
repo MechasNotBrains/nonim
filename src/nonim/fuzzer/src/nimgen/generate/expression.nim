@@ -13,7 +13,8 @@ func random *(
     T    : string = $int;
   ) :PNode=
   # FIX: Choose other random expressions
-  if   T.isInteger() : return literal.integer(T)
-  elif T.isFloat()   : return literal.float(T)
+  if   T.isFloat()   : return literal.float(T)
+  elif T.isChar()    : return literal.char(T)
+  elif T.isInteger() : return literal.integer(T)
   else               : return literal.random() # Generate random literal expression
 

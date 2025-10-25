@@ -4,6 +4,8 @@
 # @deps compiler
 import "$nim"/compiler/[ ast, options, lineinfos, msgs, pathutils ]
 from   "$nim"/compiler/renderer import renderTree, renderNoComments, renderNoPragmas
+# @deps std
+from std/strutils import replace
 # @deps generator
 import ./random
 import ./generate/procedure as gen_proc
@@ -25,8 +27,8 @@ proc render *(
     root        : RootData;
     allowBlocks : bool = true;
   ) :string=
-  if root.node.kind == nkConstSection: return renderConst(root) # Remove const blocks
-  renderTree(root.node, {renderNoComments, renderNoPragmas})
+  # if root.node.kind == nkConstSection: return renderConst(root) # Remove const blocks
+  result = renderTree(root.node, {renderNoComments, renderNoPragmas})
 
 
 #_______________________________________

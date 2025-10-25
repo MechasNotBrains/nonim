@@ -14,6 +14,7 @@ import ../../typetools
 func integer *(T :string= R.integer_lit()) :PNode=
   ## @descr Generates a random integer literal node of the given type
   let min :BiggestInt= case T
+    of "byte"       :   byte.low.BiggestInt
     of "uint8"      :  uint8.low.BiggestInt
     of "uint16"     : uint16.low.BiggestInt
     of "uint32"     : uint32.low.BiggestInt
@@ -24,7 +25,6 @@ func integer *(T :string= R.integer_lit()) :PNode=
     of "int32"      :  int32.low.BiggestInt
     of "int64"      :  int64.low.BiggestInt
     # C types
-    of "cchar"      : cchar.low.BiggestInt
     of "cschar"     : cschar.low.BiggestInt
     of "cint"       : cint.low.BiggestInt
     of "clong"      : clong.low.BiggestInt
@@ -38,6 +38,7 @@ func integer *(T :string= R.integer_lit()) :PNode=
     # Default
     else            : int.low.BiggestInt
   let max :BiggestInt= case T
+    of "byte"       :   byte.high.BiggestInt
     of "uint8"      :  uint8.high.BiggestInt
     of "uint16"     : uint16.high.BiggestInt
     of "uint32"     : uint32.high.BiggestInt
@@ -48,19 +49,20 @@ func integer *(T :string= R.integer_lit()) :PNode=
     of "int32"      :  int32.high.BiggestInt
     of "int64"      :  int64.high.BiggestInt
     # C types
-    of "cchar"      : cchar.high.BiggestInt
-    of "cschar"     : cschar.high.BiggestInt
+    of "cuchar"     : cuchar.low.BiggestInt
+    of "cschar"     : cschar.low.BiggestInt
     of "cint"       : cint.high.BiggestInt
     of "clong"      : clong.high.BiggestInt
     of "clonglong"  : clonglong.high.BiggestInt
     of "cshort"     : cshort.high.BiggestInt
-    of "cuint"      : cuint.high.BiggestInt
-    of "csize_t"    : uint32.high.BiggestInt  # Doesn't fit in BiggestInt
-    of "culong"     : uint32.high.BiggestInt  # Doesn't fit in BiggestInt
-    of "culonglong" : uint32.high.BiggestInt  # Doesn't fit in BiggestInt
+    of "cuint"      : uint16.high.BiggestInt
+    of "csize_t"    : uint16.high.BiggestInt  # Doesn't fit in BiggestInt
+    of "culong"     : uint16.high.BiggestInt  # Doesn't fit in BiggestInt
+    of "culonglong" : uint16.high.BiggestInt  # Doesn't fit in BiggestInt
     of "cushort"    : cushort.high.BiggestInt
     # Default
     else            : int.high
+  # TODO: PNode.flags : nfBase2, nfBase8, nfBase16
   newIntNode(T.toNodeKind(), R.integer(min..max))
 #___________________
 func float *(T :string= R.float_lit()) :PNode=
@@ -73,9 +75,15 @@ func float *(T :string= R.float_lit()) :PNode=
     else         : system.float.high.BiggestFloat
   newFloatNode(T.toNodeKind(), R.float(high))
 #___________________
+func char *(T :string= R.char_lit()) :PNode=
+  ## @descr Generates a random char literal node of the given type
+  result = newNode(T.toNodeKind())
+  result.intVal = R.char[system.char]().BiggestInt
+#___________________
 func random *() :PNode=
   case R.integer(2)
   of 0: literal.float()
+  of 1: literal.char()
   # of 1: newStrNode(nkStrLit, literal.string(min, max))  # TODO: Proper String nodes with different kinds
   else: literal.integer()
 

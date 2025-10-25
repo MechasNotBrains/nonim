@@ -4,13 +4,21 @@
 # @deps compiler
 import "$nim"/compiler/[ ast ]
 
+
+#_______________________________________
+# @section Characters
+#_____________________________
+const Chars_all * = ["char", "cchar"]
+func isChar *(T :string) :bool= T in Chars_all
+
+
 #_______________________________________
 # @section Integers
 #_____________________________
-const Integers_signed_nim   * = @[ $int,    $int8,   $int16,      $int32,      $int64                        ]
-const Integers_unsigned_nim * = @[ $uint,   $uint8,  $uint16,     $uint32,     $uint64                       ]
-const Integers_signed_C     * = @[ $cchar,  $cschar, $cint,       $clong,      $clonglong, $cshort, $csize_t ]
-const Integers_unsigned_C   * = @[ $cuint,  $culong, $culonglong, $cushort                                   ]
+const Integers_signed_nim   * = @[ $int,    $int8,   $int16,      $int32,     $int64            ]
+const Integers_unsigned_nim * = @[ $byte,   $uint,   $uint8,      $uint16,    $uint32, $uint64  ]
+const Integers_signed_C     * = @[ $cschar, $cint,   $clong,      $clonglong, $cshort, $csize_t ]
+const Integers_unsigned_C   * = @[ $cuint,  $culong, $culonglong, $cushort                      ]
 const Integers_signed_all   * = Integers_signed_nim   & Integers_signed_C
 const Integers_unsigned_all * = Integers_unsigned_nim & Integers_unsigned_C
 const Integers_nim          * = Integers_signed_nim   & Integers_unsigned_nim
@@ -40,6 +48,8 @@ func isFloat     *(T :string) :bool= T in Floats_all
 # @section Conversion
 #_____________________________
 func toNodeKind *(T :string) :TNodeKind= result = case T
+  # Chars
+  of Chars_all : nkCharLit
   # Signed Int
   of "int"     : nkIntLit
   of "int8"    : nkInt8Lit
@@ -53,11 +63,13 @@ func toNodeKind *(T :string) :TNodeKind= result = case T
   of "uint16"  : nkUInt16Lit
   of "uint32"  : nkUInt32Lit
   of "uint64"  : nkUInt64Lit
-  of Integers_unsigned_C: nkUIntLit
+  of "byte"    : nkUInt8Lit
+  of Integers_unsigned_C: nkIntLit
   # Floats
   of "float"   : nkFloatLit
   of "float32" : nkFloat32Lit
   of "float64" : nkFloat64Lit
   of Floats_C  : nkFloatLit
-  else: doAssert false, "unreachable"; nkEmpty
+  # Unknown or TODO
+  else: doAssert false, "unreachable " & $T; nkEmpty
 
