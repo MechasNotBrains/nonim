@@ -6,13 +6,14 @@ import std/sets
 # @deps compiler
 import "$nim"/compiler/[ ast, idents, lineinfos ]
 # @deps nim.gen
-import ../random as R
-import ./identifier
-import ./shared
+import ../../random as R
+import ../shared
+import ../identifier
+import ./Return
 
 
 # Generate a random procedure node
-func random*(info: TLineInfo; public :bool= false): PNode =
+func random *(info :TLineInfo; public :bool= false) :PNode=
   # 1. Name (Postfix node for export)
   let nameNode = identifier.random(info, public) # Create postfix node for name
 
@@ -71,9 +72,7 @@ func random*(info: TLineInfo; public :bool= false): PNode =
 
   # 3. Body
   let bodyNode = newNodeI(nkStmtList, info)
-  let returnNode = newNodeI(nkReturnStmt, info)
-  returnNode.add(newNodeI(nkEmpty, info)) # Empty node for the return value
-  bodyNode.add(returnNode)
+  bodyNode.add(Return.random(info, randomRetType))
 
   # 4. Combine into final proc node
   result = newNodeI(nkProcDef, info)
