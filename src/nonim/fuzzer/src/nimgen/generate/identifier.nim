@@ -82,7 +82,7 @@ func random *(
   ) :PNode=
   ## Generate a random identifier node
   # 1. Name
-  let name_str     = identifier.name(length, underscore) # Generate random proc name
+  let name_str     = identifier.name(length, underscore) # Generate random name
   {.cast(noSideEffect).}: # Access to gIdentCache is safe
     let name_ident = gIdentCache.getIdent(name_str)
   let name_node    = newIdentNode(name_ident, info)
