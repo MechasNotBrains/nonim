@@ -8,9 +8,10 @@ import ../random as R
 import ./statement/procedure
 import ./statement/variable
 import ./statement/call
+import ./statement/module
 
 
-const Nodes_all * = ["variable", "proc", "call"]
+const Nodes_all * = ["variable", "proc", "call", "module"]
 
 
 func random *(
@@ -21,5 +22,6 @@ func random *(
   of "variable" : variable.random(info)
   of "proc"     : procedure.random(info)
   of "call"     : call.random(info)
+  of "module"   : module.random(info)
   else:nil # unreachable
 
