@@ -14,7 +14,7 @@ binDir  = "bin"
 #___________________
 # Build Options
 backend = "c"
-bin     = @["nimgen"]
+bin     = @["nimgen", "nimcheck"]
 #___________________
 # Build requirements
 requires "nim >= 2.0.0"
