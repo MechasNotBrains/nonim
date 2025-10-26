@@ -8,8 +8,7 @@ from   "$nim"/compiler/renderer import renderTree, renderNoComments, renderNoPra
 from std/strutils import replace
 # @deps generator
 import ./random
-import ./generate/procedure as gen_proc
-import ./generate/statement/variable as gen_variable
+import ./generate/node
 
 
 #_______________________________________
@@ -52,13 +51,9 @@ proc codegen *(
   ) :string=
   ## @descr Generates random Nim code of the given {@arg kind}
   ## @arg allowBlocks (default: false) Will allow generating let/var/const/etc blocks when true.
-  doAssert kind in ["variable", "proc"]
+  doAssert kind in Nodes_all
   let root = generate.root(path)
-  for _ in 0..<random.integer(128):
-    case kind
-    of "variable" : root.node.add gen_variable.random(root.info)
-    of "proc"     : root.node.add gen_proc.random(root.info)
-    else:discard # unreachable
+  for _ in 0..<random.integer(128): root.node.add(node.random(root.info, kind))
   return generate.render(root, allowBlocks)
 
 
@@ -90,14 +85,8 @@ proc nim *(
   ## @descr Generates random Nim code
   ## @arg allowBlocks (default: false) Will allow generating let/var/const/etc blocks when true.
   let root = generate.root(path)
-
   # Generate a random amount of TopLevel statements
-  for _ in 0..<random.integer(128):
-    case random.integer(1):
-    of 0: root.node.add gen_variable.random(root.info)
-    of 1: root.node.add gen_proc.random(root.info)
-    else:discard
-
+  for _ in 0..<random.integer(128): root.node.add(node.random(root.info))
   # Convert the AST to a string
   return generate.render(root, allowBlocks)
 
