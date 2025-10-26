@@ -34,5 +34,10 @@ task tests, "Internal:  Runs all unit tests of the project.":
   if dirExists("./bin/.tests"): rmDir("./bin/.tests")
   for testFile in os.walkDirRec("./src", yieldFilter= {pcFile}, relative= false):
     if not testFile.endsWith("_test.nim"): continue
+    # if testFile.endsWith("literal_test.nim")    : continue
+    # if testFile.endsWith("identifier_test.nim") : continue
+    # if testFile.endsWith("variable_test.nim")   : continue
+    # if testFile.endsWith("module_test.nim")     : continue
+    # if testFile.endsWith("generate_test.nim")   : continue
     selfExec &"c -r --hints:off --warnings:off --outDir:./bin/.tests {testFile}"
 
