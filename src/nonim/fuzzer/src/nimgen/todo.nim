@@ -7,26 +7,26 @@ type TNodeKind* = enum
   nkSym,                # node is a symbol
   nkType,               # node is used for its typ field
 
-  nkCharLit,            # a character literal ''
-  nkIntLit,             # an integer literal
-  nkInt8Lit,
-  nkInt16Lit,
-  nkInt32Lit,
-  nkInt64Lit,
-  nkUIntLit,            # an unsigned integer literal
-  nkUInt8Lit,
-  nkUInt16Lit,
-  nkUInt32Lit,
-  nkUInt64Lit,
-  nkFloatLit,           # a floating point literal
-  nkFloat32Lit,
-  nkFloat64Lit,
-  nkFloat128Lit,
-  nkStrLit,             # a string literal ""
-  nkRStrLit,            # a raw string literal r""
-  nkTripleStrLit,       # a triple string literal """
-  nkNilLit,             # the nil literal
-                        # end of atoms
+  # nkCharLit,            # a character literal ''
+  # nkIntLit,             # an integer literal
+  # nkInt8Lit,
+  # nkInt16Lit,
+  # nkInt32Lit,
+  # nkInt64Lit,
+  # nkUIntLit,            # an unsigned integer literal
+  # nkUInt8Lit,
+  # nkUInt16Lit,
+  # nkUInt32Lit,
+  # nkUInt64Lit,
+  # nkFloatLit,           # a floating point literal
+  # nkFloat32Lit,
+  # nkFloat64Lit,
+  # nkFloat128Lit,
+  # nkStrLit,             # a string literal ""
+  # nkRStrLit,            # a raw string literal r""
+  # nkTripleStrLit,       # a triple string literal """
+  # nkNilLit,             # the nil literal
+  #                       # end of atoms
   nkComesFrom,          # "comes from" template/macro information for
                         # better stack trace generation
   nkDotCall,            # used to temporarily flag a nkCall node;
