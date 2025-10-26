@@ -6,6 +6,15 @@ import "$nim"/compiler/[ ast ]
 
 
 #_______________________________________
+# @section Operators
+#_____________________________
+const Operator_ascii      * = @[ "=", "+", "-", "*", "/", "<", ">", "@", "$", "~", "&", "%", "|", "!", "?", "^", ".", ":", "\\", ]
+const Operator_unicode    * = @[ "∙", "∘", "×", "★", "⊗", "⊘", "⊙", "⊛", "⊠", "⊡", "∩", "∧", "⊓", "±", "⊕", "⊖", "⊞", "⊟", "∪", "∨", "⊔" ]
+const Operator_keywords   * = @[ "and", "or", "not", "xor", "shl", "shr", "div", "mod", "in", "notin", "is", "isnot", "of", "as", "from" ]
+const Operator_characters * = Operator_ascii & Operator_unicode
+
+
+#_______________________________________
 # @section Characters
 #_____________________________
 const Chars_all * = ["char", "cchar"]

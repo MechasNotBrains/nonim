@@ -99,3 +99,18 @@ func typename *() :string=
   of 4: return "string"
   else: return random.integer_lit()
 
+
+#_______________________________________
+# @section Operators
+#_____________________________
+func operator *(
+    keyword : bool     = random.integer(3) == 0;
+    len     : Positive = random.integer(1..16);
+  ) :string=
+  if keyword: return random.sample(Operator_keywords)
+  # Generate a random operator of the given len
+  result = ""
+  for _ in 0..<len: result.add random.sample(Operator_characters)
+  # Cleanup illegal cases
+  if result == "*:": result = "**"
+
