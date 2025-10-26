@@ -35,21 +35,21 @@ suite "Literal Generation Tests":
     testID.inc
 
   test "Integer Expressions":
-    var declarations = newSeq[string]()
+    var declarations :seq[string]= @[]
     for id in 1..100:
       let varNode = literal.integer(random.integer_lit())
       declarations.add("  discard " & varNode.renderTree({renderNoComments, renderNoPragmas}).replace("\n", "\n  "))  # Add indentation for proper formatting
     check compileTest(declarations)
 
   test "Float Expressions":
-    var declarations = newSeq[string]()
+    var declarations :seq[string]= @[]
     for id in 1..100:
       let varNode = literal.float(random.float_lit())
       declarations.add("  discard " & varNode.renderTree({renderNoComments, renderNoPragmas}).replace("\n", "\n  "))  # Add indentation for proper formatting
     check compileTest(declarations)
 
   test "Random Literal Expressions":
-    var declarations = newSeq[string]()
+    var declarations :seq[string]= @[]
     for id in 1..100:
       let varNode = literal.random()
       declarations.add("  discard " & varNode.renderTree({renderNoComments, renderNoPragmas}).replace("\n", "\n  "))  # Add indentation for proper formatting

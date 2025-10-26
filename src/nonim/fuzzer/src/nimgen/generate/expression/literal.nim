@@ -2,10 +2,13 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps compiler
-import "$nim"/compiler/[ ast ]
+import "$nim"/compiler/[ ast, idents ]
+# @deps std
+from std/strutils import PrintableChars, replace, escape
 # @deps nim.gen
 import ../../random as R
 import ../../typetools
+import ../shared
 
 
 #_______________________________________
@@ -80,10 +83,42 @@ func char *(T :string= R.char_lit()) :PNode=
   result = newNode(T.toNodeKind())
   result.intVal = R.char[system.char]().BiggestInt
 #___________________
-func random *() :PNode=
-  case R.integer(2)
-  of 0: literal.float()
-  of 1: literal.char()
-  # of 1: newStrNode(nkStrLit, literal.string(min, max))  # TODO: Proper String nodes with different kinds
-  else: literal.integer()
+func string *(
+    len : int = 255,
+  ) :PNode=
+  ## @descr Generates a random string literal node with the given `len`
+  let kind      = R.sample({nkStrLit..nkTripleStrLit})
+  let raw       = kind == nkRStrLit
+  let multiline = kind == nkTripleStrLit
+  # Generate the value
+  var value :string= ""
+  for _ in 0..<len: value.add(R.sample(PrintableChars))
+  # Cleanup the value
+  value = value.escape()
+  if multiline:
+    value.insert("\n", 0)
+    value = value.replace("\\n", "\n")
+  # Return the resulting string node
+  result = newStrNode(kind, value)
+#___________________
+func Nil *() :PNode=
+  ## @descr Generates a random nil literal node
+  result = newNode(nkNilLit)
+#___________________
+func bool *() :PNode=
+  ## @descr Generates a random bool literal node
+  result = newNode(nkIdent)
+  {.cast(noSideEffect).}: # Access to gIdentCache is safe
+    result.ident = gIdentCache.getIdent(R.sample([$true, $false]))
+#___________________
+func random *(T :string= R.typename()) :PNode=
+  case T
+  of Chars_all    : literal.char(T)
+  of Floats_all   : literal.float(T)
+  of Integers_all : literal.integer(T)
+  of Strings_all  : literal.string()
+  of "pointer"    : literal.Nil()
+  of "bool"       : literal.bool()
+  of "void"       : newNode(nkEmpty)
+  else            : literal.integer(T)
 

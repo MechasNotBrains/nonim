@@ -35,8 +35,8 @@ func isInteger          *(T :string) :bool= T in Integers_all
 #_______________________________________
 # @section Floats
 #_____________________________
-const Floats_nim * = @[ $float,  $float32, $float64 ]
-const Floats_C   * = @[ $cfloat, $cdouble           ]
+const Floats_nim * = @[ $float,  $float32, $float64     ]
+const Floats_C   * = @[ $cfloat, $cdouble, $clongdouble ]
 const Floats_all * = Floats_nim & Floats_C
 #_____________________________
 func isFloat_nim *(T :string) :bool= T in Floats_nim
@@ -45,31 +45,50 @@ func isFloat     *(T :string) :bool= T in Floats_all
 
 
 #_______________________________________
+# @section Strings
+#_____________________________
+const Strings_nim * = @[ $string  ]
+const Strings_C   * = @[ $cstring ]
+const Strings_all * = Strings_nim & Strings_C
+#_____________________________
+func isString_nim *(T :string) :bool= T in Strings_nim
+func isString_C   *(T :string) :bool= T in Strings_C
+func isString     *(T :string) :bool= T in Strings_all
+
+
+#_______________________________________
 # @section Conversion
 #_____________________________
 func toNodeKind *(T :string) :TNodeKind= result = case T
+  # bool
+  of "bool"      : nkIdent
   # Chars
-  of Chars_all : nkCharLit
+  of Chars_all   : nkCharLit
+  # Strings
+  of Strings_all : nkStrLit
   # Signed Int
-  of "int"     : nkIntLit
-  of "int8"    : nkInt8Lit
-  of "int16"   : nkInt16Lit
-  of "int32"   : nkInt32Lit
-  of "int64"   : nkInt64Lit
+  of "int"       : nkIntLit
+  of "int8"      : nkInt8Lit
+  of "int16"     : nkInt16Lit
+  of "int32"     : nkInt32Lit
+  of "int64"     : nkInt64Lit
+  of "Positive"  : nkIntLit
+  of "Natural"   : nkIntLit
   of Integers_signed_C: nkIntLit
   # Unsigned Int
-  of "uint"    : nkUIntLit
-  of "uint8"   : nkUInt8Lit
-  of "uint16"  : nkUInt16Lit
-  of "uint32"  : nkUInt32Lit
-  of "uint64"  : nkUInt64Lit
-  of "byte"    : nkUInt8Lit
+  of "uint"      : nkUIntLit
+  of "uint8"     : nkUInt8Lit
+  of "uint16"    : nkUInt16Lit
+  of "uint32"    : nkUInt32Lit
+  of "uint64"    : nkUInt64Lit
+  of "byte"      : nkUInt8Lit
   of Integers_unsigned_C: nkIntLit
   # Floats
-  of "float"   : nkFloatLit
-  of "float32" : nkFloat32Lit
-  of "float64" : nkFloat64Lit
-  of Floats_C  : nkFloatLit
+  of "float"     : nkFloatLit
+  of "float32"   : nkFloat32Lit
+  of "float64"   : nkFloat64Lit
+  of Floats_C    : nkFloatLit
   # Unknown or TODO
+  of "void"      : nkNilLit
   else: doAssert false, "unreachable " & $T; nkEmpty
 
