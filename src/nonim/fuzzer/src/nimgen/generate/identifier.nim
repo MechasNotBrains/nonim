@@ -67,12 +67,17 @@ func name *(length :Positive= 8, underscore :bool= false) :string=
 #_______________________________________
 # @section Identifier Generation: Node
 #_____________________________
+func node *(info :TLineInfo; name :string) :PNode=
+  ## Generate a random identifier node
+  result = newNode(nkIdent)
+  {.cast(noSideEffect).}: # Access to gIdentCache is safe
+    result.ident = gIdentCache.getIdent(name)
+  result.info = info
+#___________________
 func typ *(info :TLineInfo; T :string) :PNode=
   ## Generate a random type identifier node
   # FIX: Make it random
-  {.cast(noSideEffect).}: # Access to gIdentCache is safe
-    let typeIdent = gIdentCache.getIdent(T)
-  result = newIdentNode(typeIdent, info)
+  result = identifier.node(info, T)
 #___________________
 func random *(
     info       : TLineInfo;
@@ -82,10 +87,8 @@ func random *(
   ) :PNode=
   ## Generate a random identifier node
   # 1. Name
-  let name_str     = identifier.name(length, underscore) # Generate random name
-  {.cast(noSideEffect).}: # Access to gIdentCache is safe
-    let name_ident = gIdentCache.getIdent(name_str)
-  let name_node    = newIdentNode(name_ident, info)
+  let name_str  = identifier.name(length, underscore) # Generate random name
+  let name_node = identifier.node(info, name_str)
   if not public: return name_node
 
   # 2. Postfix node for export
