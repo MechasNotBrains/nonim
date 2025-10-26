@@ -7,9 +7,10 @@ import "$nim"/compiler/[ ast, lineinfos ]
 import ../random as R
 import ./statement/procedure
 import ./statement/variable
+import ./statement/call
 
 
-const Nodes_all * = ["variable", "proc"]
+const Nodes_all * = ["variable", "proc", "call"]
 
 
 func random *(
@@ -19,5 +20,6 @@ func random *(
   return case kind
   of "variable" : variable.random(info)
   of "proc"     : procedure.random(info)
+  of "call"     : call.random(info)
   else:nil # unreachable
 

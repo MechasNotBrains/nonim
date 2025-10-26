@@ -33,8 +33,8 @@ type TNodeKind* = enum
                         # this is used
                         # for transforming ``s.len`` to ``len(s)``
 
-  nkCommand,            # a call like ``p 2, 4`` without parenthesis
-  nkCall,               # a call like p(x, y) or an operation like +(a, b)
+  # nkCommand,            # a call like ``p 2, 4`` without parenthesis
+  # nkCall,               # a call like p(x, y) or an operation like +(a, b)
   nkCallStrLit,         # a call with a string literal
                         # x"abc" has two sons: nkIdent, nkRStrLit
                         # x"""abc""" has two sons: nkIdent, nkTripleStrLit
@@ -187,7 +187,7 @@ type TNodeKind* = enum
   nkBreakState,         # special break statement for easier code generation
   nkFuncDef,            # a func
   nkTupleConstr         # a tuple constructor
-  nkError               # erroneous AST node
+  # nkError               # erroneous AST node
   nkModuleRef           # for .rod file support: A (moduleId, itemId) pair
   nkReplayAction        # for .rod file support: A replay action
   nkNilRodNode          # for .rod file support: a 'nil' PNode
