@@ -92,10 +92,10 @@ func char_lit *() :string=
 # @section General Typedef
 #_____________________________
 func typename *() :string=
-  case random.integer(3):
+  case random.integer(4):
   of 1: return random.float_lit()
   of 2: return random.char_lit()
-  # of 3: return $bool
-  # of 4: return $string
+  of 3: return "bool"
+  of 4: return "string"
   else: return random.integer_lit()
 

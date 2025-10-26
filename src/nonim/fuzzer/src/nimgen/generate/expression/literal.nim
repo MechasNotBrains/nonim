@@ -12,7 +12,7 @@ import ../shared
 
 
 #_______________________________________
-# @section Node Generation: Entry Point
+# @section Expression Generation: Literals
 #_____________________________
 func integer *(T :string= R.integer_lit()) :PNode=
   ## @descr Generates a random integer literal node of the given type
@@ -120,5 +120,5 @@ func random *(T :string= R.typename()) :PNode=
   of "pointer"    : literal.Nil()
   of "bool"       : literal.bool()
   of "void"       : newNode(nkEmpty)
-  else            : literal.integer(T)
+  else            : newNode(nkEmpty)
 
