@@ -27,6 +27,9 @@ requires "nim >= 2.0.0"
 import std/strformat
 import std/os
 #___________________
+task inspect, "Internal:  Runs the parser inspector file.":
+  selfExec &"c -r --hints:off --warnings:off --outDir:./bin/.tests ./src/nimgen/tests/inspect.nim"
+#___________________
 task tests, "Internal:  Runs all unit tests of the project.":
   if dirExists("./bin/.tests"): rmDir("./bin/.tests")
   for testFile in os.walkDirRec("./src", yieldFilter= {pcFile}, relative= false):
