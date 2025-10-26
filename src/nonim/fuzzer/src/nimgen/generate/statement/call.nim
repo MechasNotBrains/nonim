@@ -11,8 +11,7 @@ import ../expression
 
 proc random *(
     info : TLineInfo;
-    name : string = identifier.name();
-    args : int    = R.integer(16)
+    args : int = R.integer(16)
   ) :PNode=
   result = newNodeI(if R.bool(): nkCall else: nkCommand, info)
   result.add(identifier.random(info))
