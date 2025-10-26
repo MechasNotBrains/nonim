@@ -4,13 +4,14 @@
 # @deps compiler
 import "$nim"/compiler/[ ast, lineinfos ]
 # @deps nim.gen
-import ./expression/literal
+import ../random as R
 import ../typetools
+import ./expression/literal
 
 
 func random *(
     info : TLineInfo;
-    T    : string = $int;
+    T    : string = R.typename();
   ) :PNode=
   # FIX: Choose other random expressions
   if   T.isFloat()   : return literal.float(T)
