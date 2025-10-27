@@ -38,9 +38,9 @@ type TNodeKind* = enum
   nkCallStrLit,         # a call with a string literal
                         # x"abc" has two sons: nkIdent, nkRStrLit
                         # x"""abc""" has two sons: nkIdent, nkTripleStrLit
-  nkInfix,              # a call like (a + b)
-  nkPrefix,             # a call like !a
-  nkPostfix,            # something like a! (also used for visibility)
+  # nkInfix,              # a call like (a + b)
+  # nkPrefix,             # a call like !a
+  # nkPostfix,            # something like a! (also used for visibility)
   nkHiddenCallConv,     # an implicit type conversion via a type converter
 
   nkExprEqExpr,         # a named parameter with equals: ''expr = expr''
@@ -135,13 +135,13 @@ type TNodeKind* = enum
   nkBlockStmt,          # a block statement
   nkStaticStmt,         # a static statement
   nkDiscardStmt,        # a discard statement
-  nkStmtList,           # a list of statements
-  nkImportStmt,         # an import statement
-  nkImportExceptStmt,   # an import x except a statement
+  # nkStmtList,           # a list of statements
+  # nkImportStmt,         # an import statement
+  # nkImportExceptStmt,   # an import x except a statement
   nkExportStmt,         # an export statement
   nkExportExceptStmt,   # an 'export except' statement
-  nkFromStmt,           # a from * import statement
-  nkIncludeStmt,        # an include statement
+  # nkFromStmt,           # a from * import statement
+  # nkIncludeStmt,        # an include statement
   nkBindStmt,           # a bind statement
   nkMixinStmt,          # a mixin statement
   nkUsingStmt,          # an using statement

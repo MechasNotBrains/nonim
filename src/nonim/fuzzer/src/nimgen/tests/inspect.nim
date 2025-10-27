@@ -9,7 +9,12 @@ from ../nimc as nim import treeRepr
 # @section Inspect: Source Code
 #_____________________________
 const src = """
-thing(0;1,2,3,4,5,6,7,8,9)
+import strutils
+import strutils as str
+import strutils except endsWith
+from strformat import endsWith, startsWith
+from strformat as fmt import nil
+include file
 """
 
 
