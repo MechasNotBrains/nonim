@@ -3,7 +3,7 @@
 #:____________________________________________________________________
 # @deps compiler
 import "$nim"/compiler/[ ast, options, lineinfos, msgs, pathutils ]
-from   "$nim"/compiler/renderer import renderTree, renderNoComments, renderNoPragmas
+from   "$nim"/compiler/renderer import renderTree, renderNoPragmas
 # @deps std
 from std/strutils import replace
 # @deps generator
@@ -27,7 +27,7 @@ proc render *(
     allowBlocks : bool = true;
   ) :string=
   # if root.node.kind == nkConstSection: return renderConst(root) # Remove const blocks
-  result = renderTree(root.node, {renderNoComments, renderNoPragmas})
+  result = renderTree(root.node, {renderNoPragmas})
 
 
 #_______________________________________

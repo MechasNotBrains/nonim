@@ -9,9 +9,10 @@ import ./statement/procedure
 import ./statement/variable
 import ./statement/call
 import ./statement/module
+import ./statement/comment as Comment
 
 
-const Nodes_all * = ["variable", "proc", "call", "module"]
+const Nodes_all * = ["variable", "proc", "call", "module", "comment"]
 
 
 func random *(
@@ -23,5 +24,6 @@ func random *(
   of "proc"     : procedure.random(info)
   of "call"     : call.random(info)
   of "module"   : module.random(info)
+  of "comment"  : Comment.random(info)
   else:nil # unreachable
 

@@ -145,7 +145,7 @@ type TNodeKind* = enum
   nkBindStmt,           # a bind statement
   nkMixinStmt,          # a mixin statement
   nkUsingStmt,          # an using statement
-  nkCommentStmt,        # a comment statement
+  # nkCommentStmt,        # a comment statement
   nkStmtListExpr,       # a statement list followed by an expr; this is used
                         # to allow powerful multi-line templates
   nkBlockExpr,          # a statement block ending in an expr; this is used
