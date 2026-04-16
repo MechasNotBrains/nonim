@@ -10,7 +10,7 @@ import ./expression/literal
 import ./identifier
 
 
-const MaxDepth * = 4
+const MaxDepth * = 3
 
 func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode
 
@@ -76,7 +76,7 @@ func dot *(info :TLineInfo; depth :int= 0) :PNode=
 #_______________________________________
 # @section Expression Generation: Call
 #_____________________________
-func arguments *(info :TLineInfo; count :int= R.integer(16); depth :int= 0) :seq[PNode]=
+func arguments *(info :TLineInfo; count :int= R.integer(10); depth :int= 0) :seq[PNode]=
   let limit = max(0, count div max(1, depth))
   for _ in 0..<limit:
     result.add(expression.random(info, depth= depth + 1))
