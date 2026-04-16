@@ -13,7 +13,7 @@ import ./comment as Comment
 #_______________________________________
 # @section Statement.Module Generation: import
 #_____________________________
-proc Import *(
+func Import *(
     info    : TLineInfo;
     entries : int    = 0;
     As      : string = "";
@@ -36,7 +36,7 @@ proc Import *(
 #_______________________________________
 # @section Statement.Module Generation: include
 #_____________________________
-proc Include *(
+func Include *(
     info   : TLineInfo;
     cmment : bool = R.bool();
   ) :PNode=
@@ -48,7 +48,7 @@ proc Include *(
 #_______________________________________
 # @section Statement.Module Generation: Entry Point
 #_____________________________
-proc random *(
+func random *(
     info : TLineInfo;
   ) :PNode=
   case R.integer(4)

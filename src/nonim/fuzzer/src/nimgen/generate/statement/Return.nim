@@ -8,7 +8,7 @@ import ../../random as R
 import ../expression/literal
 
 
-proc random *(
+func random *(
     info : TLineInfo;
     T    : string= R.typename()
   ) :PNode=

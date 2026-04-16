@@ -10,7 +10,7 @@ import ../expression
 import ./comment as Comment
 
 
-proc random *(
+func random *(
     info   : TLineInfo;
     args   : int  = R.integer(16);
     cmment : bool = R.bool();
