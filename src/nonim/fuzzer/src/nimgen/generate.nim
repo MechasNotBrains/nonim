@@ -35,7 +35,7 @@ proc root *(path :string) :RootData=
 #_____________________________
 const ExprMaxDepth * = 3
 func expression_random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode
-func lambda *(info :TLineInfo; depth :int= 0) :PNode
+func lambda *(info :TLineInfo; depth :int= 0; pragmas :bool= R.bool()) :PNode
 
 
 #_______________________________________
@@ -761,18 +761,25 @@ func statement_procedure *(
 #_______________________________________
 # @section Expression Generation: Lambda
 #_____________________________
-func lambda *(info :TLineInfo; depth :int= 0) :PNode=
+func lambda *(
+    info    : TLineInfo;
+    depth   : int  = 0;
+    pragmas : bool = R.bool();
+  ) :PNode=
   let retType   = R.sample(basicTypes)
   let arguments = generate.procedure_arguments(info, retType, numParams= R.integer(0..8))
   let body      = generate.procedure_body(info, retType, numStatements= R.integer(0..8), depth= depth)
+  let pragmaN   =
+    if pragmas : generate.pragmaNode(info, decl= true)
+    else       : newNodeI(nkEmpty, info)
   result = newNodeI(nkLambda, info)
-  result.add(newNodeI(nkEmpty, info))
-  result.add(newNodeI(nkEmpty, info))
-  result.add(newNodeI(nkEmpty, info))
-  result.add(arguments)
-  result.add(newNodeI(nkEmpty, info))
-  result.add(newNodeI(nkEmpty, info))
-  result.add(body)
+  result.add(newNodeI(nkEmpty, info))  # 0: Name
+  result.add(newNodeI(nkEmpty, info))  # 1: Pattern
+  result.add(newNodeI(nkEmpty, info))  # 2: Generic params
+  result.add(arguments)                # 3: Formal params
+  result.add(pragmaN)                  # 4: Pragma
+  result.add(newNodeI(nkEmpty, info))  # 5: Reserved
+  result.add(body)                     # 6: Body
 
 
 #_______________________________________
