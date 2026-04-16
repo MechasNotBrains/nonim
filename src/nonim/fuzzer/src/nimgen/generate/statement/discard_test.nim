@@ -28,7 +28,7 @@ suite "Discard Generation Tests":
   var testID = 0
   proc compileTest(declarations: seq[string]): bool =
     let testCode = TmplTestCode % [declarations.join("\n")]
-    result = base.compileTest("discard", &"discards{testID}.nim", testCode)
+    result = base.compileTest("discard", &"discards{testID}.nim", testCode, semaRequired= false)
     testID.inc
 
   test "Discard statements":

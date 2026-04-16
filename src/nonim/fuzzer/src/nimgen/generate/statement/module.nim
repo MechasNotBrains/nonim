@@ -6,7 +6,7 @@ import "$nim"/compiler/[ ast, lineinfos ]
 # @deps nim.gen
 import ../../random as R
 import ../identifier
-import ../expression/affix
+import ../expression
 import ./comment as Comment
 
 
@@ -26,7 +26,7 @@ func Import *(
     else             : nkImportStmt
   let name =
     if As == "": identifier.random(info)
-    else       : affix.infix(info, op="as", left= identifier.random(info), right= identifier.random(info))
+    else       : expression.infix(info, op="as", left= identifier.random(info), right= identifier.random(info))
   result = newNodeI(kind, info)
   result.add(name)  # 0: Name
   for _ in 0..<entries: result.add(identifier.random(info))
