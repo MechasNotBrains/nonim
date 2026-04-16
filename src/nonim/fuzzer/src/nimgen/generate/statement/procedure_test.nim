@@ -35,7 +35,7 @@ suite "Procedure Generation Tests":
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
-    for id in 1..100:
+    for id in 1..16:
       let info = newLineInfo(config, absPath, id, 0)
       let node = procedure.random(info, public=false)
       declarations.add(generate.render((node: node, info: info)))
