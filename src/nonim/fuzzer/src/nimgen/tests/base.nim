@@ -20,7 +20,7 @@ proc compileTest *(
   # Compile the generated code
   writeFile(filePath, code)
   # Check with nim
-  var command = "nimc check --hints:off --warnings:off --nimcache:" & cacheDir & " " & filePath
+  var command = "nim check --hints:off --warnings:off --nimcache:" & cacheDir & " " & filePath
   if os.execShellCmd(command) == 0: return true
   if semaRequired: return false
   # Check syntax with simplified parser (no semantics)
