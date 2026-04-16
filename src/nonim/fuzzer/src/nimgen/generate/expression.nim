@@ -254,6 +254,47 @@ func exprColonExpr *(
 
 
 #_______________________________________
+# @section Expression Generation: Pragma Expression
+#_____________________________
+func pragmaValue *(info :TLineInfo) :PNode=
+  if R.bool(): result = literal.random()
+  else:        result = identifier.random(info)
+#___________________
+func pragmaEntry *(info :TLineInfo) :PNode=
+  result = case R.integer(2)
+  of 1: expression.exprColonExpr(info, value= expression.pragmaValue(info))
+  of 2: expression.eq(info, value= expression.pragmaValue(info))
+  else: identifier.random(info)
+#___________________
+func pragmaNode *(
+    info  : TLineInfo;
+    count : int  = R.integer(1..8);
+    decl  : bool = false;
+  ) :PNode=
+  ## Builds a nkPragma node. `decl` enables colon/eq entries for declarations.
+  result = newNodeI(nkPragma, info)
+  for _ in 0..<count:
+    if decl: result.add(expression.pragmaEntry(info))
+    else:    result.add(identifier.random(info))
+#___________________
+func pragma *(
+    info  : TLineInfo;
+    count : int   = R.integer(1..8);
+    inner : PNode = identifier.random(info);
+  ) :PNode=
+  # @workaround nkPragmaExpr renderer bug: `.}` closing clashes with dot-access
+  #   suffix, producing `.}.` which the parser rejects. See: renderer.nim:1224-1226
+  let pragmaExpr = newNodeI(nkPragmaExpr, info)
+  pragmaExpr.add(inner)
+  pragmaExpr.add(expression.pragmaNode(info, count= count))
+  when defined(NimCompilerBug_PragmaExprDot):
+    result = pragmaExpr
+  else:
+    result = newNodeI(nkPar, info)
+    result.add(pragmaExpr)
+
+
+#_______________________________________
 # @section Expression Generation: Object Constructor
 #_____________________________
 func fields *(
@@ -375,7 +416,7 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= MaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(20)
+    result = case R.integer(21)
     of 1: identifier.random(info)
     of 2: expression.par(info, depth= depth)
     of 3: expression.dot(info, depth)
@@ -396,5 +437,6 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
     of 18: expression.If(info, depth= depth)
     of 19: expression.curlyExpr(info, depth= depth)
     of 20: expression.Bind(info)
+    of 21: expression.pragma(info)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
