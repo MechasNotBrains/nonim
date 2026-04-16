@@ -188,6 +188,42 @@ func Tuple *(
 
 
 #_______________________________________
+# @section Expression Generation: Expr Colon Expr (Named Parameter)
+#_____________________________
+func exprColonExpr *(
+    info  : TLineInfo;
+    depth : int   = 0;
+    name  : PNode = identifier.random(info);
+    value : PNode = expression.random(info, depth= depth + 1);
+  ) :PNode=
+  result = newNodeI(nkExprColonExpr, info)
+  result.add(name)
+  result.add(value)
+
+
+#_______________________________________
+# @section Expression Generation: Object Constructor
+#_____________________________
+func fields *(
+    info  : TLineInfo;
+    count : int = R.integer(10);
+    depth : int = 0;
+  ) :seq[PNode]=
+  let limit = max(0, count div max(1, depth))
+  for _ in 0..<limit:
+    result.add(expression.exprColonExpr(info, depth= depth + 1))
+#___________________
+func Object *(
+    info  : TLineInfo;
+    depth : int        = 0;
+    args  : seq[PNode] = expression.fields(info, depth= depth);
+  ) :PNode=
+  result = newNodeI(nkObjConstr, info)
+  result.add(identifier.random(info))
+  for arg in args: result.add(arg)
+
+
+#_______________________________________
 # @section Expression Generation: Cast
 #_____________________________
 func Cast *(
@@ -208,7 +244,7 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= MaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(14)
+    result = case R.integer(15)
     of 1: identifier.random(info)
     of 2: expression.par(info, depth= depth)
     of 3: expression.dot(info, depth)
@@ -223,5 +259,6 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
     of 12: expression.curly(info, depth= depth)
     of 13: expression.Tuple(info, depth= depth)
     of 14: expression.Cast(info, depth= depth)
+    of 15: expression.Object(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
