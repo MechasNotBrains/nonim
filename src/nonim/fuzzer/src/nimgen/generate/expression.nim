@@ -76,12 +76,32 @@ func dot *(info :TLineInfo; depth :int= 0) :PNode=
 #_______________________________________
 # @section Expression Generation: Call
 #_____________________________
-func arguments *(info :TLineInfo; count :int= R.integer(10); depth :int= 0) :seq[PNode]=
+func eq *(
+    info  : TLineInfo;
+    depth : int   = 0;
+    name  : PNode = identifier.random(info);
+    value : PNode = expression.random(info, depth= depth + 1);
+  ) :PNode=
+  result = newNodeI(nkExprEqExpr, info)
+  result.add(name)
+  result.add(value)
+#___________________
+func arguments *(
+    info  : TLineInfo;
+    count : int  = R.integer(10);
+    depth : int  = 0;
+    named : bool = false;
+  ) :seq[PNode]=
   let limit = max(0, count div max(1, depth))
   for _ in 0..<limit:
-    result.add(expression.random(info, depth= depth + 1))
+    if named and R.bool(): result.add(expression.eq(info, depth= depth))
+    else:                  result.add(expression.random(info, depth= depth + 1))
 #___________________
-func call *(info :TLineInfo; depth :int= 0; args :seq[PNode]= expression.arguments(info, depth= depth)) :PNode=
+func call *(
+    info  : TLineInfo;
+    depth : int        = 0;
+    args  : seq[PNode] = expression.arguments(info, depth= depth, named= true);
+  ) :PNode=
   result = newNodeI(nkCall, info)
   result.add(identifier.random(info))
   for arg in args: result.add(arg)
