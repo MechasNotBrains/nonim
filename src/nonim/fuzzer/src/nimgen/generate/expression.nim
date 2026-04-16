@@ -138,13 +138,27 @@ func callStrLit *(
 
 
 #_______________________________________
+# @section Expression Generation: Range
+#_____________________________
+func Range *(
+    info  : TLineInfo;
+    depth : int   = 0;
+    left  : PNode = expression.random(info, depth= depth + 1);
+    right : PNode = expression.random(info, depth= depth + 1);
+  ) :PNode=
+  result = newNodeI(nkRange, info)
+  result.add(left)
+  result.add(right)
+
+
+#_______________________________________
 # @section Expression Generation: Entry Point
 #_____________________________
 func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= MaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(9)
+    result = case R.integer(10)
     of 1: identifier.random(info)
     of 2: expression.par(info, depth= depth)
     of 3: expression.dot(info, depth)
@@ -154,5 +168,6 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
     of 7: expression.Addr(info, expression.random(info, depth= depth + 1))
     of 8: expression.arrayAccess(info)
     of 9: expression.callStrLit(info)
+    of 10: expression.Range(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
