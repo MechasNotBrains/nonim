@@ -9,10 +9,9 @@ import std/strformat
 # @deps compiler
 import "$nim"/compiler/[ options, lineinfos, msgs, pathutils, ast ]
 # @deps nim.gen
-import ../../generate
-import ./procedure
+import ../generate
 # @deps nim.gen.tests
-import ../../tests/base
+import ../tests/base
 
 
 const TmplTestCode = """
@@ -37,6 +36,6 @@ suite "Procedure Generation Tests":
     let absPath = AbsoluteFile("test.nim")
     for id in 1..16:
       let info = newLineInfo(config, absPath, id, 0)
-      let node = procedure.random(info, public=false)
-      declarations.add(generate.render((node: node, info: info)))
+      let node = generate.statement_procedure(info, public=false)
+      declarations.add(render.code((node: node, info: info)))
     check compileTest(declarations)

@@ -6,9 +6,9 @@ import "$nim"/compiler/[ ast, idents ]
 # @deps std
 from std/strutils import Letters, replace, escape
 # @deps nim.gen
-import ../../random as R
-import ../../typetools
-import ../shared
+import ../random as R
+import ../typetools
+import ./shared
 
 
 #_______________________________________
@@ -109,12 +109,12 @@ func bool *() :PNode=
 #___________________
 func random *(T :string= R.typename()) :PNode=
   case T
-  of Chars_all    : literal.char(T)
-  of Floats_all   : literal.float(T)
-  of Integers_all : literal.integer(T)
-  of Strings_all  : literal.string()
-  of "pointer"    : literal.Nil()
-  of "bool"       : literal.bool()
+  of Chars_all    : expression_literal.char(T)
+  of Floats_all   : expression_literal.float(T)
+  of Integers_all : expression_literal.integer(T)
+  of Strings_all  : expression_literal.string()
+  of "pointer"    : expression_literal.Nil()
+  of "bool"       : expression_literal.bool()
   of "void"       : newNode(nkEmpty)
   else            : newNode(nkEmpty)
 

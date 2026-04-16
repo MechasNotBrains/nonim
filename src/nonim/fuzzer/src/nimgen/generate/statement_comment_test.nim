@@ -9,10 +9,10 @@ import std/strformat
 # @deps compiler
 import "$nim"/compiler/[ options, lineinfos, msgs, pathutils, ast ]
 # @deps nim.gen
-import ../../generate
-import ./comment as Comment
+import ../generate
+import ./statement_comment
 # @deps nim.gen.tests
-import ../../tests/base
+import ../tests/base
 
 
 const TmplTestCode = """
@@ -37,8 +37,8 @@ suite "Comment Generation Tests":
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let info = newLineInfo(config, absPath, id, 0)
-      let node = Comment.random(info)
-      declarations.add(generate.render((node: node, info: info)))
+      let node = statement_comment.random(info)
+      declarations.add(render.code((node: node, info: info)))
     check compileTest(declarations)
 
   test "Comment statements with explicit length":
@@ -47,6 +47,6 @@ suite "Comment Generation Tests":
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let info = newLineInfo(config, absPath, id, 0)
-      let node = Comment.random(info, len= id)
-      declarations.add(generate.render((node: node, info: info)))
+      let node = statement_comment.random(info, len= id)
+      declarations.add(render.code((node: node, info: info)))
     check compileTest(declarations)

@@ -9,12 +9,11 @@ import std/strformat
 # @deps compiler
 import "$nim"/compiler/[ options, lineinfos, msgs, pathutils, ast ]
 # @deps nim.gen
-import ../../random as R
-import ../../generate
-import ../identifier
-import ./module
+import ../random as R
+import ../generate
+import ./identifier
 # @deps nim.gen.tests
-import ../../tests/base
+import ../tests/base
 
 
 const TmplTestCode = """
@@ -39,8 +38,8 @@ suite "Variable Generation Tests":
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let info = newLineInfo(config, absPath, id, 0)
-      let node = module.Include(info)
-      declarations.add(generate.render((node: node, info: info)))
+      let node = generate.statement_include(info)
+      declarations.add(render.code((node: node, info: info)))
     check compileTest(declarations)
 
   test "import statements":
@@ -49,8 +48,8 @@ suite "Variable Generation Tests":
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let info = newLineInfo(config, absPath, id, 0)
-      let node = module.Import(info)
-      declarations.add(generate.render((node: node, info: info)))
+      let node = generate.statement_import(info)
+      declarations.add(render.code((node: node, info: info)))
     check compileTest(declarations)
 
   test "import except statements":
@@ -59,8 +58,8 @@ suite "Variable Generation Tests":
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let info = newLineInfo(config, absPath, id, 0)
-      let node = module.Import(info, entries= #[ broken above 6 ]# R.integer(1..6))
-      declarations.add(generate.render((node: node, info: info)))
+      let node = generate.statement_import(info, entries= #[ broken above 6 ]# R.integer(1..6))
+      declarations.add(render.code((node: node, info: info)))
     check compileTest(declarations)
 
   test "import as statements":
@@ -69,8 +68,8 @@ suite "Variable Generation Tests":
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let info = newLineInfo(config, absPath, id, 0)
-      let node = module.Import(info, entries= #[ broken above 5 ]# R.integer(0..5), As= identifier.name())
-      declarations.add(generate.render((node: node, info: info)))
+      let node = generate.statement_import(info, entries= #[ broken above 5 ]# R.integer(0..5), As= identifier.name())
+      declarations.add(render.code((node: node, info: info)))
     check compileTest(declarations)
 
   test "from statements":
@@ -80,7 +79,6 @@ suite "Variable Generation Tests":
     for id in 1..100:
       let info = newLineInfo(config, absPath, id, 0)
       let As   = if R.bool(): identifier.name() else: ""
-      let node = module.Import(info, entries= R.integer(1..16), From= true, As= As)
-      declarations.add(generate.render((node: node, info: info)))
+      let node = generate.statement_import(info, entries= R.integer(1..16), From= true, As= As)
+      declarations.add(render.code((node: node, info: info)))
     check compileTest(declarations)
-

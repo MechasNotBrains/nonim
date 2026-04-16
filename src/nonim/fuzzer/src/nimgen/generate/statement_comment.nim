@@ -4,8 +4,8 @@
 # @deps compiler
 import "$nim"/compiler/[ ast, lineinfos ]
 # @deps nim.gen
-import ../../random as R
-import ../shared
+import ../random as R
+import ./shared
 
 
 #___________________
@@ -15,7 +15,7 @@ func contents *(len :int = R.integer(1..255)) :string=
 #___________________
 func addComment *(node :PNode) =
   {.cast(noSideEffect).}: # Adding comments to nodes is safe
-    node.comment = comment.contents()
+    node.comment = statement_comment.contents()
 #___________________
 func random *(
     info : TLineInfo;
@@ -23,5 +23,5 @@ func random *(
   ) :PNode=
   result = newNodeI(nkCommentStmt, info)
   {.cast(noSideEffect).}: # Adding comments to nodes is safe
-    ast.`comment=`(result, comment.contents(len))
+    ast.`comment=`(result, statement_comment.contents(len))
 

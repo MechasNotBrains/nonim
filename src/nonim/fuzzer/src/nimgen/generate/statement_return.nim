@@ -5,10 +5,13 @@
 import "$nim"/compiler/[ ast, lineinfos ]
 # @deps nim.gen
 import ../random as R
-import ./shared
-import ./statement/any as statement_any
+import ./expression_literal as literal
 
 
-func random *(info :TLineInfo) :PNode=
-  result = statement_any.generate(info, R.sample(Statements_toplevel))
+func random *(
+    info : TLineInfo;
+    T    : string= R.typename()
+  ) :PNode=
+  result = newNodeI(nkReturnStmt, info)
+  result.add(literal.random(T))
 

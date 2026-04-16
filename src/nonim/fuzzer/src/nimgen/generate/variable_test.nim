@@ -9,10 +9,9 @@ import std/strformat
 # @deps compiler
 import "$nim"/compiler/[ options, lineinfos, msgs, pathutils, ast ]
 # @deps nim.gen
-import ../../generate
-import ./variable
+import ../generate
 # @deps nim.gen.tests
-import ../../tests/base
+import ../tests/base
 
 
 const TmplTestCode = """
@@ -41,8 +40,8 @@ suite "Variable Generation Tests":
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let info    = newLineInfo(config, absPath, id, 0)
-      let varNode = variable.random(info, mutable=true, runtime=true, public=false)
-      declarations.add("  " & generate.render((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
+      let varNode = generate.statement_variable(info, mutable=true, runtime=true, public=false)
+      declarations.add("  " & render.code((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
     check compileTest(declarations)
 
   test "Let declarations":
@@ -51,8 +50,8 @@ suite "Variable Generation Tests":
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let info    = newLineInfo(config, absPath, id, 0)
-      let varNode = variable.random(info, mutable=false, runtime=true, public=false)
-      declarations.add("  " & generate.render((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
+      let varNode = generate.statement_variable(info, mutable=false, runtime=true, public=false)
+      declarations.add("  " & render.code((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
     check compileTest(declarations)
 
   test "Const declarations":
@@ -61,7 +60,6 @@ suite "Variable Generation Tests":
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let info    = newLineInfo(config, absPath, id, 0)
-      let varNode = variable.random(info, mutable=false, runtime=false, public=false)
-      declarations.add("  " & generate.render((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
+      let varNode = generate.statement_variable(info, mutable=false, runtime=false, public=false)
+      declarations.add("  " & render.code((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
     check compileTest(declarations)
-

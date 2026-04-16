@@ -9,10 +9,9 @@ import std/strformat
 # @deps compiler
 import "$nim"/compiler/[ options, lineinfos, msgs, pathutils, ast ]
 # @deps nim.gen
-import ../../generate
-import ./assignment
+import ../generate
 # @deps nim.gen.tests
-import ../../tests/base
+import ../tests/base
 
 
 const TmplTestCode = """
@@ -37,6 +36,6 @@ suite "Assignment Generation Tests":
     let absPath = AbsoluteFile("test.nim")
     for id in 1..100:
       let info = newLineInfo(config, absPath, id, 0)
-      let node = assignment.random(info)
-      declarations.add(generate.render((node: node, info: info)))
+      let node = generate.statement_assignment(info)
+      declarations.add(render.code((node: node, info: info)))
     check compileTest(declarations)
