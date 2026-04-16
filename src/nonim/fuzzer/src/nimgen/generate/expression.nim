@@ -334,13 +334,12 @@ func Else *(
   result.add(value)
 #___________________
 func branches *(
-    info     : TLineInfo;
-    count    : int  = R.integer(1..4);
-    depth    : int  = 0;
-    withElse : bool = R.bool();
+    info  : TLineInfo;
+    count : int = R.integer(1..4);
+    depth : int = 0;
   ) :seq[PNode]=
   for _ in 0..<count: result.add(expression.Elif(info, depth= depth))
-  if withElse: result.add(expression.Else(info, depth= depth))
+  result.add(expression.Else(info, depth= depth))
 #___________________
 func If *(
     info  : TLineInfo;
