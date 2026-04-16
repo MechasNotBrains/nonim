@@ -10,6 +10,15 @@ import ../expression
 import ./comment as Comment
 
 
+func node *(
+    info : TLineInfo;
+    name : string         = identifier.name();
+    args : openArray[PNode] = [];
+  ) :PNode=
+  result = newNodeI(nkCall, info)
+  result.add(identifier.node(info, name))
+  for arg in args: result.add(arg)
+#___________________
 func random *(
     info   : TLineInfo;
     args   : int  = R.integer(16);
