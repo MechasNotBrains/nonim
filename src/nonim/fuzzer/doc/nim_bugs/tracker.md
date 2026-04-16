@@ -10,3 +10,4 @@
 | [pragma_expr_dot](pragma_expr_dot/) | `NimCompilerBug_PragmaExprDot` | |
 | [range_no_spaces](range_no_spaces/) | `NimCompilerBug_RangeNoSpaces` | |
 | [static_expr_indent](static_expr_indent/) | `NimCompilerBug_StaticExprIndent` | |
+| [stmtlistexpr_nosemicolon](stmtlistexpr_nosemicolon/) | nkStmtListExpr not implemented | |
