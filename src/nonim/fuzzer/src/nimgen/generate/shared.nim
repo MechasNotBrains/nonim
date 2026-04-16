@@ -2,7 +2,42 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps compiler
-import "$nim"/compiler/[ idents ]
+import "$nim"/compiler/[ ast, idents ]
+
+# Statement Kinds
+const Statements_toplevel * = {
+  # Declarations
+  nkVarSection, nkLetSection, nkConstSection,
+  nkProcDef, nkFuncDef, nkMethodDef, nkConverterDef,
+  nkMacroDef, nkTemplateDef, nkIteratorDef,
+  nkTypeSection,
+  # Expressions
+  nkCall, nkCommand,
+  nkAsgn,
+  # Control flow
+  nkIfStmt, nkWhenStmt, nkCaseStmt,
+  nkForStmt, nkWhileStmt,
+  nkBlockStmt,
+  nkTryStmt, nkRaiseStmt,
+  nkDiscardStmt,
+  # Modules
+  nkImportStmt, nkImportExceptStmt, nkFromStmt, nkIncludeStmt,
+  nkExportStmt, nkExportExceptStmt,
+  # Other
+  nkCommentStmt,
+  nkPragma,
+  nkUsingStmt, nkBindStmt, nkMixinStmt,
+}
+const Statements_body * = Statements_toplevel - {
+  nkImportStmt, nkImportExceptStmt, nkFromStmt, nkIncludeStmt,
+  nkExportStmt, nkExportExceptStmt,
+} + {
+  nkReturnStmt,
+  nkBreakStmt, nkContinueStmt,
+  nkYieldStmt,
+  nkDefer,
+  nkAsmStmt,
+}
 
 # Character Sets
 const VisibleChars * = {' '..'~'}
