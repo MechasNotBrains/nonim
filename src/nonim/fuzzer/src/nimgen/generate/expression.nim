@@ -57,6 +57,14 @@ func affix *(info :TLineInfo; depth :int= 0) :PNode=
 
 
 #_______________________________________
+# @section Expression Generation: Parenthesized
+#_____________________________
+func par *(info :TLineInfo; inner :PNode= expression.random(info, depth= 1); depth :int= 0) :PNode=
+  result = newNodeI(nkPar, info)
+  result.add(inner)
+
+
+#_______________________________________
 # @section Expression Generation: Dot Expression
 #_____________________________
 func dot *(info :TLineInfo; depth :int= 0) :PNode=
@@ -74,10 +82,7 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   else:
     result = case R.integer(3)
     of 1: identifier.random(info)
-    of 2:
-      let inner = newNodeI(nkPar, info)
-      inner.add(expression.random(info, T, depth + 1))
-      inner
+    of 2: expression.par(info, depth= depth)
     of 3: expression.dot(info, depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
