@@ -250,13 +250,25 @@ func Cast *(
 
 
 #_______________________________________
+# @section Expression Generation: Static
+#_____________________________
+func Static *(
+    info  : TLineInfo;
+    depth : int   = 0;
+    inner : PNode = expression.random(info, depth= depth + 1);
+  ) :PNode=
+  result = newNodeI(nkStaticExpr, info)
+  result.add(inner)
+
+
+#_______________________________________
 # @section Expression Generation: Entry Point
 #_____________________________
 func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= MaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(16)
+    result = case R.integer(17)
     of 1: identifier.random(info)
     of 2: expression.par(info, depth= depth)
     of 3: expression.dot(info, depth)
@@ -273,5 +285,6 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
     of 14: expression.Cast(info, depth= depth)
     of 15: expression.Object(info, depth= depth)
     of 16: expression.table(info, depth= depth)
+    of 17: expression.Static(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
