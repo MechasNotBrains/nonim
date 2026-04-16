@@ -26,7 +26,14 @@ func runtime (
   result = newNodeI(kind, info)
   for id in 1..count:
     let identDefs = newNodeI(nkIdentDefs, info)
-    identDefs.add(identifier.random(info, public))  # Child 0: Name (with export)
+    let nameNode = identifier.random(info, public)
+    if random.bool():                               # Child 0: Name (optionally with pragma)
+      let pragmaName = newNodeI(nkPragmaExpr, info)
+      pragmaName.add(nameNode)
+      pragmaName.add(expression.pragmaNode(info, decl= true))
+      identDefs.add(pragmaName)
+    else:
+      identDefs.add(nameNode)
     identDefs.add(identifier.typ(info, T))          # Child 1: Type
     identDefs.add(expression.random(info, T))       # Child 2: Value
     if cmment: identDefs.addComment()
@@ -43,7 +50,14 @@ func comptime (
   result = newNodeI(nkConstSection, info)
   for id in 1..count:
     let constDef = newNodeI(nkConstDef, info)
-    constDef.add(identifier.random(info, public))  # Child 0: Name (with export)
+    let nameNode = identifier.random(info, public)
+    if random.bool():                               # Child 0: Name (optionally with pragma)
+      let pragmaName = newNodeI(nkPragmaExpr, info)
+      pragmaName.add(nameNode)
+      pragmaName.add(expression.pragmaNode(info, decl= true))
+      constDef.add(pragmaName)
+    else:
+      constDef.add(nameNode)
     constDef.add(identifier.typ(info, T))          # Child 1: Type
     constDef.add(expression.random(info, T))       # Child 2: Value
     if cmment: constDef.addComment()
