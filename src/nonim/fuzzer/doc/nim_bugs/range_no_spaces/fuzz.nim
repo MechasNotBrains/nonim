@@ -14,10 +14,10 @@
 from std/os import `/`, parentDir
 # @deps compiler
 import "$nim"/compiler/ast
+from "$nim"/compiler/renderer import renderTree, renderDocComments
 # @deps nim.gen
 from nimgen/generate import nil
-from nimgen/generate/expression import nil
-from nimgen/generate/expression/literal import nil
+from nimgen/generate/expression_literal as literal import nil
 
 const count {.intdefine.} = 4096 ## Override with -d:count=N
 
@@ -25,8 +25,8 @@ let outputPath = currentSourcePath.parentDir / "fuzz_output.nim"
 let root = generate.root(outputPath)
 
 for _ in 0..<count:
-  root.node.add(expression.Range(root.info, depth= 1,
+  root.node.add(generate.Range(root.info, depth= 1,
     right= literal.integer("int8")))
 
-writeFile(outputPath, generate.render(root))
+writeFile(outputPath, renderTree(root.node, {renderDocComments}))
 echo "Wrote ", outputPath

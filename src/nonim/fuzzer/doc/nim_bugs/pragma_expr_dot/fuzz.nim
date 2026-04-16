@@ -17,7 +17,6 @@ import "$nim"/compiler/ast
 from "$nim"/compiler/renderer import renderTree, renderDocComments
 # @deps nim.gen
 from nimgen/generate import nil
-from nimgen/generate/expression import nil
 from nimgen/generate/identifier import nil
 
 const count {.intdefine.} = 4096 ## Override with -d:count=N
@@ -27,7 +26,7 @@ let root = generate.root(outputPath)
 
 for _ in 0..<count:
   let dotNode = newNodeI(nkDotExpr, root.info)
-  dotNode.add(expression.pragma(root.info))
+  dotNode.add(generate.pragma(root.info))
   dotNode.add(identifier.random(root.info))
   root.node.add(dotNode)
 

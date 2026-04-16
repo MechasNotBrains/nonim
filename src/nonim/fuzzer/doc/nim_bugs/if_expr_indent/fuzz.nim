@@ -14,9 +14,9 @@
 from std/os import `/`, parentDir
 # @deps compiler
 import "$nim"/compiler/ast
+from "$nim"/compiler/renderer import renderTree, renderDocComments
 # @deps nim.gen
 from nimgen/generate import nil
-from nimgen/generate/statement/procedure import nil
 
 const count {.intdefine.} = 4096 ## Override with -d:count=N
 
@@ -24,7 +24,7 @@ let outputPath = currentSourcePath.parentDir / "fuzz_output.nim"
 let root = generate.root(outputPath)
 
 for _ in 0..<count:
-  root.node.add(procedure.random(root.info))
+  root.node.add(generate.statement_procedure(root.info))
 
-writeFile(outputPath, generate.render(root))
+writeFile(outputPath, renderTree(root.node, {renderDocComments}))
 echo "Wrote ", outputPath
