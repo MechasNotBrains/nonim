@@ -4,7 +4,7 @@
 # @deps compiler
 import "$nim"/compiler/[ ast, idents ]
 # @deps std
-from std/strutils import PrintableChars, replace, escape
+from std/strutils import Letters, replace, escape
 # @deps nim.gen
 import ../../random as R
 import ../../typetools
@@ -92,17 +92,9 @@ func string *(
   ##   nkStrLit:       renderer calls addQuoted (escapes special chars)
   ##   nkRStrLit:      renderer doubles `"` only
   ##   nkTripleStrLit: renderer dumps strVal as-is between `"""`
+  # TODO: Use PrintableChars once per-kind sanitization is correct
   var value :string= ""
-  for _ in 0..<len: value.add(R.sample(PrintableChars))
-  # Per-kind sanitization
-  case kind
-  of nkRStrLit:
-    # Raw strings cannot contain newlines or invalid lexer tokens
-    value = value.replace("\n", "").replace("\r", "").replace("\v", "").replace("\f", "")
-  of nkTripleStrLit:
-    # Triple strings cannot contain `"""` in content or invalid lexer tokens
-    value = value.replace("\"\"\"", "\"\"").replace("\v", "").replace("\f", "")
-  else: discard
+  for _ in 0..<len: value.add(R.sample(Letters))
   result = newStrNode(kind, value)
 #___________________
 func Nil *() :PNode=
