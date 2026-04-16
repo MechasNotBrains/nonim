@@ -82,7 +82,7 @@ func typ *(info :TLineInfo; T :string) :PNode=
 func random *(
     info       : TLineInfo;
     public     : bool     = false;
-    length     : Positive = 8;
+    length     : Positive = R.integer(1..64);
     underscore : bool     = false
   ) :PNode=
   ## Generate a random identifier node
