@@ -10,6 +10,7 @@ import ./call
 import ./module
 import ./comment as Comment
 import ./assignment
+import ./Discard
 
 
 #_______________________________________
@@ -26,6 +27,7 @@ func generate *(
   of nkCall, nkCommand           : call.random(info)
   of nkCommentStmt               : Comment.random(info)
   of nkAsgn                      : assignment.random(info)
+  of nkDiscardStmt               : Discard.random(info)
   of nkImportStmt, nkFromStmt,
      nkImportExceptStmt,
      nkIncludeStmt               : module.random(info)
