@@ -132,6 +132,17 @@ func Addr *(info :TLineInfo; inner :PNode= expression.random(info)) :PNode=
 
 
 #_______________________________________
+# @section Expression Generation: Bind
+#_____________________________
+func Bind *(
+    info  : TLineInfo;
+    inner : PNode = identifier.random(info);
+  ) :PNode=
+  result = newNodeI(nkBind, info)
+  result.add(inner)
+
+
+#_______________________________________
 # @section Expression Generation: Bracket Expression (Indexed Access)
 #_____________________________
 func arrayAccess *(
@@ -364,7 +375,7 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= MaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(19)
+    result = case R.integer(20)
     of 1: identifier.random(info)
     of 2: expression.par(info, depth= depth)
     of 3: expression.dot(info, depth)
@@ -384,5 +395,6 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
     of 17: expression.Static(info, depth= depth)
     of 18: expression.If(info, depth= depth)
     of 19: expression.curlyExpr(info, depth= depth)
+    of 20: expression.Bind(info)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
