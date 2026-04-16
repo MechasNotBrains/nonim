@@ -419,6 +419,18 @@ func Static *(
 
 
 #_______________________________________
+# @section Expression Generation: TypeOf
+#_____________________________
+func TypeOf *(
+    info  : TLineInfo;
+    depth : int   = 0;
+    inner : PNode = generate.expression_random(info, depth= depth + 1);
+  ) :PNode=
+  result = newNodeI(nkTypeOfExpr, info)
+  result.add(inner)
+
+
+#_______________________________________
 # @section Expression Generation: If Expression
 #_____________________________
 func Elif *(
@@ -470,7 +482,7 @@ func expression_random *(info :TLineInfo; T :string= R.typename(); depth :int= 0
   if depth >= ExprMaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(23)
+    result = case R.integer(24)
     of  1: identifier.random(info)
     of  2: generate.par(info, depth= depth)
     of  3: generate.dot(info, depth)
@@ -493,7 +505,8 @@ func expression_random *(info :TLineInfo; T :string= R.typename(); depth :int= 0
     of 20: generate.Bind(info)
     of 21: generate.pragma(info)
     of 22: generate.conv(info, depth= depth)
-    of 23:
+    of 23: generate.TypeOf(info, depth= depth)
+    of 24:
       if depth > 0 : literal.random(T)
       else         : generate.lambda(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
