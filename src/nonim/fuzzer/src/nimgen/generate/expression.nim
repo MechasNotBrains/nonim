@@ -224,6 +224,18 @@ func Object *(
 
 
 #_______________________________________
+# @section Expression Generation: Table Constructor
+#_____________________________
+func table *(
+    info  : TLineInfo;
+    depth : int        = 0;
+    args  : seq[PNode] = expression.fields(info, depth= depth);
+  ) :PNode=
+  result = newNodeI(nkTableConstr, info)
+  for arg in args: result.add(arg)
+
+
+#_______________________________________
 # @section Expression Generation: Cast
 #_____________________________
 func Cast *(
@@ -244,7 +256,7 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= MaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(15)
+    result = case R.integer(16)
     of 1: identifier.random(info)
     of 2: expression.par(info, depth= depth)
     of 3: expression.dot(info, depth)
@@ -260,5 +272,6 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
     of 13: expression.Tuple(info, depth= depth)
     of 14: expression.Cast(info, depth= depth)
     of 15: expression.Object(info, depth= depth)
+    of 16: expression.table(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
