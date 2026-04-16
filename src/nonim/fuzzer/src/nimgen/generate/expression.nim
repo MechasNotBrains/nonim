@@ -88,6 +88,14 @@ func call *(info :TLineInfo; depth :int= 0; args :seq[PNode]= expression.argumen
 
 
 #_______________________________________
+# @section Expression Generation: Acc Quoted
+#_____________________________
+func quoted *(info :TLineInfo; inner :PNode= identifier.random(info)) :PNode=
+  result = newNodeI(nkAccQuoted, info)
+  result.add(inner)
+
+
+#_______________________________________
 # @section Expression Generation: Entry Point
 #_____________________________
 func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
