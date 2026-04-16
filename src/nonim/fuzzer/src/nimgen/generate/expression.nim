@@ -343,6 +343,20 @@ func Cast *(
 
 
 #_______________________________________
+# @section Expression Generation: Conv (Explicit Type Conversion)
+#_____________________________
+func conv *(
+    info  : TLineInfo;
+    depth : int    = 0;
+    T     : string = R.typename();
+    inner : PNode  = expression.random(info, depth= depth + 1);
+  ) :PNode=
+  result = newNodeI(nkConv, info)
+  result.add(identifier.typ(info, T))
+  result.add(inner)
+
+
+#_______________________________________
 # @section Expression Generation: Static
 #_____________________________
 func Static *(
@@ -416,7 +430,7 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= MaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(21)
+    result = case R.integer(22)
     of 1: identifier.random(info)
     of 2: expression.par(info, depth= depth)
     of 3: expression.dot(info, depth)
@@ -438,5 +452,6 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
     of 19: expression.curlyExpr(info, depth= depth)
     of 20: expression.Bind(info)
     of 21: expression.pragma(info)
+    of 22: expression.conv(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
