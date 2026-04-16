@@ -194,7 +194,7 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= MaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(10)
+    result = case R.integer(13)
     of 1: identifier.random(info)
     of 2: expression.par(info, depth= depth)
     of 3: expression.dot(info, depth)
@@ -205,5 +205,8 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
     of 8: expression.arrayAccess(info)
     of 9: expression.callStrLit(info)
     of 10: expression.Range(info, depth= depth)
+    of 11: expression.bracket(info, depth= depth)
+    of 12: expression.curly(info, depth= depth)
+    of 13: expression.Tuple(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
