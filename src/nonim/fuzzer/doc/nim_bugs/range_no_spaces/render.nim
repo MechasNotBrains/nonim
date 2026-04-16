@@ -2,7 +2,7 @@
 #  Minimal reproduction: nkRange renders `..` without spaces
 #
 #  Build & run:
-#    nim c -r --hints:off --warnings:off render.nim
+#    nim r render.nim
 #
 #  Expected: spaces around `..` operator
 #  Actual:   no spaces — `0..-128'i8` lexes `..-` as one operator

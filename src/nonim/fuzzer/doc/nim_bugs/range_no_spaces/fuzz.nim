@@ -5,8 +5,8 @@
 #  to `fuzz_output.nim` in this directory.
 #
 #  Build & run:
-#    nim c -r --hints:off --warnings:off --outDir:./bin/.tests doc/nim_bugs/range_no_spaces/fuzz.nim
-#    nim check --hints:off --warnings:off doc/nim_bugs/range_no_spaces/fuzz_output.nim
+#    nim r doc/nim_bugs/range_no_spaces/fuzz.nim
+#    nim check doc/nim_bugs/range_no_spaces/fuzz_output.nim
 #
 #  The second command will fail to parse because `..-` lexes as one operator.
 #:____________________________________________________________________

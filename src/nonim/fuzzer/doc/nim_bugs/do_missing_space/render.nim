@@ -2,7 +2,7 @@
 #  Minimal reproduction: nkDo missing space in renderer output
 #
 #  Build & run:
-#    nim c -r --hints:off --warnings:off render.nim
+#    nim r render.nim
 #
 #  Expected: space between call and `do` keyword
 #  Actual:   no space — produces `sort(cities)do` and `foodo`
