@@ -164,6 +164,18 @@ func bracket *(
 
 
 #_______________________________________
+# @section Expression Generation: Curly (Set Constructor)
+#_____________________________
+func curly *(
+    info  : TLineInfo;
+    depth : int       = 0;
+    args  : seq[PNode] = expression.arguments(info, depth= depth);
+  ) :PNode=
+  result = newNodeI(nkCurly, info)
+  for arg in args: result.add(arg)
+
+
+#_______________________________________
 # @section Expression Generation: Entry Point
 #_____________________________
 func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
