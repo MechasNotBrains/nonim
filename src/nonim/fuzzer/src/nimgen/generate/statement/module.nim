@@ -13,6 +13,9 @@ import ./comment as Comment
 #_______________________________________
 # @section Statement.Module Generation: import
 #_____________________________
+# @workaround nkImportExceptStmt renderer bug: wraps except-list at indent 0.
+#   See: nim compiler renderer.nim:1696-1706
+const ModuleIdentLen = when defined(NimCompilerBug_ImportExceptIndent): 64 else: 8
 func Import *(
     info    : TLineInfo;
     entries : int    = 0;
@@ -25,11 +28,11 @@ func Import *(
     elif entries > 0 : nkImportExceptStmt
     else             : nkImportStmt
   let name =
-    if As == "": identifier.random(info)
-    else       : expression.infix(info, op="as", left= identifier.random(info), right= identifier.random(info))
+    if As == "": identifier.random(info, length= R.integer(1..ModuleIdentLen))
+    else       : expression.infix(info, op="as", left= identifier.random(info, length= R.integer(1..ModuleIdentLen)), right= identifier.random(info, length= R.integer(1..ModuleIdentLen)))
   result = newNodeI(kind, info)
   result.add(name)  # 0: Name
-  for _ in 0..<entries: result.add(identifier.random(info))
+  for _ in 0..<entries: result.add(identifier.random(info, length= R.integer(1..ModuleIdentLen)))
   if cmment: result.addComment()
 
 
