@@ -9,6 +9,7 @@ from std/strutils import replace
 # @deps generator
 import ./random
 import ./generate/node
+import ./generate/statement/any as statement_any
 
 
 #_______________________________________
@@ -51,9 +52,15 @@ proc codegen *(
   ) :string=
   ## @descr Generates random Nim code of the given {@arg kind}
   ## @arg allowBlocks (default: false) Will allow generating let/var/const/etc blocks when true.
-  doAssert kind in Nodes_all
+  let nodeKind = case kind
+    of "variable" : nkVarSection
+    of "proc"     : nkProcDef
+    of "call"     : nkCall
+    of "module"   : nkImportStmt
+    of "comment"  : nkCommentStmt
+    else: doAssert false, "unknown kind: " & kind; nkEmpty
   let root = generate.root(path)
-  for _ in 0..<random.integer(128): root.node.add(node.random(root.info, kind))
+  for _ in 0..<random.integer(128): root.node.add(statement_any.generate(root.info, nodeKind))
   return generate.render(root, allowBlocks)
 
 
