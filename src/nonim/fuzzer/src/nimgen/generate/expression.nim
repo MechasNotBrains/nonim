@@ -277,8 +277,64 @@ func Static *(
     depth : int   = 0;
     inner : PNode = expression.random(info, depth= depth + 1);
   ) :PNode=
-  result = newNodeI(nkStaticExpr, info)
-  result.add(inner)
+  # @workaround nkStaticExpr renderer bug: renders `static EXPR` without parens,
+  #   parser rejects keyword-exprs (addr, not, if) after `static`. See: renderer.nim:1874
+  let innerPar = newNodeI(nkPar, info)
+  innerPar.add(inner)
+  let staticNode = newNodeI(nkStaticExpr, info)
+  when defined(NimCompilerBug_StaticExprIndent):
+    staticNode.add(inner)
+    result = staticNode
+  else:
+    staticNode.add(innerPar)
+    result = newNodeI(nkPar, info)
+    result.add(staticNode)
+
+
+#_______________________________________
+# @section Expression Generation: If Expression
+#_____________________________
+func Elif *(
+    info  : TLineInfo;
+    depth : int   = 0;
+    cond  : PNode = expression.random(info, depth= depth + 1);
+    value : PNode = expression.random(info, depth= depth + 1);
+  ) :PNode=
+  result = newNodeI(nkElifExpr, info)
+  result.add(cond)
+  result.add(value)
+#___________________
+func Else *(
+    info  : TLineInfo;
+    depth : int   = 0;
+    value : PNode = expression.random(info, depth= depth + 1);
+  ) :PNode=
+  result = newNodeI(nkElseExpr, info)
+  result.add(value)
+#___________________
+func branches *(
+    info     : TLineInfo;
+    count    : int  = R.integer(1..4);
+    depth    : int  = 0;
+    withElse : bool = R.bool();
+  ) :seq[PNode]=
+  for _ in 0..<count: result.add(expression.Elif(info, depth= depth))
+  if withElse: result.add(expression.Else(info, depth= depth))
+#___________________
+func If *(
+    info  : TLineInfo;
+    depth : int        = 0;
+    args  : seq[PNode] = expression.branches(info, depth= depth);
+  ) :PNode=
+  # @workaround nkIfExpr renderer bug: multi-line elif/else at outer indent
+  #   breaks parsing in sub-expression contexts. See: renderer.nim:771-781
+  let ifNode = newNodeI(nkIfExpr, info)
+  for arg in args: ifNode.add(arg)
+  when defined(NimCompilerBug_IfExprIndent):
+    result = ifNode
+  else:
+    result = newNodeI(nkPar, info)
+    result.add(ifNode)
 
 
 #_______________________________________
@@ -288,7 +344,7 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= MaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(17)
+    result = case R.integer(18)
     of 1: identifier.random(info)
     of 2: expression.par(info, depth= depth)
     of 3: expression.dot(info, depth)
@@ -306,5 +362,6 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
     of 15: expression.Object(info, depth= depth)
     of 16: expression.table(info, depth= depth)
     of 17: expression.Static(info, depth= depth)
+    of 18: expression.If(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
