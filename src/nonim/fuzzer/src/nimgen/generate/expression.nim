@@ -57,17 +57,27 @@ func affix *(info :TLineInfo; depth :int= 0) :PNode=
 
 
 #_______________________________________
+# @section Expression Generation: Dot Expression
+#_____________________________
+func dot *(info :TLineInfo; depth :int= 0) :PNode=
+  result = newNodeI(nkDotExpr, info)
+  result.add(expression.random(info, depth= depth + 1))
+  result.add(identifier.random(info))
+
+
+#_______________________________________
 # @section Expression Generation: Entry Point
 #_____________________________
 func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= MaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(2)
+    result = case R.integer(3)
     of 1: identifier.random(info)
     of 2:
       let inner = newNodeI(nkPar, info)
       inner.add(expression.random(info, T, depth + 1))
       inner
+    of 3: expression.dot(info, depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
