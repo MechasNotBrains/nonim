@@ -5,25 +5,10 @@
 import "$nim"/compiler/[ ast, lineinfos ]
 # @deps nim.gen
 import ../random as R
-import ./statement/procedure
-import ./statement/variable
-import ./statement/call
-import ./statement/module
-import ./statement/comment as Comment
+import ./shared
+import ./statement/any as statement_any
 
 
-const Nodes_all * = ["variable", "proc", "call", "module", "comment"]
-
-
-func random *(
-    info : TLineInfo;
-    kind : string = R.sample(Nodes_all);
-  ) :PNode=
-  return case kind
-  of "variable" : variable.random(info)
-  of "proc"     : procedure.random(info)
-  of "call"     : call.random(info)
-  of "module"   : module.random(info)
-  of "comment"  : Comment.random(info)
-  else:nil # unreachable
+func random *(info :TLineInfo) :PNode=
+  result = statement_any.generate(info, R.sample(Statements_toplevel))
 
