@@ -9,6 +9,7 @@ import "$nim"/compiler/[ ast, idents, lineinfos ]
 import ../../random as R
 import ../shared
 import ../identifier
+import ../expression
 import ./Return
 import ./assignment
 import ./call
@@ -75,7 +76,13 @@ func random *(info :TLineInfo; public :bool= false; cmment :bool= R.bool(); dept
       # Start new group: Create new nkIdentDefs node
       let typeNode = newIdentNode(typeIdent, info)
       let newParamDef = newNodeI(nkIdentDefs, info)
-      newParamDef.add(paramNameNode)
+      if R.bool():
+        let pragmaName = newNodeI(nkPragmaExpr, info)
+        pragmaName.add(paramNameNode)
+        pragmaName.add(expression.pragmaNode(info, decl= true))
+        newParamDef.add(pragmaName)
+      else:
+        newParamDef.add(paramNameNode)
       newParamDef.add(typeNode)
       newParamDef.add(newNodeI(nkEmpty, info)) # No default value
       paramsNode.add(newParamDef) # Add new definition to the list
@@ -106,7 +113,7 @@ func random *(info :TLineInfo; public :bool= false; cmment :bool= R.bool(); dept
   result.add(newNodeI(nkEmpty, info))  # Child 1: Generic params (empty)
   result.add(newNodeI(nkEmpty, info))  # Child 2: Signature (empty)
   result.add(paramsNode)               # Child 3: Formal params
-  result.add(newNodeI(nkPragma, info)) # Child 4: Pragma (empty)
+  result.add(expression.pragmaNode(info, decl= true)) # Child 4: Pragma
   result.add(newNodeI(nkEmpty, info))  # Child 5: Reserved (empty)
   result.add(bodyNode)                 # Child 6: Body
   if cmment: result.addComment()
