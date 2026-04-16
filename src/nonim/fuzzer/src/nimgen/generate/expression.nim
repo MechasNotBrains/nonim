@@ -96,6 +96,22 @@ func quoted *(info :TLineInfo; inner :PNode= identifier.random(info)) :PNode=
 
 
 #_______________________________________
+# @section Expression Generation: Deref
+#_____________________________
+func deref *(info :TLineInfo; inner :PNode= expression.random(info)) :PNode=
+  result = newNodeI(nkDerefExpr, info)
+  result.add(inner)
+
+
+#_______________________________________
+# @section Expression Generation: Addr
+#_____________________________
+func Addr *(info :TLineInfo; inner :PNode= expression.random(info)) :PNode=
+  result = newNodeI(nkAddr, info)
+  result.add(inner)
+
+
+#_______________________________________
 # @section Expression Generation: Entry Point
 #_____________________________
 func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
