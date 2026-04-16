@@ -166,9 +166,16 @@ func Range *(
     left  : PNode = expression.random(info, depth= depth + 1);
     right : PNode = expression.random(info, depth= depth + 1);
   ) :PNode=
+  # @workaround nkRange renderer bug: outputs `left..right` without spaces,
+  #   so negative right side like `X..-128'i8` lexes as operator `..-`. See: renderer.nim
   result = newNodeI(nkRange, info)
   result.add(left)
-  result.add(right)
+  when defined(NimCompilerBug_RangeNoSpaces):
+    result.add(right)
+  else:
+    let rightPar = newNodeI(nkPar, info)
+    rightPar.add(right)
+    result.add(rightPar)
 
 
 #_______________________________________
