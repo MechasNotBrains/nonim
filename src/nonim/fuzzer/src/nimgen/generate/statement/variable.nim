@@ -29,8 +29,7 @@ func runtime (
     identDefs.add(identifier.random(info, public))  # Child 0: Name (with export)
     identDefs.add(identifier.typ(info, T))          # Child 1: Type
     identDefs.add(expression.random(info, T))       # Child 2: Value
-    # {.cast(noSideEffect).}: # Adding comments to nodes is safe
-    #   if cmment: identDefs.comment = Comment.random()
+    if cmment: identDefs.addComment()
     result.add(identDefs)
 #___________________
 func comptime (
@@ -47,8 +46,7 @@ func comptime (
     constDef.add(identifier.random(info, public))  # Child 0: Name (with export)
     constDef.add(identifier.typ(info, T))          # Child 1: Type
     constDef.add(expression.random(info, T))       # Child 2: Value
-    # {.cast(noSideEffect).}: # Adding comments to nodes is safe
-    #   if cmment: constDef.comment = Comment.random()
+    if cmment: constDef.addComment()
     result.add constDef
 
 

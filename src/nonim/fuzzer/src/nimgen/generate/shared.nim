@@ -4,6 +4,9 @@
 # @deps compiler
 import "$nim"/compiler/[ idents ]
 
+# Character Sets
+const VisibleChars * = {' '..'~'}
+
 # Shared resources for the generator
 var gIdentCache *{.threadvar.}: IdentCache
 gIdentCache = newIdentCache()

@@ -7,13 +7,16 @@ import "$nim"/compiler/[ ast, lineinfos ]
 import ../../random as R
 import ../identifier
 import ../expression
+import ./comment as Comment
 
 
 proc random *(
-    info : TLineInfo;
-    args : int = R.integer(16)
+    info   : TLineInfo;
+    args   : int  = R.integer(16);
+    cmment : bool = R.bool();
   ) :PNode=
   result = newNodeI(if R.bool(): nkCall else: nkCommand, info)
   result.add(identifier.random(info))
   for _ in 0..<args: result.add(expression.random(info))
+  if cmment: result.addComment()
 

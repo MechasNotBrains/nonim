@@ -10,10 +10,11 @@ import ../../random as R
 import ../shared
 import ../identifier
 import ./Return
+import ./comment as Comment
 
 
 # Generate a random procedure node
-func random *(info :TLineInfo; public :bool= false) :PNode=
+func random *(info :TLineInfo; public :bool= false; cmment :bool= R.bool()) :PNode=
   # 1. Name (Postfix node for export)
   let nameNode = identifier.random(info, public) # Create postfix node for name
 
@@ -83,4 +84,5 @@ func random *(info :TLineInfo; public :bool= false) :PNode=
   result.add(newNodeI(nkPragma, info)) # Child 4: Pragma (empty)
   result.add(newNodeI(nkEmpty, info))  # Child 5: Reserved (empty)
   result.add(bodyNode)                 # Child 6: Body
+  if cmment: result.addComment()
 

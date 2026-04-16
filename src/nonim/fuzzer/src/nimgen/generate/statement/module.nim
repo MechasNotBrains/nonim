@@ -7,6 +7,7 @@ import "$nim"/compiler/[ ast, lineinfos ]
 import ../../random as R
 import ../identifier
 import ../expression/affix
+import ./comment as Comment
 
 
 #_______________________________________
@@ -17,6 +18,7 @@ proc Import *(
     entries : int    = 0;
     As      : string = "";
     From    : bool   = false;
+    cmment  : bool   = R.bool();
   ) :PNode=
   let kind =
     if   From        : nkFromStmt
@@ -28,16 +30,19 @@ proc Import *(
   result = newNodeI(kind, info)
   result.add(name)  # 0: Name
   for _ in 0..<entries: result.add(identifier.random(info))
+  if cmment: result.addComment()
 
 
 #_______________________________________
 # @section Statement.Module Generation: include
 #_____________________________
 proc Include *(
-    info : TLineInfo;
+    info   : TLineInfo;
+    cmment : bool = R.bool();
   ) :PNode=
   result = newNodeI(nkIncludeStmt, info)
   result.add(identifier.random(info))  # 0: Name
+  if cmment: result.addComment()
 
 
 #_______________________________________
