@@ -24,7 +24,7 @@ $1
 
 
 suite "Variable Generation Tests":
-  let testCacheDir = "bin/.tests/variable"
+  let testCacheDir = "bin/.tests/module"
   if not dirExists(testCacheDir): createDir(testCacheDir)
 
   var testID = 0
