@@ -84,21 +84,25 @@ func char *(T :string= R.char_lit()) :PNode=
   result.intVal = R.char[system.char]().BiggestInt
 #___________________
 func string *(
-    len : int = 255,
+    len  : int     = R.integer(0..255);
+    kind : TNodeKind = R.sample({nkStrLit..nkTripleStrLit});
   ) :PNode=
   ## @descr Generates a random string literal node with the given `len`
-  let kind      = R.sample({nkStrLit..nkTripleStrLit})
-  let raw       = kind == nkRStrLit
-  let multiline = kind == nkTripleStrLit
-  # Generate the value
+  ## strVal stores raw content; the renderer handles escaping per kind:
+  ##   nkStrLit:       renderer calls addQuoted (escapes special chars)
+  ##   nkRStrLit:      renderer doubles `"` only
+  ##   nkTripleStrLit: renderer dumps strVal as-is between `"""`
   var value :string= ""
   for _ in 0..<len: value.add(R.sample(PrintableChars))
-  # Cleanup the value
-  value = value.escape()
-  if multiline:
-    value.insert("\n", 0)
-    value = value.replace("\\n", "\n")
-  # Return the resulting string node
+  # Per-kind sanitization
+  case kind
+  of nkRStrLit:
+    # Raw strings cannot contain newlines or invalid lexer tokens
+    value = value.replace("\n", "").replace("\r", "").replace("\v", "").replace("\f", "")
+  of nkTripleStrLit:
+    # Triple strings cannot contain `"""` in content or invalid lexer tokens
+    value = value.replace("\"\"\"", "\"\"").replace("\v", "").replace("\f", "")
+  else: discard
   result = newStrNode(kind, value)
 #___________________
 func Nil *() :PNode=
