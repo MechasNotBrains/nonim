@@ -24,7 +24,8 @@ func generate *(
   of nkVarSection, nkLetSection,
      nkConstSection              : variable.random(info)
   of nkProcDef                   : procedure.random(info)
-  of nkCall, nkCommand           : call.random(info)
+  of nkCall                      : call.random(info)
+  of nkCommand                   : call.random(info, command= true)
   of nkCommentStmt               : Comment.random(info)
   of nkAsgn                      : assignment.random(info)
   of nkDiscardStmt               : Discard.random(info)

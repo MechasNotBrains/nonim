@@ -28,7 +28,7 @@ func defaultResult *(
     T    : string;
   ) :PNode=
   ## Generates a `result = default(T)` assignment node
-  result = assignment.node(info, "result", call.node(info, "default", [identifier.node(info, T)]))
+  result = assignment.node(info, "result", call.node(info, name= "default", args= [identifier.node(info, T)]))
 #___________________
 func random *(info : TLineInfo) :PNode=
   ## Generates a `??random?? = ??random??` assignment node
