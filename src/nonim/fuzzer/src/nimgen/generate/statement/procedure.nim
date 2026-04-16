@@ -10,11 +10,31 @@ import ../../random as R
 import ../shared
 import ../identifier
 import ./Return
+import ./assignment
+import ./call
+import ./variable
 import ./comment as Comment
 
 
+const MaxDepth * = 4
+
+func random *(info :TLineInfo; public :bool= false; cmment :bool= R.bool(); depth :int= 0) :PNode
+
+# Generate a random body statement at the given nesting depth
+func bodyStatement *(info :TLineInfo; depth :int) :PNode=
+  let kind = R.integer(4)
+  result = case kind
+  of 0 : variable.random(info, public=false)
+  of 1 : call.random(info)
+  of 2 : Comment.random(info)
+  of 3 : assignment.random(info)
+  else:
+    if depth < MaxDepth : procedure.random(info, public=false, depth= depth + 1)
+    else                : variable.random(info, public=false)
+
+
 # Generate a random procedure node
-func random *(info :TLineInfo; public :bool= false; cmment :bool= R.bool()) :PNode=
+func random *(info :TLineInfo; public :bool= false; cmment :bool= R.bool(); depth :int= 0) :PNode=
   # 1. Name (Postfix node for export)
   let nameNode = identifier.random(info, public) # Create postfix node for name
 
@@ -72,8 +92,13 @@ func random *(info :TLineInfo; public :bool= false; cmment :bool= R.bool()) :PNo
   # --- End Parameters ---
 
   # 3. Body
-  let bodyNode = newNodeI(nkStmtList, info)
-  bodyNode.add(Return.random(info, randomRetType))
+  var bodyNode = newNodeI(nkStmtList, info)
+  if randomRetType != "void":
+    bodyNode.add(assignment.defaultResult(info, randomRetType))
+  for _ in 0..<R.integer(0..16):
+    bodyNode.add(bodyStatement(info, depth))
+  if bodyNode.len == 0:
+    bodyNode = newNodeI(nkEmpty, info)
 
   # 4. Combine into final proc node
   result = newNodeI(nkProcDef, info)
