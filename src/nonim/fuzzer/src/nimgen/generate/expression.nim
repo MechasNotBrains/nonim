@@ -145,6 +145,20 @@ func arrayAccess *(
 
 
 #_______________________________________
+# @section Expression Generation: Curly Expression (Overloaded `{}` Operator)
+#_____________________________
+func curlyExpr *(
+    info  : TLineInfo;
+    depth : int       = 0;
+    ident : PNode     = identifier.random(info);
+    args  : seq[PNode] = expression.arguments(info, depth= depth);
+  ) :PNode=
+  result = newNodeI(nkCurlyExpr, info)
+  result.add(ident)
+  for arg in args: result.add(arg)
+
+
+#_______________________________________
 # @section Expression Generation: Call String Literal
 #_____________________________
 func callStrLit *(
@@ -351,7 +365,7 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= MaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(18)
+    result = case R.integer(19)
     of 1: identifier.random(info)
     of 2: expression.par(info, depth= depth)
     of 3: expression.dot(info, depth)
@@ -370,5 +384,6 @@ func random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
     of 16: expression.table(info, depth= depth)
     of 17: expression.Static(info, depth= depth)
     of 18: expression.If(info, depth= depth)
+    of 19: expression.curlyExpr(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
