@@ -509,13 +509,39 @@ func expression_when *(
 
 
 #_______________________________________
+# @section Expression Generation: Case
+#_____________________________
+func expression_case *(
+    info     : TLineInfo;
+    depth    : int = 0;
+    count    : int = R.integer(1..4);
+    maxMatch : int = R.integer(1..3);
+  ) :PNode=
+  let caseNode = newNodeI(nkCaseStmt, info)
+  caseNode.add(generate.expression_random(info, depth= depth + 1))
+  for _ in 0..<count:
+    let branch = newNodeI(nkOfBranch, info)
+    for _ in 0..<R.integer(1..maxMatch): branch.add(generate.expression_random(info, depth= depth + 1))
+    branch.add(generate.expression_random(info, depth= depth + 1))
+    caseNode.add(branch)
+  let elseBranch = newNodeI(nkElse, info)
+  elseBranch.add(generate.expression_random(info, depth= depth + 1))
+  caseNode.add(elseBranch)
+  when defined(NimCompilerBug_IfExprIndent):
+    result = caseNode
+  else:
+    result = newNodeI(nkPar, info)
+    result.add(caseNode)
+
+
+#_______________________________________
 # @section Expression Generation: Entry Point
 #_____________________________
 func expression_random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= ExprMaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(26)
+    result = case R.integer(27)
     of  1: identifier.random(info)
     of  2: generate.par(info, depth= depth)
     of  3: generate.dot(info, depth)
@@ -541,7 +567,8 @@ func expression_random *(info :TLineInfo; T :string= R.typename(); depth :int= 0
     of 23: generate.TypeOf(info, depth= depth)
     of 24: generate.expression_block(info, depth= depth)
     of 25: generate.expression_when(info, depth= depth)
-    of 26:
+    of 26: generate.expression_case(info, depth= depth)
+    of 27:
       if depth > 0 : literal.random(T)
       else         : generate.lambda(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
