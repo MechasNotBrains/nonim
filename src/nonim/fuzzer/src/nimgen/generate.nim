@@ -535,13 +535,63 @@ func expression_case *(
 
 
 #_______________________________________
+# @section Expression Generation: Try
+#_____________________________
+func expression_try *(
+    info     : TLineInfo;
+    depth    : int  = 0;
+    count    : int  = R.integer(0..4);
+    maxTypes : int  = R.integer(1..3);
+    hasFin   : bool = R.bool();
+  ) :PNode=
+  let tryNode = newNodeI(nkTryStmt, info)
+  tryNode.add(generate.expression_random(info, depth= depth + 1))
+  for _ in 0..<count:
+    let branch = newNodeI(nkExceptBranch, info)
+    if R.bool():
+      # except Type as ident: body
+      let asNode = newNodeI(nkInfix, info)
+      asNode.add(identifier.node(info, "as"))
+      asNode.add(identifier.random(info))
+      asNode.add(identifier.random(info))
+      branch.add(asNode)
+    else:
+      # except Type1, Type2: body
+      for _ in 0..<R.integer(1..maxTypes): branch.add(identifier.random(info))
+    branch.add(generate.expression_random(info, depth= depth + 1))
+    tryNode.add(branch)
+  # bare except: body (catch-all, always last except)
+  if R.bool() or count == 0:
+    let bare = newNodeI(nkExceptBranch, info)
+    bare.add(generate.expression_random(info, depth= depth + 1))
+    tryNode.add(bare)
+  if hasFin:
+    let fin = newNodeI(nkFinally, info)
+    fin.add(generate.expression_random(info, depth= depth + 1))
+    tryNode.add(fin)
+  when defined(NimCompilerBug_TryExprIndent):
+    result = tryNode
+  else:
+    # @workaround nkTryStmt renderer bug: except/finally branches render at
+    #   outer indent inside parens, and unlike if/when/case the par workaround
+    #   doesn't help. Wrapping in block provides its own indentation context.
+    let stmts = newNodeI(nkStmtList, info)
+    stmts.add(tryNode)
+    let blockNode = newNodeI(nkBlockExpr, info)
+    blockNode.add(newNodeI(nkEmpty, info))
+    blockNode.add(stmts)
+    result = newNodeI(nkPar, info)
+    result.add(blockNode)
+
+
+#_______________________________________
 # @section Expression Generation: Entry Point
 #_____________________________
 func expression_random *(info :TLineInfo; T :string= R.typename(); depth :int= 0) :PNode=
   if depth >= ExprMaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(27)
+    result = case R.integer(28)
     of  1: identifier.random(info)
     of  2: generate.par(info, depth= depth)
     of  3: generate.dot(info, depth)
@@ -568,7 +618,8 @@ func expression_random *(info :TLineInfo; T :string= R.typename(); depth :int= 0
     of 24: generate.expression_block(info, depth= depth)
     of 25: generate.expression_when(info, depth= depth)
     of 26: generate.expression_case(info, depth= depth)
-    of 27:
+    of 27: generate.expression_try(info, depth= depth)
+    of 28:
       if depth > 0 : literal.random(T)
       else         : generate.lambda(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
