@@ -38,7 +38,7 @@ func lambda *(info :TLineInfo; depth :int= 0; pragmas :bool= R.bool()) :PNode
 #_____________________________
 func prefix *(
     info : TLineInfo;
-    op   : string = R.operator();
+    op   : string = R.operator(prefix= true);
     left : PNode;
   ) :PNode=
   result = newNodeI(nkPrefix, info)
@@ -47,7 +47,7 @@ func prefix *(
 #___________________
 func infix *(
     info  : TLineInfo;
-    op    : string = R.operator();
+    op    : string = R.operator(prefix= false);
     left  : PNode;
     right : PNode;
   ) :PNode=
@@ -581,7 +581,7 @@ func expression_random *(info :TLineInfo; T :string= R.typename(); depth :int= 0
   if depth >= ExprMaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(28)
+    result = case R.integer(29)
     of  1: identifier.random(info)
     of  2: generate.par(info, depth= depth)
     of  3: generate.dot(info, depth)
@@ -609,10 +609,10 @@ func expression_random *(info :TLineInfo; T :string= R.typename(); depth :int= 0
     of 25: generate.expression_when(info, depth= depth)
     of 26: generate.expression_case(info, depth= depth)
     of 27: generate.expression_try(info, depth= depth)
-    of 28:
+    of 28: generate.affix(info, depth= depth)
+    of 29:
       if depth > 0 : literal.random(T)
       else         : generate.lambda(info, depth= depth)
-    # TODO: Wire in affix expressions once operator rendering is fixed
     else: literal.random(T)
 
 
