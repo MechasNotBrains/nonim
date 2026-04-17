@@ -11,3 +11,4 @@
 | [range_no_spaces](range_no_spaces/) | `NimCompilerBug_RangeNoSpaces` | |
 | [static_expr_indent](static_expr_indent/) | `NimCompilerBug_StaticExprIndent` | |
 | [stmtlistexpr_nosemicolon](stmtlistexpr_nosemicolon/) | nkStmtListExpr not implemented | |
+| [try_expr_indent](try_expr_indent/) | `NimCompilerBug_TryExprIndent` | |
