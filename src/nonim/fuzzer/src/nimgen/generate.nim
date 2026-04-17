@@ -45,15 +45,6 @@ func prefix *(
   result.add(identifier.node(info, op))
   result.add(left)
 #___________________
-func postfix *(
-    info  : TLineInfo;
-    op    : string = R.operator();
-    right : PNode;
-  ) :PNode=
-  result = newNodeI(nkPostfix, info)
-  result.add(identifier.node(info, op))
-  result.add(right)
-#___________________
 func infix *(
     info  : TLineInfo;
     op    : string = R.operator();
@@ -67,9 +58,8 @@ func infix *(
 #___________________
 func affix *(info :TLineInfo; depth :int= 0) :PNode=
   case R.integer(2)
-  of 1: generate.prefix(info,  left=  generate.expression_random(info, depth= depth + 1))
-  of 2: generate.postfix(info, right= generate.expression_random(info, depth= depth + 1))
-  else: generate.infix(info,
+  of 1: result = generate.prefix(info, left= generate.expression_random(info, depth= depth + 1))
+  else: result = generate.infix(info,
     left=  generate.expression_random(info, depth= depth + 1),
     right= generate.expression_random(info, depth= depth + 1))
 
