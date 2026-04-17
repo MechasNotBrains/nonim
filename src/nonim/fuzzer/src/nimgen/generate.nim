@@ -1,20 +1,15 @@
 #:____________________________________________________________________
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
-# @deps std
-from std/strutils import replace
 # @deps compiler
-import "$nim"/compiler/[ ast, idents, options, lineinfos, msgs, pathutils ]
+import "$nim"/compiler/[ ast, options, lineinfos, msgs, pathutils ]
 # @deps nim.gen
 import ./random
 import ./random as R
-import ./typetools
 import ./generate/shared
-import ./generate/characters
 import ./generate/identifier
 import ./generate/expression_literal as literal
 import ./generate/statement_comment
-import ./generate/statement_return
 import ./generate/render
 export render
 
@@ -486,9 +481,31 @@ func expression_block *(
   ) :PNode=
   let stmts = newNodeI(nkStmtList, info)
   stmts.add(body)
-  result = newNodeI(nkBlockExpr, info)
-  result.add(label)
-  result.add(stmts)
+  let blockNode = newNodeI(nkBlockExpr, info)
+  blockNode.add(label)
+  blockNode.add(stmts)
+  when defined(NimCompilerBug_IfExprIndent):
+    result = blockNode
+  else:
+    result = newNodeI(nkPar, info)
+    result.add(blockNode)
+
+
+#_______________________________________
+# @section Expression Generation: When
+#_____________________________
+func expression_when *(
+    info  : TLineInfo;
+    depth : int        = 0;
+    args  : seq[PNode] = generate.branches(info, depth= depth);
+  ) :PNode=
+  let whenNode = newNodeI(nkWhenStmt, info)
+  for arg in args: whenNode.add(arg)
+  when defined(NimCompilerBug_IfExprIndent):
+    result = whenNode
+  else:
+    result = newNodeI(nkPar, info)
+    result.add(whenNode)
 
 
 #_______________________________________
@@ -498,7 +515,7 @@ func expression_random *(info :TLineInfo; T :string= R.typename(); depth :int= 0
   if depth >= ExprMaxDepth:
     result = literal.random(T)
   else:
-    result = case R.integer(25)
+    result = case R.integer(26)
     of  1: identifier.random(info)
     of  2: generate.par(info, depth= depth)
     of  3: generate.dot(info, depth)
@@ -523,7 +540,8 @@ func expression_random *(info :TLineInfo; T :string= R.typename(); depth :int= 0
     of 22: generate.conv(info, depth= depth)
     of 23: generate.TypeOf(info, depth= depth)
     of 24: generate.expression_block(info, depth= depth)
-    of 25:
+    of 25: generate.expression_when(info, depth= depth)
+    of 26:
       if depth > 0 : literal.random(T)
       else         : generate.lambda(info, depth= depth)
     # TODO: Wire in affix expressions once operator rendering is fixed
