@@ -68,11 +68,19 @@ func name *(length :Positive= 8, underscore :bool= false) :string=
 # @section Identifier Generation: Node
 #_____________________________
 func node *(info :TLineInfo; name :string) :PNode=
-  ## Generate a random identifier node
   result = newNode(nkIdent)
   {.cast(noSideEffect).}: # Access to gIdentCache is safe
     result.ident = gIdentCache.getIdent(name)
   result.info = info
+#___________________
+func exported *(info :TLineInfo; inner :PNode) :PNode=
+  result = newNodeI(nkPostfix, info)
+  result.add(identifier.node(info, "*"))
+  result.add(inner)
+#___________________
+func node *(info :TLineInfo; name :string; public :bool) :PNode=
+  result = identifier.node(info, name)
+  if public: result = identifier.exported(info, result)
 #___________________
 func typ *(info :TLineInfo; T :string) :PNode=
   ## Generate a random type identifier node
@@ -90,14 +98,5 @@ func random *(
   let name_str  = identifier.name(length, underscore) # Generate random name
   let name_node = identifier.node(info, name_str)
   if not public: return name_node
-
-  # 2. Postfix node for export
-  {.cast(noSideEffect).}: # Access to gIdentCache is safe
-    let pub_ident = gIdentCache.getIdent("*") # Identifier for the export operator
-  let pub_node    = newIdentNode(pub_ident, info)
-
-  result = newNodeI(nkPostfix, info) # Create postfix node for name
-  # Match parser order: operator first, then identifier
-  result.add(pub_node)  # Child 0: Operator Ident (*)
-  result.add(name_node) # Child 1: Base Ident (randomName)
+  result = identifier.exported(info, name_node)
 
