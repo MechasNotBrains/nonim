@@ -64,13 +64,12 @@ are valid in prefix position, **except**:
 
 | Invalid | Reason |
 |---------|--------|
-| `=`     | Reserved token: lexed as assignment |
-| `:`     | Reserved token: lexed as block/type separator |
-| `.`     | Reserved token: lexed as dot expression start |
-| `..`    | Lexed as range token |
-| `*:`    | Lexed as two tokens `*` and `:` |
-| `and`   | Binary-only keyword: parser rejects in unary position |
-| `or`    | Binary-only keyword: parser rejects in unary position |
+| `=`                | Reserved token: lexed as assignment |
+| `:`                | Reserved token: lexed as block/type separator |
+| `.`                | Reserved token: lexed as dot expression start |
+| `..`               | Lexed as range token |
+| `*:`               | Lexed as two tokens `*` and `:` |
+| all keywords except `not` | Parser rejects keyword operators in unary position |
 
 Multi-character operators starting with `.` are valid when the remaining
 characters disambiguate from `.` and `..` (e.g. `...`, `.+`, `.<` all
@@ -92,15 +91,15 @@ prefix `*` applied to the next token.
 | `not`    | yes    | no    |
 | `and`    | no     | yes   |
 | `or`     | no     | yes   |
-| `xor`    | yes    | yes   |
-| `div`    | yes    | yes   |
-| `mod`    | yes    | yes   |
-| `shl`    | yes    | yes   |
-| `shr`    | yes    | yes   |
-| `in`     | yes    | yes   |
-| `notin`  | yes    | yes   |
-| `is`     | yes    | yes   |
-| `isnot`  | yes    | yes   |
-| `of`     | yes    | yes   |
-| `as`     | yes    | yes   |
-| `from`   | yes    | yes   |
+| `xor`    | no     | yes   |
+| `div`    | no     | yes   |
+| `mod`    | no     | yes   |
+| `shl`    | no     | yes   |
+| `shr`    | no     | yes   |
+| `in`     | no     | yes   |
+| `notin`  | no     | yes   |
+| `is`     | no     | yes   |
+| `isnot`  | no     | yes   |
+| `of`     | no     | yes   |
+| `as`     | no     | yes   |
+| `from`   | no     | yes   |
