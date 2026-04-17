@@ -104,13 +104,22 @@ func typename *() :string=
 # @section Operators
 #_____________________________
 func operator *(
+    prefix  : bool;
     keyword : bool     = random.integer(3) == 0;
     len     : Positive = random.integer(1..16);
   ) :string=
-  if keyword: return random.sample(Operator_keywords)
-  # Generate a random operator of the given len
+  if keyword:
+    let pool =
+      if prefix : Operator_keywords_prefix
+      else      : Operator_keywords_infix
+    return random.sample(pool)
   result = ""
   for _ in 0..<len: result.add random.sample(Operator_characters)
-  # Cleanup illegal cases
-  if result == "*:": result = "**"
+  if   result == "*:": result = "**"
+  elif result == "::": result = ":="
+  elif result == "=":  result = "=="
+  if prefix:
+    if   result == ":":  result = "+:"
+    elif result == ".":  result = ".+"
+    elif result == "..": result = "..."
 
