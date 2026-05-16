@@ -1,0 +1,1 @@
+proc map*[K, V](key :K; value :V) :V

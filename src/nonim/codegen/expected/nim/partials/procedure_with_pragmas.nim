@@ -1,0 +1,1 @@
+func thing*() :int {.cdecl.}

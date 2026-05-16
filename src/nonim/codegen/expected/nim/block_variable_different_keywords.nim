@@ -1,0 +1,2 @@
+let a* :int= 1
+var b* :int= 2

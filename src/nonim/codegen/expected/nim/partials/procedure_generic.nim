@@ -1,0 +1,1 @@
+proc clamp*[T](value :T; low :T; high :T) :T

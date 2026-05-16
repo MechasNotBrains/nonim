@@ -1,0 +1,1 @@
+thing* {.cdecl.} :int
