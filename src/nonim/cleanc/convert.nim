@@ -1,6 +1,6 @@
-#:_________________________________________________________
-#  clean  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
-#:_________________________________________________________
+#:__________________________________________________________________
+#  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
+#:__________________________________________________________________
 ## Converts the typed Nim PNode AST into astTF data.
 ## This is the bridge between Nim's compiler internals and slate's codegen.
 #_________________________________________________________|
@@ -8,11 +8,11 @@
 import std/options
 # @deps nimc
 import "$nim"/compiler/[ast, renderer]
-# @deps slate
+# @deps nonim
 import slate/ast as astTF
 import slate
-# @deps clean
-import ./compiler
+# @deps nonim.cleanc
+import ../nimc/Typed
 
 
 type State = object
@@ -234,3 +234,4 @@ proc convert *(compiled :CompileResult) :astTF.Ast=
 
   state.ast.data.modules[state.module].source = state.source
   return state.ast
+
