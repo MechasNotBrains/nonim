@@ -1,6 +1,6 @@
-#:__________________________________________________________________
-#  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
-#:__________________________________________________________________
+#:_________________________________________________________
+#  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
+#:_________________________________________________________
 ## Invokes the Nim compiler as a library to obtain the typed AST.
 ## Registers sem + a custom collector pass that accumulates typed statements.
 #_____________________________________________________________________________|
@@ -9,8 +9,8 @@ import std/compilesettings
 # @deps nimc
 import "$nim"/compiler/[
   ast, modules, options, llstream, condsyms,
-  modulegraphs, idents, pathutils, msgs,
-  passes, sem, pipelines,
+  modulegraphs, idents, pathutils,
+  passes, pipelines,
 ]
 
 

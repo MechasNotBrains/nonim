@@ -1,7 +1,9 @@
-#:__________________________________________________________________
-#  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
-#:__________________________________________________________________
-from std/strutils import repeat
+#:_________________________________________________________
+#  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
+#:_________________________________________________________
+from std/strutils import repeat, replace
+import std/strformat
+import "$nim"/compiler/[ast, renderer]
 import ./errors
 
 
