@@ -1,7 +1,7 @@
 #:_________________________________________________________
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
-import "$nim"/compiler/[ast, parser, idents, options, lineinfos, msgs, pathutils, syntaxes]
+import "$nim"/compiler/[ast, parser, idents, options, msgs, pathutils, syntaxes]
 import std/paths
 import ./errors
 
