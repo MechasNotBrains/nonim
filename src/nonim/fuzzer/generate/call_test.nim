@@ -2,7 +2,7 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps std
-import std/unittest
+import minitest
 import std/os
 import std/strutils
 import std/strformat
@@ -20,7 +20,7 @@ $1
 """
 
 
-suite "Call Generation Tests":
+describe "nonim.fuzzer | Call Generation Tests":
   let testCacheDir = "bin/.tests/call"
   if not dirExists(testCacheDir): createDir(testCacheDir)
 
@@ -30,7 +30,7 @@ suite "Call Generation Tests":
     result = base.compileTest("call", &"calls{testID}.nim", testCode, semaRequired= false)
     testID.inc
 
-  test "Call statements":
+  it "must generate compilable call statements", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -38,4 +38,4 @@ suite "Call Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = generate.statement_call(info)
       declarations.add(render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()

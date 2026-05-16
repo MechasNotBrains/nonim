@@ -2,7 +2,7 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps std
-import std/unittest
+import minitest
 import std/os
 import std/strutils
 import std/strformat
@@ -22,7 +22,7 @@ $1
 """
 
 
-suite "Variable Generation Tests":
+describe "nonim.fuzzer | Variable Generation Tests":
   let testCacheDir = "bin/.tests/module"
   if not dirExists(testCacheDir): createDir(testCacheDir)
 
@@ -32,7 +32,7 @@ suite "Variable Generation Tests":
     result = base.compileTest("module", &"modules{testID}.nim", testCode, semaRequired= false)
     testID.inc
 
-  test "include statements":
+  it "must generate compilable include statements", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -40,9 +40,9 @@ suite "Variable Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = generate.statement_include(info)
       declarations.add(render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "import statements":
+  it "must generate compilable import statements", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -50,9 +50,9 @@ suite "Variable Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = generate.statement_import(info)
       declarations.add(render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "import except statements":
+  it "must generate compilable import-except statements", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -60,9 +60,9 @@ suite "Variable Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = generate.statement_import(info, entries= #[ broken above 6 ]# R.integer(1..6))
       declarations.add(render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "import as statements":
+  it "must generate compilable import-as statements", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -70,9 +70,9 @@ suite "Variable Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = generate.statement_import(info, entries= #[ broken above 5 ]# R.integer(0..5), As= identifier.name())
       declarations.add(render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "from statements":
+  it "must generate compilable from-import statements", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -81,4 +81,4 @@ suite "Variable Generation Tests":
       let As   = if R.bool(): identifier.name() else: ""
       let node = generate.statement_import(info, entries= R.integer(1..16), From= true, As= As)
       declarations.add(render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()

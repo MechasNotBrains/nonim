@@ -2,7 +2,7 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps std
-import std/unittest
+import minitest
 import std/os
 import std/strutils
 import std/strformat
@@ -24,7 +24,7 @@ when isMainModule:
 """
 
 
-suite "Variable Generation Tests":
+describe "nonim.fuzzer | Variable Generation Tests":
   let testCacheDir = "bin/.tests/variable"
   if not dirExists(testCacheDir): createDir(testCacheDir)
 
@@ -34,7 +34,7 @@ suite "Variable Generation Tests":
     result = base.compileTest("variable", &"variables{testID}.nim", testCode)
     testID.inc
 
-  test "Var declarations":
+  it "must generate compilable var declarations", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -42,9 +42,9 @@ suite "Variable Generation Tests":
       let info    = newLineInfo(config, absPath, id, 0)
       let varNode = generate.statement_variable(info, mutable=true, runtime=true, public=false)
       declarations.add("  " & render.code((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "Let declarations":
+  it "must generate compilable let declarations", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -52,9 +52,9 @@ suite "Variable Generation Tests":
       let info    = newLineInfo(config, absPath, id, 0)
       let varNode = generate.statement_variable(info, mutable=false, runtime=true, public=false)
       declarations.add("  " & render.code((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "Const declarations":
+  it "must generate compilable const declarations", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -62,4 +62,4 @@ suite "Variable Generation Tests":
       let info    = newLineInfo(config, absPath, id, 0)
       let varNode = generate.statement_variable(info, mutable=false, runtime=false, public=false)
       declarations.add("  " & render.code((node: varNode, info: info)).replace("\n", "\n  "))  # Add indentation for proper formatting
-    check compileTest(declarations)
+    compileTest(declarations).ok()

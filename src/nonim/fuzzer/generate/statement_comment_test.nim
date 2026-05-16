@@ -2,7 +2,7 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps std
-import std/unittest
+import minitest
 import std/os
 import std/strutils
 import std/strformat
@@ -21,7 +21,7 @@ $1
 """
 
 
-suite "Comment Generation Tests":
+describe "nonim.fuzzer | Comment Generation Tests":
   let testCacheDir = "bin/.tests/comment"
   if not dirExists(testCacheDir): createDir(testCacheDir)
 
@@ -31,7 +31,7 @@ suite "Comment Generation Tests":
     result = base.compileTest("comment", &"comments{testID}.nim", testCode, semaRequired= false)
     testID.inc
 
-  test "Comment statements":
+  it "must generate compilable comment statements", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -39,9 +39,9 @@ suite "Comment Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = statement_comment.random(info)
       declarations.add(render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "Comment statements with explicit length":
+  it "must generate compilable comments with explicit length", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -49,4 +49,4 @@ suite "Comment Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = statement_comment.random(info, len= id)
       declarations.add(render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()

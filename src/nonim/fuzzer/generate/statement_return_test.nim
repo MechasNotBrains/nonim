@@ -2,7 +2,7 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps std
-import std/unittest
+import minitest
 import std/os
 import std/strutils
 import std/strformat
@@ -16,7 +16,7 @@ import ./statement_return
 import ../tests/base
 
 
-suite "Return Generation Tests":
+describe "nonim.fuzzer | Return Generation Tests":
   let testCacheDir = "bin/.tests/return"
   if not dirExists(testCacheDir): createDir(testCacheDir)
 
@@ -25,7 +25,7 @@ suite "Return Generation Tests":
     result = base.compileTest("return", &"return{testID}.nim", code)
     testID.inc
 
-  test "Return statements":
+  it "must generate compilable return statements", proc() =
     var procs = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -35,4 +35,4 @@ suite "Return Generation Tests":
       let node = statement_return.random(info, T)
       let rendered = render.code((node: node, info: info))
       procs.add(&"proc test{id}(): {T} =\n  {rendered}")
-    check compileTest(procs.join("\n"))
+    compileTest(procs.join("\n")).ok()

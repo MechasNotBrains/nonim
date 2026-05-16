@@ -2,7 +2,7 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps std
-import std/unittest
+import minitest
 import std/os
 import std/strutils
 import std/strformat
@@ -20,7 +20,7 @@ $1
 """
 
 
-suite "Assignment Generation Tests":
+describe "nonim.fuzzer | Assignment Generation Tests":
   let testCacheDir = "bin/.tests/assignment"
   if not dirExists(testCacheDir): createDir(testCacheDir)
 
@@ -30,7 +30,7 @@ suite "Assignment Generation Tests":
     result = base.compileTest("assignment", &"assignments{testID}.nim", testCode, semaRequired= false)
     testID.inc
 
-  test "Assignment statements":
+  it "must generate compilable assignment statements", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -38,4 +38,4 @@ suite "Assignment Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = generate.statement_assignment(info)
       declarations.add(render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()

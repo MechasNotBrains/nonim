@@ -2,7 +2,7 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps std
-import std/unittest
+import minitest
 import std/os
 import std/strutils
 import std/strformat
@@ -25,7 +25,7 @@ when isMainModule:
 """
 
 
-suite "Literal Expression Generation Tests":
+describe "nonim.fuzzer | Literal Expression Generation Tests":
   let testCacheDir = "bin/.tests/literal"
   if not dirExists(testCacheDir): createDir(testCacheDir)
 
@@ -35,7 +35,7 @@ suite "Literal Expression Generation Tests":
     result = base.compileTest("literal", &"literals{testID}.nim", testCode)
     testID.inc
 
-  test "Integer literals":
+  it "must generate compilable integer literals", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -43,9 +43,9 @@ suite "Literal Expression Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = expression_literal.integer()
       declarations.add("  var x" & $id & " = " & render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "Float literals":
+  it "must generate compilable float literals", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -53,9 +53,9 @@ suite "Literal Expression Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = expression_literal.float()
       declarations.add("  var x" & $id & " = " & render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "Char literals":
+  it "must generate compilable char literals", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -63,9 +63,9 @@ suite "Literal Expression Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = expression_literal.char()
       declarations.add("  var x" & $id & ": char = " & render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "String literals":
+  it "must generate compilable string literals", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -73,9 +73,9 @@ suite "Literal Expression Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = expression_literal.string()
       declarations.add("  var x" & $id & ": string = " & render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "Bool literals":
+  it "must generate compilable bool literals", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -83,9 +83,9 @@ suite "Literal Expression Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = expression_literal.bool()
       declarations.add("  var x" & $id & ": bool = " & render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "Nil literals":
+  it "must generate compilable nil literals", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -93,9 +93,9 @@ suite "Literal Expression Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = expression_literal.Nil()
       declarations.add("  var x" & $id & ": pointer = " & render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
 
-  test "Random literals":
+  it "must generate compilable random literals", proc() =
     var declarations = newSeq[string]()
     let config  = newConfigRef()
     let absPath = AbsoluteFile("test.nim")
@@ -103,4 +103,4 @@ suite "Literal Expression Generation Tests":
       let info = newLineInfo(config, absPath, id, 0)
       let node = expression_literal.random()
       declarations.add("  discard " & render.code((node: node, info: info)))
-    check compileTest(declarations)
+    compileTest(declarations).ok()
