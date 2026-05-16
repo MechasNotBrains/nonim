@@ -1,6 +1,8 @@
 #:_________________________________________________________
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
+import "$nim"/compiler/[ast, parser, idents, options, lineinfos, msgs, pathutils, syntaxes]
+import std/paths
 import ./errors
 
 
@@ -27,7 +29,7 @@ proc compile *(
 #_______________________________________
 # @section Compile: from File
 #_____________________________
-proc readAST *(file :Path) :ast.PNode= nimc.compile(file.string.readFile(), file.string)
+proc readAST *(file :Path) :ast.PNode= Untyped.compile(file.string.readFile(), file.string)
   ## @descr Reads the AST of the given nim file.
 #___________________
 proc readASTall *(file :Path) :ast.PNode=

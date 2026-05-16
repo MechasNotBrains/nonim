@@ -3,14 +3,15 @@
 #:____________________________________________________________________
 # @deps std
 from std/os import commandLineParams
+from std/paths import Path
 # @deps nim.gen
-import ./nimgen/nimc
+import ./nimc
 
 
 #_______________________________________
 # @section nim.check Entry Point
 #_____________________________
-proc file *(path :string) :void= discard nimc.readAST(path)
+proc file *(path :string) :void= discard nimc.readAST(path.Path)
 #___________________
 when isMainModule:
   type NimCheckError = object of CatchableError
