@@ -1,0 +1,1 @@
+grammar one[somechar]( '1' ) :Literal= .( value: $1 )

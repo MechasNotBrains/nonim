@@ -1,0 +1,1 @@
+grammar some_commented[commented]( "cmmnt" ) :Literal= .( value: $1 )

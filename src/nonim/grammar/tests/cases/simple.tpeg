@@ -1,0 +1,2 @@
+grammar hello[keyword]( "hello" ) :Literal= .( value: $1 )
+grammar one[somechar]( '1' ) :Literal= .( value: $1 )
