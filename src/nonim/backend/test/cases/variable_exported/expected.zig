@@ -1,0 +1,1 @@
+pub const answer: i64 = 42;
