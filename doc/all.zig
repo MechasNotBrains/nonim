@@ -33,32 +33,41 @@ fn noop (x: i64) void {
     _ = x / 2;
 }
 
-// [ ] Expression: assignment
-fn increment(x: *i64) void {
+// [x] Variable: multiple bindings
+const a: isize = 0;
+const b: isize = 0;
+
+// [x] Expression: assignment
+fn increment (x: *isize) void {
     x.* = x.* + 1;
 }
 
-// [ ] Control flow: if/else
-fn abs_val(x: i64) i64 {
-    if (x < 0) {
-        return -x;
-    } else {
-        return x;
-    }
+// [x] Control flow: if/else
+fn abs_val (x: isize) isize {
+  if (x < 0) {
+    return -x;
+  } else {
+    return x;
+  }
 }
 
-// [ ] Control flow: while
-fn countdown(n: i64) void {
-    var current = n;
-    while (current > 0) {
-        current = current - 1;
-    }
+// [x] Control flow: while
+fn countdown (n: isize) void {
+  var current: isize = n;
+  while (current > 0) {
+    current = current - 1;
+  }
 }
 
-// [ ] Type: struct (from object)
+// [x] Expression: indexed
+fn get_element (arr: [10]isize, idx: isize) isize {
+  return arr[idx];
+}
+
+// [x] Type: struct (from object)
 const Vec2 = struct {
-    x: f32,
-    y: f32,
+  x: f32,
+  y: f32,
 };
 
 // [ ] Type: enum
