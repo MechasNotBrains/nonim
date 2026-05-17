@@ -1,9 +1,9 @@
 #:_________________________________________________________
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
-## Unit tests for the clean backend POC.
+## Unit tests for the clean backend.
 ## Each test compiles Nim source through sem, converts to astTF,
-## runs nonim's nim codegen, and checks the output matches expected.
+## then generates output and checks it matches expected.
 #___________________________________________________________________|
 # @deps std
 from std/os import `/`, parentDir
@@ -13,36 +13,54 @@ import "$nim"/compiler/[ast]
 import minitest
 # @deps nonim
 from ../../nonim import nil
-# @deps nonim
 import ../nimc/Typed
 import ../ast as astTF
 
 
 const cases_dir = currentSourcePath().parentDir()/"test"/"cases"
 
-proc roundtrip (source :string) :string=
+proc typed_ast (source :string) :astTF.Ast=
   let compiled = Typed.compile(source)
   var root     = newNode(nkStmtList)
   for statement in compiled.statements:
     root.add(statement)
-  let converted = astTF.convert(root)
-  let output    = nonim.codegen.nim(converted)
+  return astTF.convert(root)
+
+proc generate_nim (source :string) :string=
+  let output = nonim.codegen.nim(typed_ast(source))
   return output.modules[0].definitions
 
-proc case_input(name :string) :string=
+proc generate_c (source :string) :string=
+  let output = nonim.codegen.C(typed_ast(source))
+  return output.modules[0].definitions
+
+proc case_input (name :string) :string=
   readFile(cases_dir/name/"input.nim")
 
-proc case_expected(name :string) :string=
+proc case_expected_nim (name :string) :string=
   readFile(cases_dir/name/"expected.nim")
 
+proc case_expected_c (name :string) :string=
+  readFile(cases_dir/name/"expected.c")
 
-describe "nonim.convert | Variables":
+
+describe "nonim.cleanc.nim | Variables":
   it "must roundtrip a let binding", proc() =
-    let result = test.roundtrip(case_input("variable"))
-    result.eq case_expected("variable")
+    let result = generate_nim(case_input("variable"))
+    result.eq case_expected_nim("variable")
 
-describe "nonim.convert | Procedures":
+describe "nonim.cleanc.nim | Procedures":
   it "must roundtrip a proc signature", proc() =
-    let result = test.roundtrip(case_input("procedure"))
-    result.eq case_expected("procedure")
+    let result = generate_nim(case_input("procedure"))
+    result.eq case_expected_nim("procedure")
+
+describe "nonim.cleanc.c | Variables":
+  it "must generate a const int from let binding", proc() =
+    let result = generate_c(case_input("variable"))
+    result.eq case_expected_c("variable")
+
+describe "nonim.cleanc.c | Procedures":
+  it "must generate a static forward declaration", proc() =
+    let result = generate_c(case_input("procedure"))
+    result.eq case_expected_c("procedure")
 
