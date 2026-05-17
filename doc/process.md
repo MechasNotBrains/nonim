@@ -5,14 +5,16 @@ No backend progresses without the others having parity.
 
 ## Steps
 
-1. **Test case first**: Create `src/nonim/backend/test/cases/<name>/input.nim` with the Nim source.
-2. **Expected outputs**: Create `expected.c`, `expected.zig`, and `expected.nim` in the same directory.
-3. **Add test assertions**: Add the test to `backend/test/cleanc.nim` and `backend/test/zig.nim`.
-4. **Converter**: If the feature requires a new PNode kind, implement it in `ast/convert.nim`.
-5. **C codegen**: Implement in `codegen/C.nim`.
-6. **Zig codegen**: Implement in `codegen/zig.nim`.
-7. **Nim codegen**: Verify the existing nim codegen handles it (it usually already does via slate).
-8. **Run all tests**: All three backends must pass before the feature is considered done.
+1. **Track the feature**: Add the syntax construct to `doc/all.nim`, `doc/all.c`, and `doc/all.zig` marked as `[ ]`.
+2. **Test case first**: Create `src/nonim/backend/test/cases/<name>/input.nim` with the Nim source.
+3. **Expected outputs**: Create `expected.c`, `expected.zig`, and `expected.nim` in the same directory.
+4. **Add test assertions**: Add the test to `backend/test/cleanc.nim` and `backend/test/zig.nim`.
+5. **Converter**: If the feature requires a new PNode kind, implement it in `ast/convert.nim`.
+6. **C codegen**: Implement in `codegen/C.nim`.
+7. **Zig codegen**: Implement in `codegen/zig.nim`.
+8. **Nim codegen**: Verify the existing nim codegen handles it (it usually already does via slate).
+9. **Run all tests**: All three backends must pass before the feature is considered done.
+10. **Mark done**: Update the `[ ]` to `[x]` in all three `doc/all.*` files.
 
 ## Rules
 
