@@ -4,3 +4,13 @@
 import ./nonim/ast     ; export ast
 import ./nonim/codegen ; export codegen
 import ./nonim/fuzzer  ; export fuzzer
+
+when isMainModule:
+  import ./nonim/cli
+  import ./nonim/entry
+  import ./nonim/minc
+
+  let options = cli.options_parse()
+  case options.backend
+  of Backend.cleanc: entry.run(options)
+  of Backend.minc:   minc.run(options)

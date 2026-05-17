@@ -38,38 +38,45 @@ const collector_pass = makePass(collector_open, collector_process, collector_clo
 type CompileResult * = object
   statements *:seq[PNode]
 
+type Compiler * = object
+  graph *:ModuleGraph
+  conf  *:ConfigRef
+  cache *:IdentCache
 
-proc compile *(
-    source   : string;
-    filename : string = "input.nim";
-  ) :CompileResult=
-  collected_statements = @[]
 
-  var conf = newConfigRef()
-  var cache = newIdentCache()
-  var graph = newModuleGraph(cache, conf)
+proc create *(_:typedesc[Compiler]) :Compiler=
+  result.conf = newConfigRef()
+  result.cache = newIdentCache()
+  result.graph = newModuleGraph(result.cache, result.conf)
 
   let stdlib = querySetting(SingleValueSetting.libPath)
-  conf.searchPaths.add(AbsoluteDir stdlib)
-  conf.libpath = AbsoluteDir stdlib
+  result.conf.searchPaths.add(AbsoluteDir stdlib)
+  result.conf.libpath = AbsoluteDir stdlib
 
-  initDefines(conf.symbols)
-  defineSymbol(conf.symbols, "nimcheck")
+  initDefines(result.conf.symbols)
+  defineSymbol(result.conf.symbols, "nimcheck")
 
-  connectPipelineCallbacks(graph)
-  registerPass(graph, semPass)
-  registerPass(graph, collector_pass)
-  setPipeLinePass(graph, SemPass)
-  compilePipelineSystemModule(graph)
+  connectPipelineCallbacks(result.graph)
+  registerPass(result.graph, semPass)
+  registerPass(result.graph, collector_pass)
+  setPipeLinePass(result.graph, SemPass)
+  compilePipelineSystemModule(result.graph)
 
+
+proc compile *(compiler :Compiler; source :string; filename :string= "input.nim") :CompileResult=
   collected_statements = @[]
 
-  var module = graph.makeModule(filename)
+  var module = compiler.graph.makeModule(filename)
   module.flags.incl sfMainModule
   var idgen = idGeneratorFromModule(module)
 
   let stream = llStreamOpen(source)
-  processModule(graph, module, idgen, stream)
+  processModule(compiler.graph, module, idgen, stream)
 
   result = CompileResult(statements: collected_statements)
+
+
+proc compile *(source :string; filename :string= "input.nim") :CompileResult=
+  let compiler = Compiler.create()
+  compiler.compile(source, filename)
 
