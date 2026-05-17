@@ -25,6 +25,9 @@ import ./codegen/nim_test
 # @section Backend
 import ./backend/test/cleanc
 import ./backend/test/zig
+import ./backend/test/minc
+import ./backend/test/minz
+import ./backend/test/nim
 # @section CLI
 import ./cli/test
 import ./cli/minc_test

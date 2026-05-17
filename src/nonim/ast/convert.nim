@@ -26,6 +26,7 @@ type State = object
   source         :string
   previous_stmt  :Option[astTF.Id]
   target         :Language
+  typed          :bool
 
 
 proc name_add (state :var State; name :string) :astTF.Location=
@@ -46,6 +47,7 @@ proc name (node :PNode) :string=
 
 
 proc translate_type (state :State; nim_type :string) :string=
+  if not state.typed: return nim_type
   case state.target
   of Language.C:
     case nim_type
@@ -136,6 +138,7 @@ proc exported (node :PNode) :bool=
 # @section Expressions
 #_____________________________
 proc expression (state :var State; node :PNode) :astTF.Id
+proc expression_array_type (state :var State; node :PNode) :astTF.Id
 
 proc expression_literal (state :var State; node :PNode) :astTF.Id=
   let literal_kind = case node.kind
@@ -772,12 +775,13 @@ proc statement_top_level (state :var State; node :PNode) =
 #_______________________________________
 # @section Entry Point
 #_____________________________
-proc convert *(root :PNode; target :Language= Language.Nim; path :string= "input.nim") :astTF.Ast=
+proc convert *(root :PNode; target :Language= Language.Nim; typed :bool= true; path :string= "input.nim") :astTF.Ast=
   var state = State(
     ast: astTF.Ast(root: 0, data: astTF.AstData(modules: @[])),
     source: "",
     previous_stmt: none(astTF.Id),
     target: target,
+    typed: typed,
   )
   state.module = astTF.Id(state.ast.data.modules.len)
   state.ast.data.modules.add(astTF.Module(path: path, source: ""))

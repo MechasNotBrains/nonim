@@ -18,7 +18,7 @@ import ../codegen/output
 proc generate *(options :Options) :Output=
   let source    = readFile(options.input)
   let root      = Untyped.compile(source, options.input)
-  let converted = root.convert(options.input)
+  let converted = root.convert(Language.Zig, typed=false, options.input)
   return converted.zig()
 
 

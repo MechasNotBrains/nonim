@@ -20,7 +20,7 @@ proc generate *(options :Options) :Output=
   var root = newNode(nkStmtList)
   for statement in compiled.statements:
     root.add(statement)
-  let converted = convert.convert(root, options.input)
+  let converted = convert.convert(root, Language.Zig, options.input)
   return converted.zig()
 
 
