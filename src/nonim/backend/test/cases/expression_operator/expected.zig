@@ -1,4 +1,4 @@
-fn operators (x: i64, y: i64) void {
+fn operators (x: isize, y: isize) void {
   _ = x / y;
   _ = x % y;
   _ = x << y;

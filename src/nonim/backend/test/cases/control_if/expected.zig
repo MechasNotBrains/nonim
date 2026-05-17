@@ -1,4 +1,4 @@
-fn abs_val (x: i64) i64 {
+fn abs_val (x: isize) isize {
   if (x < 0) {
     return -x;
   } else {

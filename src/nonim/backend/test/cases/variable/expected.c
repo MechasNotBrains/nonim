@@ -1,1 +1,1 @@
-static int const answer = 42;
+static int64_t const answer = 42;

@@ -48,7 +48,8 @@ No backend progresses without the others having parity.
 | Expression: identifier | `x` | `x` | `x` | [x] |
 | Expression: binary affix | `x div y` / `x + y` | `x / y` / `x + y` | `x / y` / `x + y` | [x] |
 | Expression: unary prefix | `-x` / `not x` | `-x` / `!x` | `-x` / `!x` | [x] |
-| Expression: indexed | `arr[i]` | `arr[i]` | `arr[i]` | [ ] |
+| Expression: indexed | `arr[i]` | `arr[i]` | `arr[i]` | [x] |
+| Type: array | `array[10, int]` | `int[10]` | `[10]i64` | [x] |
 | Expression: conditional | `if x < 0: ...` | `if (x < 0) { ... }` | `if (x < 0) { ... }` | [x] |
 | Expression: loop | `while x > 0: ...` | `while (x > 0) { ... }` | `while (x > 0) { ... }` | [x] |
 | Statement: expression | `x = x + 1` | `x = x + 1;` | `x = x + 1;` | [x] |
@@ -59,8 +60,12 @@ No backend progresses without the others having parity.
 | Statement: keyword discard | `discard expr` | `(void)(expr);` | `_ = expr;` | [x] |
 | Statement: keyword break | `break` | `break;` | `break;` | [x] |
 | Statement: keyword continue | `continue` | `continue;` | `continue;` | [x] |
-| Type: primitive | `int` / `float32` | `int` / `float` | `i64` / `f32` | [ ] |
-| Type: array | `array[10, int]` | `int[10]` | `[10]i64` | [ ] |
+| Type: primitive | `int` / `float32` | `int64_t` / `float` | `isize` / `f32` | [x] |
+| Type: array | `array[10, int]` | `int64_t[10]` | `[10]isize` | [x] |
+| Type: cstring | `cstring` | `char const*` | `[:0]const u8` | [ ] |
+| Type: string | `string` | (dynamic, TBD) | (dynamic, TBD) | [ ] |
+| Type: seq | `seq[int]` | (dynamic array, TBD) | (std.ArrayList, TBD) | [ ] |
+| Type: int/uint platform size | `int`/`uint` mapped to 64-bit for now; needs proper platform-aware solution alongside string/seq/tuple runtime types | | | [ ] |
 
 ### Phase 1: Practical Programs
 

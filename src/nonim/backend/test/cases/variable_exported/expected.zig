@@ -1,1 +1,1 @@
-pub const answer: i64 = 42;
+pub const answer: isize = 42;

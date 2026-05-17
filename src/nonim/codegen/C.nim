@@ -14,6 +14,8 @@ func source (ast :astTF.Ast; module :astTF.Id; location :astTF.Location) :string
   ast.data.modules[module].source[location.start ..< location.`end`]
 
 
+const Tab = "  "
+
 #_______________________________________
 # @section Expressions
 #_____________________________
@@ -96,6 +98,13 @@ func expression_conditional (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; dep
   else:
     Out.string(module, "\n", output.Target.definition)
 
+func expression_indexed (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
+  ast.expression(module, expr.indexed.`object`, Out)
+  Out.string(module, "[", output.Target.definition)
+  ast.expression(module, expr.indexed.index, Out)
+  Out.string(module, "]", output.Target.definition)
+
 func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
   case expression.kind
@@ -103,40 +112,39 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Outpu
   of astTF.eLiteral:    ast.expression_literal(module, id, Out)
   of astTF.eAffix:      ast.expression_affix(module, id, Out)
   of astTF.eCall:       ast.expression_call(module, id, Out)
+  of astTF.eIndexed:    ast.expression_indexed(module, id, Out)
   else: assert false, "codegen.C: unsupported expression kind: " & $expression.kind
 
 
 #_______________________________________
 # @section Type Mapping
 #_____________________________
-func type_name (ast :astTF.Ast; module :astTF.Id; expression_id :astTF.Id) :string=
-  let expression = ast.data.expressions.get[expression_id]
+func type_name (ast :astTF.Ast; module :astTF.Id; expression_id :Option[astTF.Id]) :string=
+  if expression_id.isNone: return "void"
+  let expression = ast.data.expressions.get[expression_id.get]
   case expression.kind
   of astTF.eIdentifier:
-    let nim_type = ast.source(module, expression.identifier.name.location)
-    case nim_type
-    of "int":     "int"
-    of "int8":    "int8_t"
-    of "int16":   "int16_t"
-    of "int32":   "int32_t"
-    of "int64":   "int64_t"
-    of "uint":    "unsigned int"
-    of "uint8":   "uint8_t"
-    of "uint16":  "uint16_t"
-    of "uint32":  "uint32_t"
-    of "uint64":  "uint64_t"
-    of "float":   "double"
-    of "float32": "float"
-    of "float64": "double"
-    of "bool":    "bool"
-    of "char":    "char"
-    of "string":  "char*"
-    of "void":    "void"
-    else:         nim_type
-  else: "int"
+    ast.source(module, expression.identifier.name.location)
+  of astTF.eType:
+    let type_data = ast.data.types.get[expression.`type`.id]
+    case type_data.kind
+    of astTF.tPrimitive:
+      ast.source(module, type_data.primitive.name.location)
+    of astTF.tArray:
+      let elem_type = ast.data.types.get[type_data.array.element]
+      ast.source(module, elem_type.primitive.name.location)
+    else: "void"
+  else: "void"
 
-
-const Tab = "  "
+func type_suffix (ast :astTF.Ast; module :astTF.Id; expression_id :Option[astTF.Id]) :string=
+  if expression_id.isNone: return ""
+  let expression = ast.data.expressions.get[expression_id.get]
+  if expression.kind != astTF.eType: return ""
+  let type_data = ast.data.types.get[expression.`type`.id]
+  if type_data.kind != astTF.tArray: return ""
+  if type_data.array.length.isNone: return "[]"
+  let length_expr = ast.data.expressions.get[type_data.array.length.get]
+  return "[" & ast.source(module, length_expr.literal.value) & "]"
 
 #_______________________________________
 # @section Statements
@@ -145,8 +153,7 @@ func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
   let statement = ast.data.statements.get[id]
   let binding = ast.data.bindings.get[statement.variable.id]
 
-  let type_str = if binding.dataType.isSome: ast.type_name(module, binding.dataType.get)
-                 else: "int"
+  let type_str = ast.type_name(module, binding.dataType)
 
   let is_mutable = binding.mutable.get(false)
   let is_private = binding.private.get(true)
@@ -183,7 +190,7 @@ func statement_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :v
   if is_private:
     Out.string(module, "static ", output.Target.definition)
 
-  let return_str = if procedure.returnType.isSome: ast.type_name(module, procedure.returnType.get)
+  let return_str = if procedure.returnType.isSome: ast.type_name(module, procedure.returnType)
                    else: "void"
   Out.string(module, return_str, output.Target.definition)
 
@@ -205,7 +212,7 @@ func statement_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :v
     while scan.isSome:
       let binding = ast.data.bindings.get[scan.get]
       if binding.dataType.isSome:
-        let resolved_type = ast.type_name(module, binding.dataType.get)
+        let resolved_type = ast.type_name(module, binding.dataType)
         for untyped_index in 0 ..< pending_untyped:
           param_types.add(resolved_type)
         param_types.add(resolved_type)
@@ -229,6 +236,11 @@ func statement_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :v
       if binding.name.isSome:
         let name = ast.source(module, binding.name.get.location)
         Out.string(module, name, output.Target.definition)
+
+      if binding.dataType.isSome:
+        let suffix = ast.type_suffix(module, binding.dataType)
+        if suffix.len > 0:
+          Out.string(module, suffix, output.Target.definition)
 
       current = binding.next
       param_index += 1
@@ -271,8 +283,7 @@ func statement_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
         let field = ast.data.bindings.get[current.get]
         Out.string(module, Tab, output.Target.definition)
         if field.dataType.isSome:
-          let type_name = ast.type_name(module, field.dataType.get)
-          Out.string(module, type_name, output.Target.definition)
+          Out.string(module, ast.type_name(module, field.dataType), output.Target.definition)
           Out.string(module, " ", output.Target.definition)
         if field.name.isSome:
           Out.string(module, ast.source(module, field.name.get.location), output.Target.definition)

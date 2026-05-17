@@ -1,5 +1,5 @@
-fn countdown (n: i64) void {
-  var current: i64 = n;
+fn countdown (n: isize) void {
+  var current: isize = n;
   while (0 < current) {
     current = current - 1;
   }

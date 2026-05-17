@@ -1,5 +1,5 @@
-fn find_first (n: i64) i64 {
-  var current: i64 = 0;
+fn find_first (n: isize) isize {
+  var current: isize = 0;
   while (true) {
     if (current == n) {
       break;

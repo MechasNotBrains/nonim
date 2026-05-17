@@ -1,1 +1,1 @@
-const answer: i64 = 42;
+const answer: isize = 42;

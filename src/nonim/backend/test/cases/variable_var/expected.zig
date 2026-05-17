@@ -1,1 +1,1 @@
-var counter: i64 = 0;
+var counter: isize = 0;

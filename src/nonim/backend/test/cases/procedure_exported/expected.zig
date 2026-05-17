@@ -1,3 +1,3 @@
-pub fn visible (x: i64) i64 {
+pub fn visible (x: isize) isize {
   return x;
 }

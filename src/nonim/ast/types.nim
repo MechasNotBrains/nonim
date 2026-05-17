@@ -52,6 +52,7 @@ export astTF.ExpressionAffix
 export astTF.ExpressionCall
 export astTF.ExpressionConditional
 export astTF.ExpressionGroup
+export astTF.ExpressionIndexed
 export astTF.ExpressionLoop
 export astTF.TypePtr
 export astTF.TypeArray

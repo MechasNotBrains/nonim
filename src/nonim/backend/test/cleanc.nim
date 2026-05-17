@@ -21,19 +21,19 @@ const cases_dir = currentSourcePath().parentDir()/"cases"
 
 let compiler = Typed.Compiler.create()
 
-proc typed_ast (source :string) :astTF.Ast=
+proc typed_ast (source :string; target :astTF.Language) :astTF.Ast=
   let compiled = compiler.compile(source)
   var root     = newNode(nkStmtList)
   for statement in compiled.statements:
     root.add(statement)
-  return astTF.convert(root)
+  return astTF.convert(root, target)
 
 proc generate_nim (source :string) :string=
-  let output = nonim.codegen.nim(typed_ast(source))
+  let output = nonim.codegen.nim(typed_ast(source, astTF.Language.Nim))
   return output.modules[0].definitions
 
 proc generate_c (source :string) :string=
-  let output = nonim.codegen.C(typed_ast(source))
+  let output = nonim.codegen.C(typed_ast(source, astTF.Language.C))
   return output.modules[0].definitions
 
 proc case_input (name :string) :string=
@@ -108,6 +108,16 @@ describe "nonim.cleanc.c | Control Flow":
   it "must generate continue inside loop", proc() =
     let result = generate_c(case_input("statement_continue"))
     result.eq case_expected_c("statement_continue")
+
+describe "nonim.cleanc.c | Types":
+  it "must translate primitive types correctly", proc() =
+    let result = generate_c(case_input("type_primitive"))
+    result.eq case_expected_c("type_primitive")
+
+describe "nonim.cleanc.c | Expressions":
+  it "must generate array indexing", proc() =
+    let result = generate_c(case_input("expression_indexed"))
+    result.eq case_expected_c("expression_indexed")
 
 describe "nonim.cleanc.c | Operators":
   it "must translate Nim operators to C operators", proc() =

@@ -1,5 +1,5 @@
-static int find_first (int const n) {
-  int current = 0;
+static int64_t find_first (int64_t const n) {
+  int64_t current = 0;
   while (true) {
     if (current == n) {
       break;

@@ -1,3 +1,3 @@
-static int add (int const x, int const y) {
+static int64_t add (int64_t const x, int64_t const y) {
   return x + y;
 }

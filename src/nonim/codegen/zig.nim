@@ -14,6 +14,8 @@ func source (ast :astTF.Ast; module :astTF.Id; location :astTF.Location) :string
   ast.data.modules[module].source[location.start ..< location.`end`]
 
 
+const Tab = "  "
+
 #_______________________________________
 # @section Expressions
 #_____________________________
@@ -68,6 +70,13 @@ func expression_call (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var O
       current = binding.next
   Out.string(module, ")", output.Target.definition)
 
+func expression_indexed (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
+  ast.expression(module, expr.indexed.`object`, Out)
+  Out.string(module, "[", output.Target.definition)
+  ast.expression(module, expr.indexed.index, Out)
+  Out.string(module, "]", output.Target.definition)
+
 func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
   case expression.kind
@@ -75,6 +84,7 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Outpu
   of astTF.eLiteral:    ast.expression_literal(module, id, Out)
   of astTF.eAffix:      ast.expression_affix(module, id, Out)
   of astTF.eCall:       ast.expression_call(module, id, Out)
+  of astTF.eIndexed:    ast.expression_indexed(module, id, Out)
   else: assert false, "codegen.zig: unsupported expression kind: " & $expression.kind
 
 func expression_loop (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
@@ -110,30 +120,22 @@ func type_name (ast :astTF.Ast; module :astTF.Id; expression_id :astTF.Id) :stri
   let expression = ast.data.expressions.get[expression_id]
   case expression.kind
   of astTF.eIdentifier:
-    let nim_type = ast.source(module, expression.identifier.name.location)
-    case nim_type
-    of "int":     "i64"
-    of "int8":    "i8"
-    of "int16":   "i16"
-    of "int32":   "i32"
-    of "int64":   "i64"
-    of "uint":    "u64"
-    of "uint8":   "u8"
-    of "uint16":  "u16"
-    of "uint32":  "u32"
-    of "uint64":  "u64"
-    of "float":   "f64"
-    of "float32": "f32"
-    of "float64": "f64"
-    of "bool":    "bool"
-    of "char":    "u8"
-    of "string":  "[]const u8"
-    of "void":    "void"
-    else:         nim_type
-  else: "i64"
-
-
-const Tab = "  "
+    ast.source(module, expression.identifier.name.location)
+  of astTF.eType:
+    let type_data = ast.data.types.get[expression.`type`.id]
+    case type_data.kind
+    of astTF.tPrimitive:
+      ast.source(module, type_data.primitive.name.location)
+    of astTF.tArray:
+      let elem_type = ast.data.types.get[type_data.array.element]
+      let elem_name = ast.source(module, elem_type.primitive.name.location)
+      if type_data.array.length.isSome:
+        let length_expr = ast.data.expressions.get[type_data.array.length.get]
+        "[" & ast.source(module, length_expr.literal.value) & "]" & elem_name
+      else:
+        "[]" & elem_name
+    else: "void"
+  else: "void"
 
 #_______________________________________
 # @section Statements
@@ -141,9 +143,6 @@ const Tab = "  "
 func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let statement = ast.data.statements.get[id]
   let binding = ast.data.bindings.get[statement.variable.id]
-
-  let type_str = if binding.dataType.isSome: ast.type_name(module, binding.dataType.get)
-                 else: "i64"
 
   let is_mutable = binding.mutable.get(false)
   let is_private = binding.private.get(true)
@@ -162,8 +161,9 @@ func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
     let name = ast.source(module, binding.name.get.location)
     Out.string(module, name, output.Target.definition)
 
-  Out.string(module, ": ", output.Target.definition)
-  Out.string(module, type_str, output.Target.definition)
+  if binding.dataType.isSome:
+    Out.string(module, ": ", output.Target.definition)
+    Out.string(module, ast.type_name(module, binding.dataType.get), output.Target.definition)
 
   if binding.value.isSome:
     Out.string(module, " = ", output.Target.definition)

@@ -24,7 +24,7 @@ proc typed_ast (source :string) :astTF.Ast=
   var root     = newNode(nkStmtList)
   for statement in compiled.statements:
     root.add(statement)
-  return astTF.convert(root)
+  return astTF.convert(root, astTF.Language.Zig)
 
 proc generate_zig (source :string) :string=
   let output = nonim.codegen.zig(typed_ast(source))
@@ -89,6 +89,16 @@ describe "nonim.zig | Control Flow":
   it "must generate continue inside loop", proc() =
     let result = generate_zig(case_input("statement_continue"))
     result.eq case_expected("statement_continue")
+
+describe "nonim.zig | Types":
+  it "must translate primitive types correctly", proc() =
+    let result = generate_zig(case_input("type_primitive"))
+    result.eq case_expected("type_primitive")
+
+describe "nonim.zig | Expressions":
+  it "must generate array indexing", proc() =
+    let result = generate_zig(case_input("expression_indexed"))
+    result.eq case_expected("expression_indexed")
 
 describe "nonim.zig | Operators":
   it "must translate Nim operators to Zig operators", proc() =
