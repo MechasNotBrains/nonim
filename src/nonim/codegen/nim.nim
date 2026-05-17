@@ -207,6 +207,19 @@ func affix *(
     Out.string(module, " ", target)
     ast.expression(module, E.right.get, target, Out)
 #___________________
+func expression_indexed *(
+    ast     : astTF.Ast;
+    module  : astTF.Id;
+    id      : astTF.Id;
+    target  : output.Target;
+    Out     : var Output;
+  ) :void=
+  let E = ast.expression(id).indexed
+  ast.expression(module, E.`object`, target, Out)
+  Out.string(module, "[", target)
+  ast.expression(module, E.index, target, Out)
+  Out.string(module, "]", target)
+#___________________
 func expression *(
     ast     : astTF.Ast;
     module  : astTF.Id;
@@ -226,7 +239,8 @@ func expression *(
   of astTF.eGroup      : ast.group(module, id, target, Out)
   of astTF.eCall       : ast.call(module, id, target, Out)
   of astTF.eType       : ast.`type`(module, E.`type`.id, target, Out)
-  else                 : raise newException(Defect, "unreachable")
+  of astTF.eIndexed    : ast.expression_indexed(module, id, target, Out)
+  else                 : raise newException(Defect, "unreachable: " & $E.kind)
 
 
 #_______________________________________
@@ -454,7 +468,7 @@ func procedure *(
       generic_current = generic_binding.next
       if generic_current.isSome: Out.string(module, ", ", target)
     Out.string(module, "]", target)
-  Out.string(module, "(", target)
+  Out.string(module, " (", target)
   if P.arguments.isSome: ast.binding(module, P.arguments.get, target, Out)
   Out.string(module, ")", target)
   if P.returnType.isSome:
@@ -765,6 +779,78 @@ func statement_import *(
       current = A.next
       if current.isSome: Out.string(module, ", ", target)
 #___________________
+func expression_loop *(
+    ast     : astTF.Ast;
+    module  : astTF.Id;
+    id      : astTF.Id;
+    depth   : int;
+    target  : output.Target;
+    Out     : var Output;
+  ) :void=
+  let expr = ast.expression(id)
+  Out.string(module, "while ", target)
+  if expr.loop.condition.isSome:
+    ast.expression(module, expr.loop.condition.get, target, Out)
+  Out.string(module, ":", target)
+  if expr.loop.body.isSome:
+    ast.statement_list(module, expr.loop.body.get, target, Out)
+#___________________
+func statement_branch *(
+    ast     : astTF.Ast;
+    module  : astTF.Id;
+    id      : astTF.Id;
+    target  : output.Target;
+    Out     : var Output;
+  ) :void=
+  var current = some(id)
+  while current.isSome:
+    let branch = ast.statement(current.get).branch
+    let depth = ast.node_depth(branch.depth)
+    for indentation_level in 0 ..< depth: Out.string(module, indentation, target)
+    if branch.condition.isSome:
+      Out.string(module, "elif ", target)
+      ast.expression(module, branch.condition.get, target, Out)
+      Out.string(module, ":\n", target)
+    else:
+      Out.string(module, "else:\n", target)
+    if branch.body.isSome:
+      ast.statement_list(module, branch.body.get, target, Out)
+    current = branch.next
+#___________________
+func expression_conditional *(
+    ast     : astTF.Ast;
+    module  : astTF.Id;
+    id      : astTF.Id;
+    depth   : int;
+    target  : output.Target;
+    Out     : var Output;
+  ) :void=
+  let expr = ast.expression(id)
+  Out.string(module, "if ", target)
+  ast.expression(module, expr.conditional.condition, target, Out)
+  Out.string(module, ":\n", target)
+  if expr.conditional.body.isSome:
+    ast.statement_list(module, expr.conditional.body.get, target, Out)
+  if expr.conditional.branches.isSome:
+    ast.statement_branch(module, expr.conditional.branches.get, target, Out)
+#___________________
+func statement_expression *(
+    ast     : astTF.Ast;
+    module  : astTF.Id;
+    id      : astTF.Id;
+    target  : output.Target;
+    Out     : var Output;
+  ) :void=
+  let S = ast.statement(id).expression
+  let expr = ast.expression(S.id)
+  let depth = ast.node_depth(S.depth)
+  for indentation_level in 0 ..< depth: Out.string(module, indentation, target)
+  case expr.kind
+  of astTF.eLoop:        ast.expression_loop(module, S.id, depth, target, Out)
+  of astTF.eConditional: ast.expression_conditional(module, S.id, depth, target, Out)
+  else:
+    ast.expression(module, S.id, target, Out)
+#___________________
 func statement *(
     ast     : astTF.Ast;
     module  : astTF.Id;
@@ -783,6 +869,8 @@ func statement *(
   of astTF.sImport      : ast.statement_import(module, id, target, Out)
   of astTF.sAlias       : ast.statement_alias(module, id, target, Out, isBlock = false)
   of astTF.sKeyword     : ast.statement_keyword(module, id, target, Out)
+  of astTF.sExpression  : ast.statement_expression(module, id, target, Out)
+  of astTF.sBranch      : ast.statement_branch(module, id, target, Out)
   else                  : raise newException(Defect, "unreachable: " & $S.kind)
   Out.string(module, "\n", target)
 
