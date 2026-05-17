@@ -40,7 +40,9 @@ proc name (node :PNode) :string=
 
 
 proc exported (node :PNode) :bool=
-  node.kind == nkPostfix
+  if node.kind == nkPostfix: return true
+  if node.kind == nkSym: return sfExported in node.sym.flags
+  return false
 
 
 #_______________________________________
