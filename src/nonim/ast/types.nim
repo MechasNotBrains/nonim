@@ -42,6 +42,7 @@ export astTF.StatementImport
 export astTF.StatementPassthrough
 export astTF.StatementComment
 export astTF.StatementAlias
+export astTF.StatementBranch
 export astTF.StatementKind
 export astTF.Statement
 export astTF.Comment

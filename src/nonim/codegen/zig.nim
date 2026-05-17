@@ -40,11 +40,12 @@ func translate_operator (operator :string) :string=
 
 func expression_affix (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
+  let is_prefix = expression.affix.left.isNone
   if expression.affix.left.isSome:
     ast.expression(module, expression.affix.left.get, Out)
-  Out.string(module, " ", output.Target.definition)
+    Out.string(module, " ", output.Target.definition)
   Out.string(module, translate_operator(ast.source(module, expression.affix.operator)), output.Target.definition)
-  Out.string(module, " ", output.Target.definition)
+  if not is_prefix: Out.string(module, " ", output.Target.definition)
   if expression.affix.right.isSome:
     ast.expression(module, expression.affix.right.get, Out)
 
@@ -111,6 +112,7 @@ const Tab = "  "
 # @section Statements
 #_____________________________
 func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
+func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 
 func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let statement = ast.data.statements.get[id]
@@ -262,7 +264,32 @@ func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output)
   of astTF.sProcedure: ast.statement_procedure(module, id, Out)
   of astTF.sKeyword:   ast.statement_keyword(module, id, Out)
   of astTF.sType:      ast.statement_type(module, id, Out)
+  of astTF.sBranch:    ast.statement_branch(module, id, Out)
   else:                assert false, "codegen.zig: unsupported statement kind: " & $statement.kind
+
+
+func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  var current = some(id)
+  var is_first = true
+  while current.isSome:
+    let branch = ast.data.statements.get[current.get].branch
+    let depth = ast.node_depth(branch.depth)
+    if is_first:
+      for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+    if branch.condition.isSome:
+      if is_first: Out.string(module, "if (", output.Target.definition)
+      else: Out.string(module, " else if (", output.Target.definition)
+      ast.expression(module, branch.condition.get, Out)
+      Out.string(module, ") {\n", output.Target.definition)
+    else:
+      Out.string(module, " else {\n", output.Target.definition)
+    if branch.body.isSome:
+      ast.statement_list(module, branch.body.get, Out)
+    for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+    Out.string(module, "}", output.Target.definition)
+    is_first = false
+    current = branch.next
+  Out.string(module, "\n", output.Target.definition)
 
 
 func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
@@ -280,6 +307,7 @@ func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
       of astTF.sType:        statement.`type`.next
       of astTF.sAlias:       statement.alias.next
       of astTF.sKeyword:     statement.keyword.next
+      of astTF.sBranch:      none(astTF.Id)
       else:                  none(astTF.Id)
 
 

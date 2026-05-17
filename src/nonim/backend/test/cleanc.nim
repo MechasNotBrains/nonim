@@ -92,6 +92,11 @@ describe "nonim.cleanc.c | Types":
     let result = generate_c(case_input("type_object"))
     result.eq case_expected_c("type_object")
 
+describe "nonim.cleanc.c | Control Flow":
+  it "must generate if/else from Nim if/else", proc() =
+    let result = generate_c(case_input("control_if"))
+    result.eq case_expected_c("control_if")
+
 describe "nonim.cleanc.c | Operators":
   it "must translate Nim operators to C operators", proc() =
     let result = generate_c(case_input("expression_operator"))

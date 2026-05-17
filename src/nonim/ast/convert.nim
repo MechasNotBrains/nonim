@@ -122,11 +122,25 @@ proc expression_call (state :var State; node :PNode) :astTF.Id=
     ),
   ))
 
+proc expression_prefix (state :var State; node :PNode) :astTF.Id=
+  let operator_node = node[0]
+  let right_node = node[1]
+  let operator_loc = state.name_add(operator_node.name())
+  let right_id = state.expression(right_node)
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eAffix,
+    affix: astTF.ExpressionAffix(
+      right: some(right_id),
+      operator: operator_loc,
+    ),
+  ))
+
 proc expression (state :var State; node :PNode) :astTF.Id=
   case node.kind
   of SomeLit:                      state.expression_literal(node)
   of SomeIdent, nkSym, nkPostfix:  state.expression_identifier(node)
   of nkInfix:                      state.expression_infix(node)
+  of nkPrefix:                     state.expression_prefix(node)
   of nkCall, nkCommand:            state.expression_call(node)
   else:
     state.expression_identifier(node.name())
@@ -276,17 +290,46 @@ proc statement_keyword (state :var State; node :PNode; depth :uint64= 0) :astTF.
   ))
 
 
+proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id
+
+proc statement_branch (state :var State; node :PNode; depth :uint64) :astTF.Id=
+  var first_branch = none(astTF.Id)
+  var previous_branch = none(astTF.Id)
+  for branch_node in node:
+    var condition = none(astTF.Id)
+    var body_node :PNode
+    if branch_node.kind == nkElifBranch:
+      condition = some(state.expression(branch_node[0]))
+      body_node = branch_node[1]
+    elif branch_node.kind == nkElse:
+      body_node = branch_node[0]
+    else:
+      continue
+    let body_id = some(state.statement_body(body_node, depth + 1))
+    let depth_id = some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
+    let branch_id = state.ast.add_statement(astTF.Statement(
+      kind: astTF.sBranch,
+      branch: astTF.StatementBranch(
+        condition: condition,
+        body: body_id,
+        depth: depth_id,
+      ),
+    ))
+    if first_branch.isNone:
+      first_branch = some(branch_id)
+    if previous_branch.isSome:
+      var prev = state.ast.statement(previous_branch.get)
+      prev.branch.next = some(branch_id)
+      state.ast.data.statements.get[previous_branch.get] = prev
+    previous_branch = some(branch_id)
+  return first_branch.get
+
 proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
   let saved_previous = state.previous_stmt
   state.previous_stmt = none(astTF.Id)
   var first_id = none(astTF.Id)
 
-  proc body_statement (state :var State; child :PNode) =
-    let statement_id = case child.kind
-      of nkReturnStmt, nkBreakStmt, nkContinueStmt, nkDiscardStmt:
-        state.statement_keyword(child, depth)
-      else:
-        return
+  proc body_chain (state :var State; statement_id :astTF.Id) =
     if first_id.isNone:
       first_id = some(statement_id)
     elif state.previous_stmt.isSome:
@@ -294,13 +337,27 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
       var previous = state.ast.statement(previous_id)
       case previous.kind
       of astTF.sKeyword: previous.keyword.next = some(statement_id)
+      of astTF.sBranch:  previous.branch.next = some(statement_id)
       else: discard
       state.ast.data.statements.get[previous_id] = previous
     state.previous_stmt = some(statement_id)
 
+  proc body_statement (state :var State; child :PNode) =
+    let statement_id = case child.kind
+      of nkReturnStmt, nkBreakStmt, nkContinueStmt, nkDiscardStmt:
+        state.statement_keyword(child, depth)
+      of nkIfStmt:
+        state.statement_branch(child, depth)
+      else:
+        return
+    state.body_chain(statement_id)
+
   if node.kind == nkStmtList:
     for child in node:
       state.body_statement(child)
+  elif node.kind == nkIfStmt:
+    let statement_id = state.statement_branch(node, depth)
+    state.body_chain(statement_id)
   else:
     state.body_statement(node)
 

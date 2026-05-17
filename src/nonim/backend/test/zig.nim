@@ -73,6 +73,11 @@ describe "nonim.zig | Discard":
     let result = generate_zig(case_input("statement_discard"))
     result.eq case_expected("statement_discard")
 
+describe "nonim.zig | Control Flow":
+  it "must generate if/else from Nim if/else", proc() =
+    let result = generate_zig(case_input("control_if"))
+    result.eq case_expected("control_if")
+
 describe "nonim.zig | Operators":
   it "must translate Nim operators to Zig operators", proc() =
     let result = generate_zig(case_input("expression_operator"))
