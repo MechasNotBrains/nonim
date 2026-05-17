@@ -1,1 +1,1 @@
-var thing* :int= 42
+var thing :int= 42

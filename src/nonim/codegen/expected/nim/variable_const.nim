@@ -1,1 +1,1 @@
-const thing* :int= 42
+const thing :int= 42
