@@ -1,3 +1,6 @@
+#:_________________________________________________________
+#  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
+#:_________________________________________________________
 from std/math import nil
 from std/bitops import nil
 import std/strutils

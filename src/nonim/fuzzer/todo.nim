@@ -1,3 +1,6 @@
+#:_________________________________________________________
+#  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
+#:_________________________________________________________
 type TNodeKind* = enum
   # order is extremely important. ranges are used
   # nkNone,               # unknown node kind: indicates an error

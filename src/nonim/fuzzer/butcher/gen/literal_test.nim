@@ -1,6 +1,6 @@
-#:____________________________________________________________________
-#  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
-#:____________________________________________________________________
+#:_________________________________________________________
+#  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
+#:_________________________________________________________
 # @deps std
 import unittest, strutils, strformat, sets, parseUtils, math, os
 from std/random as rand import nil
