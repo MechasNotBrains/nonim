@@ -1,31 +1,45 @@
 # Feature Process
 
-Every new feature must be implemented across all backends simultaneously.
+Every new feature must be implemented across ALL 5 backends simultaneously.
 No backend progresses without the others having parity.
+
+## Backends (5 total)
+
+| Backend | Pipeline | Converter | Codegen | Test file |
+|---|---|---|---|---|
+| cleanc | typed (sem) | `ast/convert.nim` (Language.C) | `codegen/C.nim` | `backend/test/cleanc.nim` |
+| zig | typed (sem) | `ast/convert.nim` (Language.Zig) | `codegen/zig.nim` | `backend/test/zig.nim` |
+| minc | untyped (parse) | `ast/convert.nim` (Language.C) | `codegen/C.nim` | `cli/minc_test.nim` |
+| minz | untyped (parse) | `ast/convert.nim` (Language.Zig) | `codegen/zig.nim` | (TBD) |
+| nim | typed (sem) | `ast/convert.nim` (Language.Nim) | `codegen/nim.nim` | `codegen/nim_test.nim` |
+
+- **Typed** backends use `nimc/Typed.nim` (full semantic analysis, symbols carry type info)
+- **Untyped** backends use `nimc/Untyped.nim` (parse only, no type resolution)
+- The converter is target-aware (`Language` enum) and produces target-specific type names in the AST
 
 ## Steps
 
 1. **Track the feature**: Add the syntax construct to `doc/all.nim`, `doc/all.c`, and `doc/all.zig` marked as `[ ]`.
 2. **Codegen unit tests (ALL 3 LANGS)**: Add a test case factory in `codegen/test/<category>.nim`. Add assertions to ALL THREE: `codegen/c_test.nim`, `codegen/zig_test.nim`, AND `codegen/nim_test.nim`. See them FAIL.
-3. **Backend integration tests**: Create `src/nonim/backend/test/cases/<name>/input.nim` with expected outputs (`expected.c`, `expected.zig`, `expected.nim`). Add assertions to `backend/test/cleanc.nim` and `backend/test/zig.nim`. See them FAIL.
-4. **Converter**: If the feature requires a new PNode kind, implement it in `ast/convert.nim`.
+3. **Backend integration tests**: Create `src/nonim/backend/test/cases/<name>/input.nim` with expected outputs (`expected.c`, `expected.zig`, `expected.nim`). Add assertions to ALL 5 backend test files. See them FAIL.
+4. **Converter**: If the feature requires a new PNode kind, implement it in `ast/convert.nim`. The converter handles BOTH typed and untyped PNode trees.
 5. **C codegen**: Implement in `codegen/C.nim`. See `codegen/c_test.nim` PASS.
 6. **Zig codegen**: Implement in `codegen/zig.nim`. See `codegen/zig_test.nim` PASS.
 7. **Nim codegen**: Implement in `codegen/nim.nim`. See `codegen/nim_test.nim` PASS.
-8. **Run ALL tests**: All 3 codegen unit tests AND all backend integration tests must pass. No lang can be skipped.
+8. **Run ALL tests**: All 3 codegen unit tests AND all 5 backend integration tests must pass. No backend can be skipped.
 9. **Mark done**: Update the `[ ]` to `[x]` in all three `doc/all.*` files.
 
 ## Rules
 
-- ALL THREE LANGUAGES must have codegen unit tests. No lang is exempt.
-- A feature is NOT done until c_test, zig_test, AND nim_test all pass for it.
-- The codegen tests run BEFORE the backend tests in `tests.sh`.
-
-## Rules
-
+- ALL 5 BACKENDS must pass. No backend is exempt.
+- A feature is NOT done until cleanc, zig, minc, minz, AND nim all pass for it.
+- The codegen tests run BEFORE the backend tests.
 - NEVER implement a feature in one backend without the others.
 - Test cases are shared — one `input.nim` produces expected output for every target language.
-- The converter (`ast/convert.nim`) is backend-agnostic. It produces astTF. Backends consume astTF.
+- When typed and untyped produce different output (e.g., type translation, operator reordering), use `expected.untyped.c` / `expected.untyped.zig` alongside the typed `expected.c` / `expected.zig`. The untyped test runners check for the `.untyped.` variant first, falling back to the regular file.
+- Input files MUST have explicit type annotations — untyped backends cannot infer types.
+- The converter is target-aware (Language enum) and typed-aware (`typed: bool`). Type translation happens in the converter ONLY for typed ASTs. Untyped passes type names through verbatim.
+- Codegens are pure renderers — they emit whatever text is in the AST without translation.
 - East-const rule applies to all C output (`int const`, not `const int`).
 - Zig output must pass `zig fmt` (when format is active).
 - C output must pass `clang-format -i` (when format is active).
@@ -40,7 +54,7 @@ No backend progresses without the others having parity.
 | Variable: var | `var x :int= 0` | `static int x = 0;` | `var x: i64 = 0;` | [x] |
 | Variable: exported | `let x* :int= 42` | `int const x = 42;` | `pub const x: i64 = 42;` | [x] |
 | Variable: multiple bindings | `let a, b :int= 0` | `static int const a = 0, b = 0;` | `const a: i64 = 0; const b: i64 = 0;` | [ ] |
-| Variable: type inference | `let x = 42` | `static auto const x = 42;` | `const x = 42;` | [ ] |
+| Variable: type inference | `let x = 42` | `int64_t const x = 42;` | `const x: isize = 42;` | [x] (typed only) |
 | Procedure: forward decl | `proc add (x, y :int) :int` | `static int add (int const x, int const y);` | `fn add (x: i64, y: i64) i64;` | [x] |
 | Procedure: body | `proc add (...) :int= return x + y` | `static int add (...) { return x + y; }` | `fn add (...) i64 { return x + y; }` | [x] |
 | Procedure: exported | `proc add* (...)` | `int add (...)` (no static) | `pub fn add (...)` | [x] |

@@ -1,3 +1,3 @@
-type Vec2* = object
+type Vec2 = object
   x* :float32
   y* :float32
