@@ -7,4 +7,5 @@ const minibuild = B.dependency("minibuild", "https://github.com/MechasNotBrains/
 B.program("nonim/nimcheck.nim").build()
 B.program("nonim/nimgen.nim").build()
 B.program("nonim/minc.nim", deps= @[astTF, minibuild]).build()
+B.program("nonim/minz.nim", deps= @[astTF, minibuild]).build()
 B.program("nonim.nim",      deps= @[astTF, minibuild]).build()

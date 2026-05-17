@@ -9,8 +9,10 @@ import std/parseopt
 
 
 type Backend *{.pure.}= enum
-  minc    ## Untyped path: parse only, no semantic analysis.
-  cleanc  ## Typed path: full semantic analysis before codegen.
+  minc    ## Untyped path: parse only, no semantic analysis. Emits C.
+  minz    ## Untyped path: parse only, no semantic analysis. Emits Zig.
+  cleanc  ## Typed path: full semantic analysis before codegen. Emits C.
+  zig     ## Typed path: full semantic analysis before codegen. Emits Zig.
 
 type Command *{.pure.}= enum
   codegen  ## Generate C code only.
@@ -61,7 +63,9 @@ proc options_parse *(args :seq[string]= commandLineParams()) :Options=
       of "backend":
         case parser.val
         of "minc":   result.backend = Backend.minc
+        of "minz":   result.backend = Backend.minz
         of "cleanc": result.backend = Backend.cleanc
+        of "zig":    result.backend = Backend.zig
         else: discard
       else: discard
     of cmdArgument:

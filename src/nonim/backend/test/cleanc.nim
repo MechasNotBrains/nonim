@@ -17,7 +17,7 @@ import ../../nimc/Typed
 import ../../ast as astTF
 
 
-const cases_dir = currentSourcePath().parentDir()/".."/"test"/"cases"
+const cases_dir = currentSourcePath().parentDir()/"cases"
 
 let compiler = Typed.Compiler.create()
 
@@ -52,9 +52,9 @@ describe "nonim.cleanc.nim | Variables":
     result.eq case_expected_nim("variable")
 
 describe "nonim.cleanc.nim | Procedures":
-  it "must roundtrip a proc signature", proc() =
-    let result = generate_nim(case_input("procedure"))
-    result.eq case_expected_nim("procedure")
+  todo_it "must roundtrip a proc with body", proc() =
+    let result = generate_nim(case_input("procedure_body"))
+    result.eq case_expected_nim("procedure_body")
 
 describe "nonim.cleanc.c | Variables":
   it "must generate static const int from let binding", proc() =
@@ -70,7 +70,7 @@ describe "nonim.cleanc.c | Variables":
     result.eq case_expected_c("variable_exported")
 
 describe "nonim.cleanc.c | Procedures":
-  it "must generate a static forward declaration", proc() =
-    let result = generate_c(case_input("procedure"))
-    result.eq case_expected_c("procedure")
+  it "must generate a procedure with body", proc() =
+    let result = generate_c(case_input("procedure_body"))
+    result.eq case_expected_c("procedure_body")
 

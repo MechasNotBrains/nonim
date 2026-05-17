@@ -4,13 +4,14 @@
 # @deps std
 from std/os import commandLineParams
 from std/paths import Path
-# @deps nim.gen
-import ./nimc
+# @deps nimc
+import ./nimc/Untyped as nimc
 
 
 #_______________________________________
 # @section nim.check Entry Point
 #_____________________________
+proc code *(src  :string) :void= discard nimc.compile(src)
 proc file *(path :string) :void= discard nimc.readAST(path.Path)
 #___________________
 when isMainModule:
