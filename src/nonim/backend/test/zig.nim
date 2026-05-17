@@ -78,6 +78,10 @@ describe "nonim.zig | Control Flow":
     let result = generate_zig(case_input("control_if"))
     result.eq case_expected("control_if")
 
+  it "must generate while loop", proc() =
+    let result = generate_zig(case_input("control_while"))
+    result.eq case_expected("control_while")
+
 describe "nonim.zig | Operators":
   it "must translate Nim operators to Zig operators", proc() =
     let result = generate_zig(case_input("expression_operator"))

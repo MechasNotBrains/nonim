@@ -142,6 +142,11 @@ proc expression (state :var State; node :PNode) :astTF.Id=
   of nkInfix:                      state.expression_infix(node)
   of nkPrefix:                     state.expression_prefix(node)
   of nkCall, nkCommand:            state.expression_call(node)
+  of nkStmtListExpr:
+    for child in node:
+      if child.kind != nkEmpty:
+        return state.expression(child)
+    state.expression_identifier("")
   else:
     state.expression_identifier(node.name())
 
@@ -336,11 +341,81 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
       let previous_id = state.previous_stmt.get
       var previous = state.ast.statement(previous_id)
       case previous.kind
-      of astTF.sKeyword: previous.keyword.next = some(statement_id)
-      of astTF.sBranch:  previous.branch.next = some(statement_id)
+      of astTF.sKeyword:    previous.keyword.next = some(statement_id)
+      of astTF.sBranch:     previous.branch.next = some(statement_id)
+      of astTF.sVariable:   previous.variable.next = some(statement_id)
+      of astTF.sExpression: previous.expression.next = some(statement_id)
       else: discard
       state.ast.data.statements.get[previous_id] = previous
     state.previous_stmt = some(statement_id)
+
+  proc body_variable (state :var State; child :PNode) =
+    if child.kind != nkVarSection: return
+    for definition in child:
+      if definition.kind != nkIdentDefs: continue
+      let name_node = definition[0]
+      let type_node = definition[^2]
+      let value_node = definition[^1]
+      let name_str = name_node.name()
+      if name_str.len == 0: continue
+      let name_loc = state.name_add(name_str)
+      var data_type = none(astTF.Id)
+      if type_node.kind != nkEmpty:
+        data_type = some(state.expression(type_node))
+      var value = none(astTF.Id)
+      if value_node.kind != nkEmpty:
+        value = some(state.expression(value_node))
+      let depth_id = some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
+      let binding_id = state.ast.add_binding(astTF.Binding(
+        name: some(astTF.Identifier(location: name_loc)),
+        mutable: some(true),
+        runtime: some(true),
+        dataType: data_type,
+        value: value,
+      ))
+      let statement_id = state.ast.add_statement(astTF.Statement(
+        kind: astTF.sVariable,
+        variable: astTF.StatementVariable(id: binding_id, depth: depth_id),
+      ))
+      state.body_chain(statement_id)
+
+  proc body_while (state :var State; child :PNode) :astTF.Id=
+    let condition_node = child[0]
+    let body_node = child[1]
+    let condition_id = state.expression(condition_node)
+    let loop_body_id = some(state.statement_body(body_node, depth + 1))
+    let depth_id = some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
+    let loop_expr_id = state.ast.add_expression(astTF.Expression(
+      kind: astTF.eLoop,
+      loop: astTF.ExpressionLoop(
+        condition: some(condition_id),
+        body: loop_body_id,
+      ),
+    ))
+    state.ast.add_statement(astTF.Statement(
+      kind: astTF.sExpression,
+      expression: astTF.StatementExpression(id: loop_expr_id, depth: depth_id),
+    ))
+
+  proc body_assignment (state :var State; child :PNode) :astTF.Id=
+    let left_node = child[0]
+    let right_node = child[1]
+    let left_id = state.expression(left_node)
+    let right_id = state.expression(right_node)
+    let assign_loc = state.name_add("=")
+    let depth_id = some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
+    let affix_id = state.ast.add_expression(astTF.Expression(
+      kind: astTF.eAffix,
+      affix: astTF.ExpressionAffix(
+        left: some(left_id),
+        operator: assign_loc,
+        right: some(right_id),
+      ),
+    ))
+    state.ast.add_statement(astTF.Statement(
+      kind: astTF.sExpression,
+      expression: astTF.StatementExpression(id: affix_id, depth: depth_id),
+    ))
 
   proc body_statement (state :var State; child :PNode) =
     let statement_id = case child.kind
@@ -348,6 +423,13 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
         state.statement_keyword(child, depth)
       of nkIfStmt:
         state.statement_branch(child, depth)
+      of nkWhileStmt:
+        state.body_while(child)
+      of nkAsgn:
+        state.body_assignment(child)
+      of nkVarSection:
+        state.body_variable(child)
+        return
       else:
         return
     state.body_chain(statement_id)

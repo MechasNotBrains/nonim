@@ -130,7 +130,7 @@ func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
   let depth = ast.node_depth(statement.variable.depth)
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
 
-  if is_private:
+  if is_private and depth == 0:
     Out.string(module, "static ", output.Target.definition)
 
   Out.string(module, type_str, output.Target.definition)
@@ -260,6 +260,25 @@ func statement_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
     Out.string(module, ";\n", output.Target.definition)
 
 
+func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let statement = ast.data.statements.get[id]
+  let expr = ast.data.expressions.get[statement.expression.id]
+  let depth = ast.node_depth(statement.expression.depth)
+  for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+  if expr.kind == astTF.eLoop:
+    Out.string(module, "while (", output.Target.definition)
+    if expr.loop.condition.isSome:
+      ast.expression(module, expr.loop.condition.get, Out)
+    Out.string(module, ") {\n", output.Target.definition)
+    if expr.loop.body.isSome:
+      ast.statement_list(module, expr.loop.body.get, Out)
+    for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+    Out.string(module, "}\n", output.Target.definition)
+  else:
+    ast.expression(module, statement.expression.id, Out)
+    Out.string(module, ";\n", output.Target.definition)
+
+
 func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let statement = ast.data.statements.get[id]
   case statement.kind
@@ -268,6 +287,7 @@ func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output)
   of astTF.sKeyword:   ast.statement_keyword(module, id, Out)
   of astTF.sType:      ast.statement_type(module, id, Out)
   of astTF.sBranch:    ast.statement_branch(module, id, Out)
+  of astTF.sExpression: ast.statement_expression(module, id, Out)
   else:                assert false, "codegen.C: unsupported statement kind: " & $statement.kind
 
 
@@ -310,6 +330,7 @@ func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
       of astTF.sType:        statement.`type`.next
       of astTF.sAlias:       statement.alias.next
       of astTF.sKeyword:     statement.keyword.next
+      of astTF.sExpression:  statement.expression.next
       of astTF.sBranch:      none(astTF.Id)
       else:                  none(astTF.Id)
 

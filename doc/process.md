@@ -50,7 +50,8 @@ No backend progresses without the others having parity.
 | Expression: unary prefix | `-x` / `not x` | `-x` / `!x` | `-x` / `!x` | [x] |
 | Expression: indexed | `arr[i]` | `arr[i]` | `arr[i]` | [ ] |
 | Expression: conditional | `if x < 0: ...` | `if (x < 0) { ... }` | `if (x < 0) { ... }` | [x] |
-| Expression: loop | `while x > 0: ...` | `while (x > 0) { ... }` | `while (x > 0) { ... }` | [ ] |
+| Expression: loop | `while x > 0: ...` | `while (x > 0) { ... }` | `while (x > 0) { ... }` | [x] |
+| Statement: expression | `x = x + 1` | `x = x + 1;` | `x = x + 1;` | [x] |
 | Expression: function call | `add(1, 2)` | `add(1, 2)` | `add(1, 2)` | [x] |
 | Statement: variable | `let x :int= 42` | `static int const x = 42;` | `const x: i64 = 42;` | [x] |
 | Statement: procedure | (see procedure) | (see procedure) | (see procedure) | [x] |

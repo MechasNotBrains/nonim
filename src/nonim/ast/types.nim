@@ -43,6 +43,7 @@ export astTF.StatementPassthrough
 export astTF.StatementComment
 export astTF.StatementAlias
 export astTF.StatementBranch
+export astTF.StatementExpression
 export astTF.StatementKind
 export astTF.Statement
 export astTF.Comment
@@ -50,6 +51,7 @@ export astTF.Alias
 export astTF.ExpressionAffix
 export astTF.ExpressionCall
 export astTF.ExpressionGroup
+export astTF.ExpressionLoop
 export astTF.TypePtr
 export astTF.TypeArray
 export astTF.TypeProcedure
