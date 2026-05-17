@@ -78,3 +78,17 @@ describe "nonim.cleanc.c | Procedures":
     let result = generate_c(case_input("procedure_exported"))
     result.eq case_expected_c("procedure_exported")
 
+  it "must generate a function call expression", proc() =
+    let result = generate_c(case_input("expression_call"))
+    result.eq case_expected_c("expression_call")
+
+describe "nonim.cleanc.c | Discard":
+  it "must generate discard as (void) cast", proc() =
+    let result = generate_c(case_input("statement_discard"))
+    result.eq case_expected_c("statement_discard")
+
+describe "nonim.cleanc.c | Operators":
+  it "must translate Nim operators to C operators", proc() =
+    let result = generate_c(case_input("expression_operator"))
+    result.eq case_expected_c("expression_operator")
+

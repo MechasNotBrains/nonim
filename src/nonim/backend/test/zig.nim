@@ -59,3 +59,17 @@ describe "nonim.zig | Procedures":
     let result = generate_zig(case_input("procedure_exported"))
     result.eq case_expected("procedure_exported")
 
+  it "must generate a function call expression", proc() =
+    let result = generate_zig(case_input("expression_call"))
+    result.eq case_expected("expression_call")
+
+describe "nonim.zig | Discard":
+  it "must generate discard as _ = expr", proc() =
+    let result = generate_zig(case_input("statement_discard"))
+    result.eq case_expected("statement_discard")
+
+describe "nonim.zig | Operators":
+  it "must translate Nim operators to Zig operators", proc() =
+    let result = generate_zig(case_input("expression_operator"))
+    result.eq case_expected("expression_operator")
+

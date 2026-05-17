@@ -49,6 +49,6 @@ describe "nonim.cli.cleanc | Variables":
     result.eq case_expected_c("variable_exported")
 
 describe "nonim.cli.cleanc | Procedures":
-  it "must generate a static forward declaration", proc() =
-    let result = generate_from("procedure")
-    result.eq case_expected_c("procedure")
+  it "must generate a procedure with body", proc() =
+    let result = generate_from("procedure_body")
+    result.eq case_expected_c("procedure_body")

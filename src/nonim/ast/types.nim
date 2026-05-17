@@ -53,5 +53,6 @@ export astTF.TypePtr
 export astTF.TypeArray
 export astTF.TypeProcedure
 export astTF.Link
+export astTF.Depth
 export astTF.AstData
 

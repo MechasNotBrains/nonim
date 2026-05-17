@@ -81,6 +81,14 @@ func add_alias *(
   atf.data.aliases.get.add A
   return astTF.Id(atf.data.aliases.get.len-1)
 #__________________
+func add_depth *(
+    atf : var astTF.astTF;
+    D   : astTF.Depth;
+  ) :astTF.Id {.discardable.}=
+  if atf.data.depths.isNone: atf.data.depths = some(astTF.DataList[astTF.Depth](@[]))
+  atf.data.depths.get.add D
+  return astTF.Id(atf.data.depths.get.len-1)
+#__________________
 func add_module *(
     atf : var astTF.astTF;
     M   : astTF.Module;

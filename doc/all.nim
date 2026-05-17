@@ -21,9 +21,13 @@ proc add (x, y :int) :int=
 proc visible *(x :int) :int=
   return x
 
-# [ ] Expression: function call
+# [x] Expression: function call
 proc main () :int=
   return add(1, 2)
+
+# [x] Statement: discard
+proc noop (x :int)=
+  discard x div 2
 
 # [ ] Expression: assignment
 proc increment (x :var int) =

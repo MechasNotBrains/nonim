@@ -97,11 +97,37 @@ proc expression_infix (state :var State; node :PNode) :astTF.Id=
     ),
   ))
 
+proc expression_call (state :var State; node :PNode) :astTF.Id=
+  let function_node = node[0]
+  let function_id = state.expression(function_node)
+  var first_argument = none(astTF.Id)
+  var previous_binding = none(astTF.Id)
+  for arg_index in 1 ..< node.safeLen:
+    let arg_node = node[arg_index]
+    let value_id = state.expression(arg_node)
+    let binding = astTF.Binding(value: some(value_id))
+    let binding_id = state.ast.add_binding(binding)
+    if first_argument.isNone:
+      first_argument = some(binding_id)
+    if previous_binding.isSome:
+      var prev = state.ast.binding(previous_binding.get)
+      prev.next = some(binding_id)
+      state.ast.data.bindings.get[previous_binding.get] = prev
+    previous_binding = some(binding_id)
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eCall,
+    call: astTF.ExpressionCall(
+      name: function_id,
+      arguments: first_argument,
+    ),
+  ))
+
 proc expression (state :var State; node :PNode) :astTF.Id=
   case node.kind
   of SomeLit:                      state.expression_literal(node)
   of SomeIdent, nkSym, nkPostfix:  state.expression_identifier(node)
   of nkInfix:                      state.expression_infix(node)
+  of nkCall, nkCommand:            state.expression_call(node)
   else:
     state.expression_identifier(node.name())
 
@@ -219,11 +245,12 @@ proc statement_variable (state :var State; node :PNode) =
     state.statement_chain(statement_id)
 
 
-proc statement_keyword (state :var State; node :PNode) :astTF.Id=
+proc statement_keyword (state :var State; node :PNode; depth :uint64= 0) :astTF.Id=
   let keyword_str = case node.kind
     of nkReturnStmt: "return"
     of nkBreakStmt:  "break"
     of nkContinueStmt: "continue"
+    of nkDiscardStmt: "discard"
     else: "unknown"
   let keyword_loc = state.name_add(keyword_str)
   var value = none(astTF.Id)
@@ -233,24 +260,31 @@ proc statement_keyword (state :var State; node :PNode) :astTF.Id=
       value = some(state.expression(return_content[1]))
     elif return_content.kind != nkEmpty:
       value = some(state.expression(return_content))
+  elif node.kind == nkDiscardStmt and node.safeLen > 0:
+    let discard_content = node[0]
+    if discard_content.kind != nkEmpty:
+      value = some(state.expression(discard_content))
+  let depth_id = if depth > 0: some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
+                 else: none(astTF.Id)
   state.ast.add_statement(astTF.Statement(
     kind: astTF.sKeyword,
     keyword: astTF.StatementKeyword(
       keyword: astTF.Identifier(location: keyword_loc),
       value: value,
+      depth: depth_id,
     ),
   ))
 
 
-proc statement_body (state :var State; node :PNode) :astTF.Id=
+proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
   let saved_previous = state.previous_stmt
   state.previous_stmt = none(astTF.Id)
   var first_id = none(astTF.Id)
 
   proc body_statement (state :var State; child :PNode) =
     let statement_id = case child.kind
-      of nkReturnStmt, nkBreakStmt, nkContinueStmt:
-        state.statement_keyword(child)
+      of nkReturnStmt, nkBreakStmt, nkContinueStmt, nkDiscardStmt:
+        state.statement_keyword(child, depth)
       else:
         return
     if first_id.isNone:

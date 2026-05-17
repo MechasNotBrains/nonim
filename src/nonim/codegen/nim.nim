@@ -8,6 +8,7 @@ from std/options import some, isSome, isNone, get
 from std/strutils import split, parseBiggestUInt
 # @deps nonim
 import ./output except Module
+import ./base
 import ../ast as astTF
 
 #_______________________________________
@@ -153,6 +154,7 @@ func literal *(
 # @section Expressions
 #_____________________________
 func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
+func binding_single *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; separator :string; target :output.Target; Out :var Output) :Option[astTF.Id]
 func binding *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
 func `type` *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
 func procedure *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
@@ -172,8 +174,9 @@ func call *(
   ast.expression(module, E.name, target, Out)
   Out.string(module, "(", target)
   if E.arguments.isSome:
-    let args = E.arguments.get
-    ast.binding(module, args, target, Out)
+    var current = some(E.arguments.get)
+    while current.isSome:
+      current = ast.binding_single(module, current.get, ", ", target, Out)
   Out.string(module, ")", target)
 #___________________
 func group *(
@@ -650,7 +653,25 @@ func statement_type *(
   of astTF.tEnumeration : ast.type_enum(module, T.id, target, Out, isBlock)
   of astTF.tObject      : ast.type_object(module, T.id, target, Out, isBlock)
   else                  : raise newException(Defect, "unreachable")
-#___________________
+
+func statement_keyword *(
+    ast     : astTF.Ast;
+    module  : astTF.Id;
+    id      : astTF.Id;
+    target  : output.Target;
+    Out     : var Output;
+  ) :void=
+  let S = ast.statement(id).keyword
+  let depth = ast.node_depth(S.depth)
+  let keyword = ast.source(module, S.keyword.location, S.keyword.synthetic.get(false))
+  for indentation_level in 0 ..< depth: Out.string(module, indentation, target)
+  Out.string(module, keyword, target)
+  if S.value.isSome:
+    Out.string(module, " ", target)
+    ast.expression(module, S.value.get, target, Out)
+
+func statement_list *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; mode :BlockMode= defaultBlockMode()) :void
+
 func statement_procedure *(
     ast     : astTF.Ast;
     module  : astTF.Id;
@@ -659,7 +680,11 @@ func statement_procedure *(
     Out     : var Output;
   ) :void=
   let S = ast.statement(id).procedure
+  let P = ast.procedure(S.id)
   ast.procedure(module, S.id, target, Out)
+  if P.body.isSome:
+    Out.string(module, "=\n", target)
+    ast.statement_list(module, P.body.get, target, Out)
 #___________________
 func statement_passthrough *(
     ast     : astTF.Ast;
@@ -757,7 +782,8 @@ func statement *(
   of astTF.sComment     : ast.statement_comment(module, id, target, Out)
   of astTF.sImport      : ast.statement_import(module, id, target, Out)
   of astTF.sAlias       : ast.statement_alias(module, id, target, Out, isBlock = false)
-  else                  : raise newException(Defect, "unreachable")
+  of astTF.sKeyword     : ast.statement_keyword(module, id, target, Out)
+  else                  : raise newException(Defect, "unreachable: " & $S.kind)
   Out.string(module, "\n", target)
 
 

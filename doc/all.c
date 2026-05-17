@@ -23,9 +23,14 @@ int visible (int const x) {
   return x;
 }
 
-// [ ] Expression: function call
+// [x] Expression: function call
 static int main () {
   return add(1, 2);
+}
+
+// [x] Statement: discard
+static void noop (int const x) {
+  (void)(x / 2);
 }
 
 // [ ] Expression: assignment

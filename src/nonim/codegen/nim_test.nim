@@ -24,6 +24,7 @@ import ./test/statement_alias
 import ./test/statement_comment
 import ./test/statement_type
 import ./test/statement_list
+import ./test/procedure_body
 
 
 const expected_dir = "./expected/nim/"
@@ -549,6 +550,19 @@ describe "nonim.codegen.nim | Statement.Keyword":
   it "must generate a return statement with literal", proc() =
     const Expected = expected("statement_keyword_return_literal.nim")
     let test_case = statement_keyword.return_literal()
+    let result = test_case.ast.nim()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.nim | Procedure.Body":
+  it "must generate a procedure body with return literal", proc() =
+    const Expected = expected("procedure_body_return_literal.nim")
+    let test_case = procedure_body.return_literal()
+    let result = test_case.ast.nim()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate a procedure body with return affix expression", proc() =
+    const Expected = expected("procedure_body_return_affix.nim")
+    let test_case = procedure_body.return_affix()
     let result = test_case.ast.nim()
     result.modules[0].definitions.eq Expected
 

@@ -4,6 +4,7 @@
 from std/options import some, none, isSome, isNone, get, Option
 import ../ast as astTF
 import ./output
+import ./base
 
 
 #_______________________________________
@@ -16,25 +17,65 @@ func source (ast :astTF.Ast; module :astTF.Id; location :astTF.Location) :string
 #_______________________________________
 # @section Expressions
 #_____________________________
-func expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
+
+func expression_identifier (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expression = ast.data.expressions.get[id]
+  let name = ast.source(module, expression.identifier.name.location)
+  Out.string(module, name, output.Target.definition)
+
+func expression_literal (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expression = ast.data.expressions.get[id]
+  let value = ast.source(module, expression.literal.value)
+  Out.string(module, value, output.Target.definition)
+
+func translate_operator (operator :string) :string=
+  case operator
+  of "div": "/"
+  of "mod": "%"
+  of "and": "&&"
+  of "or":  "||"
+  of "not": "!"
+  of "shl": "<<"
+  of "shr": ">>"
+  of "xor": "^"
+  else: operator
+
+func expression_affix (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expression = ast.data.expressions.get[id]
+  if expression.affix.left.isSome:
+    ast.expression(module, expression.affix.left.get, Out)
+  Out.string(module, " ", output.Target.definition)
+  Out.string(module, translate_operator(ast.source(module, expression.affix.operator)), output.Target.definition)
+  Out.string(module, " ", output.Target.definition)
+  if expression.affix.right.isSome:
+    ast.expression(module, expression.affix.right.get, Out)
+
+func expression_call (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expression = ast.data.expressions.get[id]
+  ast.expression(module, expression.call.name, Out)
+  Out.string(module, "(", output.Target.definition)
+  if expression.call.arguments.isSome:
+    var current = some(expression.call.arguments.get)
+    var first = true
+    while current.isSome:
+      let binding = ast.data.bindings.get[current.get]
+      if not first:
+        Out.string(module, ", ", output.Target.definition)
+      first = false
+      if binding.value.isSome:
+        ast.expression(module, binding.value.get, Out)
+      current = binding.next
+  Out.string(module, ")", output.Target.definition)
+
+func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
   case expression.kind
-  of astTF.eIdentifier:
-    let name = ast.source(module, expression.identifier.name.location)
-    Out.string(module, name, output.Target.definition)
-  of astTF.eLiteral:
-    let value = ast.source(module, expression.literal.value)
-    Out.string(module, value, output.Target.definition)
-  of astTF.eAffix:
-    if expression.affix.left.isSome:
-      ast.expression(module, expression.affix.left.get, Out)
-    Out.string(module, " ", output.Target.definition)
-    Out.string(module, ast.source(module, expression.affix.operator), output.Target.definition)
-    Out.string(module, " ", output.Target.definition)
-    if expression.affix.right.isSome:
-      ast.expression(module, expression.affix.right.get, Out)
-  else:
-    discard
+  of astTF.eIdentifier: ast.expression_identifier(module, id, Out)
+  of astTF.eLiteral:    ast.expression_literal(module, id, Out)
+  of astTF.eAffix:      ast.expression_affix(module, id, Out)
+  of astTF.eCall:       ast.expression_call(module, id, Out)
+  else: assert false, "codegen.C: unsupported expression kind: " & $expression.kind
 
 
 #_______________________________________
@@ -72,9 +113,9 @@ const Tab = "  "
 #_______________________________________
 # @section Statements
 #_____________________________
-func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; depth :int= 0) :void
+func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 
-func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; depth :int= 0) :void=
+func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let statement = ast.data.statements.get[id]
   let binding = ast.data.bindings.get[statement.variable.id]
 
@@ -84,6 +125,7 @@ func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
   let is_mutable = binding.mutable.get(false)
   let is_private = binding.private.get(true)
 
+  let depth = ast.node_depth(statement.variable.depth)
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
 
   if is_private:
@@ -106,7 +148,7 @@ func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
   Out.string(module, ";\n", output.Target.definition)
 
 
-func statement_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; depth :int= 0) :void=
+func statement_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let statement = ast.data.statements.get[id]
   let procedure = ast.data.procedures.get[statement.procedure.id]
 
@@ -167,38 +209,44 @@ func statement_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :v
 
   if procedure.body.isSome:
     Out.string(module, ") {\n", output.Target.definition)
-    ast.statement_list(module, procedure.body.get, Out, depth + 1)
-    for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+    ast.statement_list(module, procedure.body.get, Out)
     Out.string(module, "}\n", output.Target.definition)
   else:
     Out.string(module, ");\n", output.Target.definition)
 
 
-func statement_keyword (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; depth :int= 0) :void=
+func statement_keyword (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let statement = ast.data.statements.get[id]
+  let depth = ast.node_depth(statement.keyword.depth)
   let keyword = ast.source(module, statement.keyword.keyword.location)
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
-  Out.string(module, keyword, output.Target.definition)
-  if statement.keyword.value.isSome:
-    Out.string(module, " ", output.Target.definition)
-    ast.expression(module, statement.keyword.value.get, Out)
-  Out.string(module, ";\n", output.Target.definition)
+  if keyword == "discard":
+    Out.string(module, "(void)(", output.Target.definition)
+    if statement.keyword.value.isSome:
+      ast.expression(module, statement.keyword.value.get, Out)
+    Out.string(module, ");\n", output.Target.definition)
+  else:
+    Out.string(module, keyword, output.Target.definition)
+    if statement.keyword.value.isSome:
+      Out.string(module, " ", output.Target.definition)
+      ast.expression(module, statement.keyword.value.get, Out)
+    Out.string(module, ";\n", output.Target.definition)
 
 
-func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; depth :int= 0) :void=
+func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let statement = ast.data.statements.get[id]
   case statement.kind
-  of astTF.sVariable:  ast.statement_variable(module, id, Out, depth)
-  of astTF.sProcedure: ast.statement_procedure(module, id, Out, depth)
-  of astTF.sKeyword:   ast.statement_keyword(module, id, Out, depth)
-  else: discard
+  of astTF.sVariable:  ast.statement_variable(module, id, Out)
+  of astTF.sProcedure: ast.statement_procedure(module, id, Out)
+  of astTF.sKeyword:   ast.statement_keyword(module, id, Out)
+  else:                assert false, "codegen.C: unsupported statement kind: " & $statement.kind
 
 
-func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; depth :int= 0) :void=
+func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   var current = some(id)
   while current.isSome:
     let current_id = current.get
-    ast.statement(module, current_id, Out, depth)
+    ast.statement(module, current_id, Out)
     let statement = ast.data.statements.get[current_id]
     current = case statement.kind
       of astTF.sVariable:    statement.variable.next

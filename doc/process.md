@@ -6,15 +6,20 @@ No backend progresses without the others having parity.
 ## Steps
 
 1. **Track the feature**: Add the syntax construct to `doc/all.nim`, `doc/all.c`, and `doc/all.zig` marked as `[ ]`.
-2. **Test case first**: Create `src/nonim/backend/test/cases/<name>/input.nim` with the Nim source.
-3. **Expected outputs**: Create `expected.c`, `expected.zig`, and `expected.nim` in the same directory.
-4. **Add test assertions**: Add the test to `backend/test/cleanc.nim` and `backend/test/zig.nim`.
-5. **Converter**: If the feature requires a new PNode kind, implement it in `ast/convert.nim`.
-6. **C codegen**: Implement in `codegen/C.nim`.
-7. **Zig codegen**: Implement in `codegen/zig.nim`.
-8. **Nim codegen**: Verify the existing nim codegen handles it (it usually already does via slate).
-9. **Run all tests**: All three backends must pass before the feature is considered done.
-10. **Mark done**: Update the `[ ]` to `[x]` in all three `doc/all.*` files.
+2. **Codegen unit tests (ALL 3 LANGS)**: Add a test case factory in `codegen/test/<category>.nim`. Add assertions to ALL THREE: `codegen/c_test.nim`, `codegen/zig_test.nim`, AND `codegen/nim_test.nim`. See them FAIL.
+3. **Backend integration tests**: Create `src/nonim/backend/test/cases/<name>/input.nim` with expected outputs (`expected.c`, `expected.zig`, `expected.nim`). Add assertions to `backend/test/cleanc.nim` and `backend/test/zig.nim`. See them FAIL.
+4. **Converter**: If the feature requires a new PNode kind, implement it in `ast/convert.nim`.
+5. **C codegen**: Implement in `codegen/C.nim`. See `codegen/c_test.nim` PASS.
+6. **Zig codegen**: Implement in `codegen/zig.nim`. See `codegen/zig_test.nim` PASS.
+7. **Nim codegen**: Implement in `codegen/nim.nim`. See `codegen/nim_test.nim` PASS.
+8. **Run ALL tests**: All 3 codegen unit tests AND all backend integration tests must pass. No lang can be skipped.
+9. **Mark done**: Update the `[ ]` to `[x]` in all three `doc/all.*` files.
+
+## Rules
+
+- ALL THREE LANGUAGES must have codegen unit tests. No lang is exempt.
+- A feature is NOT done until c_test, zig_test, AND nim_test all pass for it.
+- The codegen tests run BEFORE the backend tests in `tests.sh`.
 
 ## Rules
 
@@ -31,9 +36,10 @@ No backend progresses without the others having parity.
 - [x] Variable: var (mutable in C, var in Zig)
 - [x] Variable: exported (no static in C, pub in Zig)
 - [x] Procedure: forward declaration (signature only, no body)
-- [ ] Procedure: body (return statement, expressions)
-- [ ] Expressions: binary operators (+, -, *, /)
-- [ ] Expressions: function calls
+- [x] Procedure: body (return statement, expressions)
+- [x] Statement: discard ((void) in C, _ = in Zig)
+- [x] Expressions: binary operators (div, mod, shl, shr, xor, and, or, not)
+- [x] Expressions: function calls
 - [ ] Types: type declarations (struct/object)
 - [ ] Control flow: if/else
 - [ ] Control flow: while

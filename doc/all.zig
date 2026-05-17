@@ -23,9 +23,14 @@ pub fn visible(x: i64) i64 {
     return x;
 }
 
-// [ ] Expression: function call
+// [x] Expression: function call
 fn main() i64 {
     return add(1, 2);
+}
+
+// [x] Statement: discard
+fn noop (x: i64) void {
+    _ = x / 2;
 }
 
 // [ ] Expression: assignment

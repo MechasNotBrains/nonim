@@ -9,7 +9,7 @@ from std/os import `/`, parentDir
 import minitest
 # @deps nonim
 import ../cli
-import ../minc
+import ../backend/minc
 
 
 const cases_dir = currentSourcePath().parentDir()/".."/"backend"/"test"/"cases"
