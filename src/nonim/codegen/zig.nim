@@ -230,12 +230,38 @@ func statement_keyword (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var
     Out.string(module, ";\n", output.Target.definition)
 
 
+func statement_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let statement = ast.data.statements.get[id]
+  let type_data = ast.data.types.get[statement.`type`.id]
+  if type_data.kind == astTF.tObject:
+    let obj = type_data.`object`
+    Out.string(module, "const ", output.Target.definition)
+    if obj.name.isSome:
+      Out.string(module, ast.source(module, obj.name.get.location), output.Target.definition)
+    Out.string(module, " = struct {\n", output.Target.definition)
+    if obj.fields.isSome:
+      var current = some(obj.fields.get)
+      while current.isSome:
+        let field = ast.data.bindings.get[current.get]
+        Out.string(module, Tab, output.Target.definition)
+        if field.name.isSome:
+          Out.string(module, ast.source(module, field.name.get.location), output.Target.definition)
+        Out.string(module, ": ", output.Target.definition)
+        if field.dataType.isSome:
+          let type_name = ast.type_name(module, field.dataType.get)
+          Out.string(module, type_name, output.Target.definition)
+        Out.string(module, ",\n", output.Target.definition)
+        current = field.next
+    Out.string(module, "};\n", output.Target.definition)
+
+
 func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let statement = ast.data.statements.get[id]
   case statement.kind
   of astTF.sVariable:  ast.statement_variable(module, id, Out)
   of astTF.sProcedure: ast.statement_procedure(module, id, Out)
   of astTF.sKeyword:   ast.statement_keyword(module, id, Out)
+  of astTF.sType:      ast.statement_type(module, id, Out)
   else:                assert false, "codegen.zig: unsupported statement kind: " & $statement.kind
 
 

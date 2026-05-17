@@ -32,14 +32,80 @@ No backend progresses without the others having parity.
 
 ## Current features
 
-- [x] Variable: let (const in C, const in Zig)
-- [x] Variable: var (mutable in C, var in Zig)
-- [x] Variable: exported (no static in C, pub in Zig)
-- [x] Procedure: forward declaration (signature only, no body)
-- [x] Procedure: body (return statement, expressions)
-- [x] Statement: discard ((void) in C, _ = in Zig)
-- [x] Expressions: binary operators (div, mod, shl, shr, xor, and, or, not)
-- [x] Expressions: function calls
-- [ ] Types: type declarations (struct/object)
-- [ ] Control flow: if/else
-- [ ] Control flow: while
+### Variables
+- [x] let (const in C, const in Zig)
+- [x] var (mutable in C, var in Zig)
+- [x] exported (no static in C, pub in Zig)
+- [ ] multiple bindings (`let a, b :int= 0`)
+- [ ] type inference (no explicit type annotation)
+- [ ] tuple unpacking (`let (a, b) = foo()`)
+
+### Procedures
+- [x] forward declaration (signature only, no body)
+- [x] body (return statement, expressions)
+- [x] exported (no static in C, pub in Zig)
+- [ ] default parameter values
+- [ ] varargs
+- [ ] overloading (multiple procs same name, different signatures)
+- [ ] closures / nested procs
+- [ ] iterators
+- [ ] converters
+- [ ] methods (dynamic dispatch)
+- [ ] templates
+- [ ] macros
+
+### Statements
+- [x] discard ((void) in C, _ = in Zig)
+- [ ] assignment (`x = expr`)
+- [ ] compound assignment (`x += expr`, `x -= expr`)
+- [ ] block statements (`block name:`)
+- [ ] defer
+
+### Expressions
+- [x] binary operators (div, mod, shl, shr, xor, and, or, not)
+- [x] function calls
+- [ ] unary operators (-, not)
+- [ ] comparison operators (<, >, <=, >=, ==, !=)
+- [ ] string literals
+- [ ] array/seq literals
+- [ ] tuple construction
+- [ ] dot access (`obj.field`)
+- [ ] index access (`arr[i]`)
+- [ ] type conversions (`int(x)`)
+- [ ] if expressions (`let x = if cond: a else: b`)
+- [ ] custom operators → function calls
+
+### Types
+- [x] object (simple fields)
+- [ ] object: exported fields (`field*`)
+- [ ] object: private fields
+- [ ] object: inheritance (`of Base`)
+- [ ] object: generics (`Type[T]`)
+- [ ] object: pragmas (`{.packed.}`)
+- [ ] object: variants (case discriminator)
+- [ ] enum
+- [ ] enum: with values
+- [ ] type alias (`type Foo = int`)
+- [ ] distinct types (`type Foo = distinct int`)
+- [ ] ref object
+- [ ] ptr types
+- [ ] tuple types
+- [ ] proc types (function pointers)
+- [ ] array types (fixed-size)
+- [ ] seq types (dynamic)
+
+### Control flow
+- [ ] if/elif/else
+- [ ] while
+- [ ] for (range iteration)
+- [ ] for (iterator)
+- [ ] case/of (switch)
+- [ ] break / continue
+- [ ] try/except/finally
+- [ ] raise
+
+### Imports
+- [ ] import module
+- [ ] from module import symbols
+- [ ] include
+- [ ] export

@@ -87,6 +87,11 @@ describe "nonim.cleanc.c | Discard":
     let result = generate_c(case_input("statement_discard"))
     result.eq case_expected_c("statement_discard")
 
+describe "nonim.cleanc.c | Types":
+  it "must generate a struct from object type", proc() =
+    let result = generate_c(case_input("type_object"))
+    result.eq case_expected_c("type_object")
+
 describe "nonim.cleanc.c | Operators":
   it "must translate Nim operators to C operators", proc() =
     let result = generate_c(case_input("expression_operator"))

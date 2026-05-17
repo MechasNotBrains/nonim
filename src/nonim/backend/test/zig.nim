@@ -63,6 +63,11 @@ describe "nonim.zig | Procedures":
     let result = generate_zig(case_input("expression_call"))
     result.eq case_expected("expression_call")
 
+describe "nonim.zig | Types":
+  it "must generate a struct from object type", proc() =
+    let result = generate_zig(case_input("type_object"))
+    result.eq case_expected("type_object")
+
 describe "nonim.zig | Discard":
   it "must generate discard as _ = expr", proc() =
     let result = generate_zig(case_input("statement_discard"))

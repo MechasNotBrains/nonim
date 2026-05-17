@@ -384,6 +384,59 @@ proc statement_procedure (state :var State; node :PNode) =
   state.statement_chain(statement_id)
 
 
+proc statement_type (state :var State; node :PNode) =
+  if node.kind != nkTypeDef: return
+  let name_node = node[0]
+  let body_node = node[2]
+  let name_str = name_node.name()
+  if name_str.len == 0: return
+  let is_exported = name_node.exported()
+  let name_loc = state.name_add(name_str)
+  if body_node.kind == nkObjectTy:
+    let rec_list = body_node[2]
+    var first_field = none(astTF.Id)
+    var previous_field = none(astTF.Id)
+    if rec_list.kind == nkRecList:
+      for field_def in rec_list:
+        if field_def.kind != nkIdentDefs: continue
+        let type_index = field_def.safeLen - 2
+        let type_node = field_def[type_index]
+        var field_type = none(astTF.Id)
+        if type_node.kind != nkEmpty:
+          field_type = some(state.expression(type_node))
+        for name_index in 0 ..< type_index:
+          let field_name_node = field_def[name_index]
+          let field_name_str = field_name_node.name()
+          if field_name_str.len == 0: continue
+          let field_name_loc = state.name_add(field_name_str)
+          let is_last_in_group = name_index == type_index - 1
+          let field_binding = astTF.Binding(
+            name: some(astTF.Identifier(location: field_name_loc)),
+            dataType: if is_last_in_group: field_type else: none(astTF.Id),
+          )
+          let field_id = state.ast.add_binding(field_binding)
+          if first_field.isNone:
+            first_field = some(field_id)
+          if previous_field.isSome:
+            var prev = state.ast.binding(previous_field.get)
+            prev.next = some(field_id)
+            state.ast.data.bindings.get[previous_field.get] = prev
+          previous_field = some(field_id)
+    let type_id = state.ast.add_type(astTF.Type(
+      kind: astTF.tObject,
+      `object`: astTF.TypeObject(
+        name: some(astTF.Identifier(location: name_loc)),
+        fields: first_field,
+        private: some(not is_exported),
+      ),
+    ))
+    let statement_id = state.ast.add_statement(astTF.Statement(
+      kind: astTF.sType,
+      `type`: astTF.StatementType(id: type_id),
+    ))
+    state.statement_chain(statement_id)
+
+
 proc statement_top_level (state :var State; node :PNode) =
   if node == nil: return
   case node.kind
@@ -395,6 +448,12 @@ proc statement_top_level (state :var State; node :PNode) =
     state.statement_comment(node)
   of nkImportStmt, nkFromStmt, nkImportExceptStmt:
     state.statement_import(node)
+  of nkTypeDef:
+    state.statement_type(node)
+  of nkTypeSection:
+    for child in node:
+      if child.kind == nkTypeDef:
+        state.statement_type(child)
   of nkStmtList:
     for child in node:
       state.statement_top_level(child)
