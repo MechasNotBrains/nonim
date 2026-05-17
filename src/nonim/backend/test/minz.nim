@@ -47,6 +47,10 @@ describe "nonim.minz | Variables":
     let result = generate_zig(case_input("variable_exported"))
     result.eq case_expected("variable_exported")
 
+  it "must generate multiple bindings", proc() =
+    let result = generate_zig(case_input("variable_multi"))
+    result.eq case_expected("variable_multi")
+
 describe "nonim.minz | Procedures":
   it "must generate a forward declaration", proc() =
     let result = generate_zig(case_input("procedure"))

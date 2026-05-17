@@ -47,6 +47,10 @@ describe "nonim.minc | Variables":
     let result = generate_c(case_input("variable_exported"))
     result.eq case_expected("variable_exported")
 
+  it "must generate multiple bindings", proc() =
+    let result = generate_c(case_input("variable_multi"))
+    result.eq case_expected("variable_multi")
+
 describe "nonim.minc | Procedures":
   it "must generate a static forward declaration", proc() =
     let result = generate_c(case_input("procedure"))

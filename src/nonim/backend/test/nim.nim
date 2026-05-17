@@ -27,7 +27,7 @@ proc typed_ast (source :string) :astTF.Ast=
   return astTF.convert(root, astTF.Language.Nim)
 
 proc generate_nim (source :string) :string=
-  let output = nonim.codegen.nim(typed_ast(source))
+  let output = nonim.codegen.nim(typed_ast(source), mode = nonim.codegen.BlockMode.none)
   return output.modules[0].definitions
 
 proc case_input (name :string) :string=
@@ -49,6 +49,10 @@ describe "nonim.nim | Variables":
   it "must generate exported binding", proc() =
     let result = generate_nim(case_input("variable_exported"))
     result.eq case_expected("variable_exported")
+
+  it "must generate multiple bindings", proc() =
+    let result = generate_nim(case_input("variable_multi"))
+    result.eq case_expected("variable_multi")
 
 describe "nonim.nim | Procedures":
   it "must generate a procedure with body", proc() =

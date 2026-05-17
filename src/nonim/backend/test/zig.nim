@@ -50,6 +50,10 @@ describe "nonim.zig | Variables":
     let result = generate_zig(case_input("variable_exported"))
     result.eq case_expected("variable_exported")
 
+  it "must generate multiple bindings", proc() =
+    let result = generate_zig(case_input("variable_multi"))
+    result.eq case_expected("variable_multi")
+
 describe "nonim.zig | Procedures":
   it "must generate a fn with body", proc() =
     let result = generate_zig(case_input("procedure_body"))

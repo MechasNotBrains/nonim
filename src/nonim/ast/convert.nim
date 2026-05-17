@@ -377,17 +377,9 @@ proc statement_variable (state :var State; node :PNode) =
       state.statement_comment(definition)
       continue
     if definition.kind != nkIdentDefs: continue
-    let name_node = definition[0]
     let type_node = definition[^2]
     let value_node = definition[^1]
-
-    let name_str = name_node.name()
-    if name_str.len == 0: continue
-
-    let is_exported = name_node.exported()
-
-    let name_loc = state.name_add(name_str)
-    let identifier = astTF.Identifier(location: name_loc)
+    let name_count = definition.safeLen - 2
 
     var data_type = none(astTF.Id)
     if type_node.kind != nkEmpty:
@@ -397,21 +389,34 @@ proc statement_variable (state :var State; node :PNode) =
     if value_node.kind != nkEmpty:
       value = some(state.expression(value_node))
 
-    let binding = astTF.Binding(
-      name: some(identifier),
-      private: some(not is_exported),
-      mutable: some(is_mutable),
-      runtime: some(is_runtime),
-      dataType: data_type,
-      value: value,
-    )
-    let binding_id = state.ast.add_binding(binding)
-    let statement = astTF.Statement(
-      kind: astTF.sVariable,
-      variable: astTF.StatementVariable(id: binding_id),
-    )
-    let statement_id = state.ast.add_statement(statement)
-    state.statement_chain(statement_id)
+    for name_index in 0 ..< name_count:
+      let name_node = definition[name_index]
+      let name_str = name_node.name()
+      if name_str.len == 0: continue
+
+      let is_exported = name_node.exported()
+      let name_loc = state.name_add(name_str)
+      let identifier = astTF.Identifier(location: name_loc)
+
+      var binding_type = data_type
+      if binding_type.isNone:
+        binding_type = state.type_from_sym(name_node)
+
+      let binding = astTF.Binding(
+        name: some(identifier),
+        private: some(not is_exported),
+        mutable: some(is_mutable),
+        runtime: some(is_runtime),
+        dataType: binding_type,
+        value: value,
+      )
+      let binding_id = state.ast.add_binding(binding)
+      let statement = astTF.Statement(
+        kind: astTF.sVariable,
+        variable: astTF.StatementVariable(id: binding_id),
+      )
+      let statement_id = state.ast.add_statement(statement)
+      state.statement_chain(statement_id)
 
 
 proc statement_keyword (state :var State; node :PNode; depth :uint64= 0) :astTF.Id=

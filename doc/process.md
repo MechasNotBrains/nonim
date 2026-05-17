@@ -53,7 +53,7 @@ No backend progresses without the others having parity.
 | Variable: let | `let x :int= 42` | `static int const x = 42;` | `const x: i64 = 42;` | [x] |
 | Variable: var | `var x :int= 0` | `static int x = 0;` | `var x: i64 = 0;` | [x] |
 | Variable: exported | `let x* :int= 42` | `int const x = 42;` | `pub const x: i64 = 42;` | [x] |
-| Variable: multiple bindings | `let a, b :int= 0` | `static int const a = 0, b = 0;` | `const a: i64 = 0; const b: i64 = 0;` | [ ] |
+| Variable: multiple bindings | `let a, b :int= 0` | `static int64_t const a = 0; static int64_t const b = 0;` | `const a: isize = 0; const b: isize = 0;` | [x] |
 | Variable: type inference | `let x = 42` | `int64_t const x = 42;` | `const x: isize = 42;` | [x] (typed only) |
 | Procedure: forward decl | `proc add (x, y :int) :int` | `static int add (int const x, int const y);` | `fn add (x: i64, y: i64) i64;` | [x] |
 | Procedure: body | `proc add (...) :int= return x + y` | `static int add (...) { return x + y; }` | `fn add (...) i64 { return x + y; }` | [x] |
