@@ -12,15 +12,17 @@ import "$nim"/compiler/[ast]
 # @deps tests
 import minitest
 # @deps nonim
-from ../../nonim import nil
-import ../nimc/Typed
-import ../ast as astTF
+from ../../../nonim import nil
+import ../../nimc/Typed
+import ../../ast as astTF
 
 
-const cases_dir = currentSourcePath().parentDir()/"test"/"cases"
+const cases_dir = currentSourcePath().parentDir()/".."/"test"/"cases"
+
+let compiler = Typed.Compiler.create()
 
 proc typed_ast (source :string) :astTF.Ast=
-  let compiled = Typed.compile(source)
+  let compiled = compiler.compile(source)
   var root     = newNode(nkStmtList)
   for statement in compiled.statements:
     root.add(statement)
@@ -55,9 +57,17 @@ describe "nonim.cleanc.nim | Procedures":
     result.eq case_expected_nim("procedure")
 
 describe "nonim.cleanc.c | Variables":
-  it "must generate a const int from let binding", proc() =
+  it "must generate static const int from let binding", proc() =
     let result = generate_c(case_input("variable"))
     result.eq case_expected_c("variable")
+
+  it "must generate static mutable int from var binding", proc() =
+    let result = generate_c(case_input("variable_var"))
+    result.eq case_expected_c("variable_var")
+
+  it "must omit static for exported let binding", proc() =
+    let result = generate_c(case_input("variable_exported"))
+    result.eq case_expected_c("variable_exported")
 
 describe "nonim.cleanc.c | Procedures":
   it "must generate a static forward declaration", proc() =
