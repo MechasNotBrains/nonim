@@ -81,10 +81,27 @@ proc expression_identifier (state :var State; name :string) :astTF.Id=
     identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
   ))
 
+proc expression_infix (state :var State; node :PNode) :astTF.Id=
+  let operator_node = node[0]
+  let left_node = node[1]
+  let right_node = node[2]
+  let operator_loc = state.name_add(operator_node.name())
+  let left_id = state.expression(left_node)
+  let right_id = state.expression(right_node)
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eAffix,
+    affix: astTF.ExpressionAffix(
+      left: some(left_id),
+      right: some(right_id),
+      operator: operator_loc,
+    ),
+  ))
+
 proc expression (state :var State; node :PNode) :astTF.Id=
   case node.kind
-  of SomeLit:                    state.expression_literal(node)
-  of SomeIdent, nkSym, nkPostfix: state.expression_identifier(node)
+  of SomeLit:                      state.expression_literal(node)
+  of SomeIdent, nkSym, nkPostfix:  state.expression_identifier(node)
+  of nkInfix:                      state.expression_infix(node)
   else:
     state.expression_identifier(node.name())
 
@@ -106,6 +123,7 @@ proc statement_chain (state :var State; statement_id :astTF.Id) =
     of astTF.sImport:      previous.`import`.next = some(statement_id)
     of astTF.sType:        previous.`type`.next = some(statement_id)
     of astTF.sAlias:       previous.alias.next = some(statement_id)
+    of astTF.sKeyword:     previous.keyword.next = some(statement_id)
     else: discard
     state.ast.data.statements.get[previous_id] = previous
   state.previous_stmt = some(statement_id)
@@ -201,6 +219,61 @@ proc statement_variable (state :var State; node :PNode) =
     state.statement_chain(statement_id)
 
 
+proc statement_keyword (state :var State; node :PNode) :astTF.Id=
+  let keyword_str = case node.kind
+    of nkReturnStmt: "return"
+    of nkBreakStmt:  "break"
+    of nkContinueStmt: "continue"
+    else: "unknown"
+  let keyword_loc = state.name_add(keyword_str)
+  var value = none(astTF.Id)
+  if node.kind == nkReturnStmt and node.safeLen > 0:
+    let return_content = node[0]
+    if return_content.kind == nkAsgn and return_content.safeLen >= 2:
+      value = some(state.expression(return_content[1]))
+    elif return_content.kind != nkEmpty:
+      value = some(state.expression(return_content))
+  state.ast.add_statement(astTF.Statement(
+    kind: astTF.sKeyword,
+    keyword: astTF.StatementKeyword(
+      keyword: astTF.Identifier(location: keyword_loc),
+      value: value,
+    ),
+  ))
+
+
+proc statement_body (state :var State; node :PNode) :astTF.Id=
+  let saved_previous = state.previous_stmt
+  state.previous_stmt = none(astTF.Id)
+  var first_id = none(astTF.Id)
+
+  proc body_statement (state :var State; child :PNode) =
+    let statement_id = case child.kind
+      of nkReturnStmt, nkBreakStmt, nkContinueStmt:
+        state.statement_keyword(child)
+      else:
+        return
+    if first_id.isNone:
+      first_id = some(statement_id)
+    elif state.previous_stmt.isSome:
+      let previous_id = state.previous_stmt.get
+      var previous = state.ast.statement(previous_id)
+      case previous.kind
+      of astTF.sKeyword: previous.keyword.next = some(statement_id)
+      else: discard
+      state.ast.data.statements.get[previous_id] = previous
+    state.previous_stmt = some(statement_id)
+
+  if node.kind == nkStmtList:
+    for child in node:
+      state.body_statement(child)
+  else:
+    state.body_statement(node)
+
+  state.previous_stmt = saved_previous
+  return first_id.get
+
+
 proc statement_procedure (state :var State; node :PNode) =
   if node.kind notin {nkProcDef, nkFuncDef}: return
   let name_node = node[0]
@@ -255,12 +328,18 @@ proc statement_procedure (state :var State; node :PNode) =
     if return_node.kind != nkEmpty:
       return_type = some(state.expression(return_node))
 
+  var body_id = none(astTF.Id)
+  let body_node = node[6]
+  if body_node.kind != nkEmpty:
+    body_id = some(state.statement_body(body_node))
+
   let proc_data = astTF.Procedure(
     name: some(name_ident),
     private: some(not is_exported),
     impure: some(not is_func),
     arguments: first_argument,
     returnType: return_type,
+    body: body_id,
   )
   let procedure_id = state.ast.add_procedure(proc_data)
   let statement = astTF.Statement(

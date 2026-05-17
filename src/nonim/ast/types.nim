@@ -36,6 +36,7 @@ export astTF.Procedure
 export astTF.StatementPragma
 export astTF.StatementVariable
 export astTF.StatementProcedure
+export astTF.StatementKeyword
 export astTF.StatementType
 export astTF.StatementImport
 export astTF.StatementPassthrough
