@@ -105,6 +105,10 @@ describe "nonim.cleanc.c | Control Flow":
     let result = generate_c(case_input("statement_break"))
     result.eq case_expected_c("statement_break")
 
+  it "must generate continue inside loop", proc() =
+    let result = generate_c(case_input("statement_continue"))
+    result.eq case_expected_c("statement_continue")
+
 describe "nonim.cleanc.c | Operators":
   it "must translate Nim operators to C operators", proc() =
     let result = generate_c(case_input("expression_operator"))

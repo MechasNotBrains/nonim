@@ -58,7 +58,7 @@ No backend progresses without the others having parity.
 | Statement: keyword return | `return x` | `return x;` | `return x;` | [x] |
 | Statement: keyword discard | `discard expr` | `(void)(expr);` | `_ = expr;` | [x] |
 | Statement: keyword break | `break` | `break;` | `break;` | [x] |
-| Statement: keyword continue | `continue` | `continue;` | `continue;` | [ ] |
+| Statement: keyword continue | `continue` | `continue;` | `continue;` | [x] |
 | Type: primitive | `int` / `float32` | `int` / `float` | `i64` / `f32` | [ ] |
 | Type: array | `array[10, int]` | `int[10]` | `[10]i64` | [ ] |
 
