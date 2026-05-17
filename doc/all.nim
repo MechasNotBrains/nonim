@@ -17,7 +17,7 @@ proc add (x, y :int) :int
 proc add (x, y :int) :int=
   return x + y
 
-# [ ] Procedure: exported
+# [x] Procedure: exported
 proc visible *(x :int) :int=
   return x
 

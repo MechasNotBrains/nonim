@@ -74,3 +74,7 @@ describe "nonim.cleanc.c | Procedures":
     let result = generate_c(case_input("procedure_body"))
     result.eq case_expected_c("procedure_body")
 
+  it "must omit static for exported procedure", proc() =
+    let result = generate_c(case_input("procedure_exported"))
+    result.eq case_expected_c("procedure_exported")
+

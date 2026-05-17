@@ -55,3 +55,7 @@ describe "nonim.zig | Procedures":
     let result = generate_zig(case_input("procedure_body"))
     result.eq case_expected("procedure_body")
 
+  it "must generate pub fn for exported procedure", proc() =
+    let result = generate_zig(case_input("procedure_exported"))
+    result.eq case_expected("procedure_exported")
+

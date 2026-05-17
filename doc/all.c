@@ -18,7 +18,7 @@ static int add (int const x, int const y) {
   return x + y;
 }
 
-// [ ] Procedure: exported (no static)
+// [x] Procedure: exported (no static)
 int visible (int const x) {
   return x;
 }
