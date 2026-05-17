@@ -2,7 +2,8 @@
 #  nim.gen  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 #:____________________________________________________________________
 # @deps nim.gen
-from ../nimc as nim import treeRepr
+from ../../nimc/ergonomics import treeRepr
+from ../../nimc/Untyped as nim import compile
 
 
 #_______________________________________
@@ -71,10 +72,10 @@ when isMainModule:
 
   # Report to CLI and exit
   debugEcho "____ AST Inspector: _____________________________________"
-  debugEcho nim.getAST(src, "inspect.src").treeRepr()
+  debugEcho nim.compile(src, "inspect.src").treeRepr()
   debugEcho "___________________________"
-  debugEcho renderTree(nim.getAST(src, "inspect.src"), {renderNoPragmas})
+  debugEcho renderTree(nim.compile(src, "inspect.src"), {renderNoPragmas})
   debugEcho "___________________________"
-  debugEcho nim.getAST(src, "inspect.src").sons[0].comment
+  debugEcho nim.compile(src, "inspect.src").sons[0].comment
   debugEcho "_________________________________________________________"
 
