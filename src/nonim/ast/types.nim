@@ -50,6 +50,7 @@ export astTF.Comment
 export astTF.Alias
 export astTF.ExpressionAffix
 export astTF.ExpressionCall
+export astTF.ExpressionConditional
 export astTF.ExpressionGroup
 export astTF.ExpressionLoop
 export astTF.TypePtr

@@ -55,10 +55,9 @@ No backend progresses without the others having parity.
 | Expression: function call | `add(1, 2)` | `add(1, 2)` | `add(1, 2)` | [x] |
 | Statement: variable | `let x :int= 42` | `static int const x = 42;` | `const x: i64 = 42;` | [x] |
 | Statement: procedure | (see procedure) | (see procedure) | (see procedure) | [x] |
-| Statement: expression | `x = x + 1` | `x = x + 1;` | `x = x + 1;` | [ ] |
 | Statement: keyword return | `return x` | `return x;` | `return x;` | [x] |
 | Statement: keyword discard | `discard expr` | `(void)(expr);` | `_ = expr;` | [x] |
-| Statement: keyword break | `break` | `break;` | `break;` | [ ] |
+| Statement: keyword break | `break` | `break;` | `break;` | [x] |
 | Statement: keyword continue | `continue` | `continue;` | `continue;` | [ ] |
 | Type: primitive | `int` / `float32` | `int` / `float` | `i64` / `f32` | [ ] |
 | Type: array | `array[10, int]` | `int[10]` | `[10]i64` | [ ] |

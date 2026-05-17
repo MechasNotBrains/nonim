@@ -75,6 +75,31 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Outpu
   of astTF.eCall:       ast.expression_call(module, id, Out)
   else: assert false, "codegen.zig: unsupported expression kind: " & $expression.kind
 
+func expression_loop (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
+  Out.string(module, "while (", output.Target.definition)
+  if expr.loop.condition.isSome:
+    ast.expression(module, expr.loop.condition.get, Out)
+  Out.string(module, ") {\n", output.Target.definition)
+  if expr.loop.body.isSome:
+    ast.statement_list(module, expr.loop.body.get, Out)
+  for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+  Out.string(module, "}\n", output.Target.definition)
+
+func expression_conditional (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
+  Out.string(module, "if (", output.Target.definition)
+  ast.expression(module, expr.conditional.condition, Out)
+  Out.string(module, ") {\n", output.Target.definition)
+  if expr.conditional.body.isSome:
+    ast.statement_list(module, expr.conditional.body.get, Out)
+  for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+  Out.string(module, "}", output.Target.definition)
+  if expr.conditional.branches.isSome:
+    ast.statement_branch(module, expr.conditional.branches.get, Out)
+  else:
+    Out.string(module, "\n", output.Target.definition)
+
 
 #_______________________________________
 # @section Type Mapping
@@ -264,15 +289,9 @@ func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :
   let expr = ast.data.expressions.get[statement.expression.id]
   let depth = ast.node_depth(statement.expression.depth)
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
-  if expr.kind == astTF.eLoop:
-    Out.string(module, "while (", output.Target.definition)
-    if expr.loop.condition.isSome:
-      ast.expression(module, expr.loop.condition.get, Out)
-    Out.string(module, ") {\n", output.Target.definition)
-    if expr.loop.body.isSome:
-      ast.statement_list(module, expr.loop.body.get, Out)
-    for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
-    Out.string(module, "}\n", output.Target.definition)
+  case expr.kind
+  of astTF.eLoop:        ast.expression_loop(module, statement.expression.id, depth, Out)
+  of astTF.eConditional: ast.expression_conditional(module, statement.expression.id, depth, Out)
   else:
     ast.expression(module, statement.expression.id, Out)
     Out.string(module, ";\n", output.Target.definition)
@@ -292,15 +311,11 @@ func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output)
 
 func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   var current = some(id)
-  var is_first = true
   while current.isSome:
     let branch = ast.data.statements.get[current.get].branch
     let depth = ast.node_depth(branch.depth)
-    if is_first:
-      for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
     if branch.condition.isSome:
-      if is_first: Out.string(module, "if (", output.Target.definition)
-      else: Out.string(module, " else if (", output.Target.definition)
+      Out.string(module, " else if (", output.Target.definition)
       ast.expression(module, branch.condition.get, Out)
       Out.string(module, ") {\n", output.Target.definition)
     else:
@@ -309,7 +324,6 @@ func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var 
       ast.statement_list(module, branch.body.get, Out)
     for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
     Out.string(module, "}", output.Target.definition)
-    is_first = false
     current = branch.next
   Out.string(module, "\n", output.Target.definition)
 
