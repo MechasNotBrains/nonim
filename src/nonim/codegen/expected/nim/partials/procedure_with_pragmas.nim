@@ -1,1 +1,1 @@
-func thing*() :int {.cdecl.}
+func thing *() :int {.cdecl.}

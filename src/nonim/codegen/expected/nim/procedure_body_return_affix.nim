@@ -1,3 +1,3 @@
-proc add(x :int; y :int) :int=
+proc add (x :int; y :int) :int=
   return x + y
 

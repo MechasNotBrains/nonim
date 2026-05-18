@@ -62,7 +62,7 @@ describe "nonim.codegen.zig | Expression.Call":
 describe "nonim.codegen.zig | Statement.Variable":
   it "must generate const from immutable runtime binding", proc() =
     const Expected = expected("statement_variable_immutable_runtime.zig")
-    let test_case = statement_variable.immutable_runtime()
+    let test_case = statement_variable.immutable_runtime("isize")
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 
@@ -76,12 +76,12 @@ describe "nonim.codegen.zig | Statement.Keyword":
 describe "nonim.codegen.zig | Procedure.Body":
   it "must generate a procedure body with return literal", proc() =
     const Expected = expected("procedure_body_return_literal.zig")
-    let test_case = procedure_body.return_literal()
+    let test_case = procedure_body.return_literal("isize")
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 
   it "must generate a procedure body with return affix expression", proc() =
     const Expected = expected("procedure_body_return_affix.zig")
-    let test_case = procedure_body.return_affix()
+    let test_case = procedure_body.return_affix("isize")
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected

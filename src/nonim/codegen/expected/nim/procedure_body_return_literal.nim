@@ -1,3 +1,3 @@
-proc thing() :int=
+proc thing () :int=
   return 42
 

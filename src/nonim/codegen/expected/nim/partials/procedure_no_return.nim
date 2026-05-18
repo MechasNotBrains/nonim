@@ -1,1 +1,1 @@
-func thing*()
+func thing *()

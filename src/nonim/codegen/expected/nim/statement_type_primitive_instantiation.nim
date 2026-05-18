@@ -1,1 +1,1 @@
-type Foo* = Ref[Animation]
+type Foo * = Ref[Animation]

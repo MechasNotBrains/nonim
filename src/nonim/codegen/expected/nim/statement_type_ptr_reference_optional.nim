@@ -1,1 +1,1 @@
-type Foo* = Option[ref Bar]
+type Foo * = Option[ref Bar]

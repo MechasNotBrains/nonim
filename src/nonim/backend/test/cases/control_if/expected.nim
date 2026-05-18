@@ -4,4 +4,3 @@ proc abs_val (x :int) :int=
   else:
     return x
 
-

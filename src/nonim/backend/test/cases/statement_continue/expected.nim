@@ -4,7 +4,5 @@ proc skip_negatives (n :int)=
     current = current + 1
     if current < 0:
       continue
-
     discard current
-
 

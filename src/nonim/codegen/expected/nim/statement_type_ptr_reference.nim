@@ -1,2 +1,2 @@
-type Foo* = ref object
-  x* :int
+type Foo * = ref object
+  x *:int

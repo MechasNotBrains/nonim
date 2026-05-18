@@ -1,0 +1,3 @@
+proc nothing ()=
+  discard nil
+

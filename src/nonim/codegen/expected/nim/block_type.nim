@@ -1,4 +1,4 @@
 type
-  Foo* = int
-  Bar* = object
-    x* :int
+  Foo * = int
+  Bar * = object
+    x *:int

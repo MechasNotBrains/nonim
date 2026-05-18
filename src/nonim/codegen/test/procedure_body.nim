@@ -6,9 +6,8 @@
 import ./data
 
 
-proc return_literal *() :TestData=
+proc return_literal *(input_type :static string = "int") :TestData=
   const input_name = "thing"
-  const input_type = "int"
   const input_value = "42"
   const input_keyword = "return"
   const input_source = input_name & input_type & input_value & input_keyword & "567890Z"
@@ -43,11 +42,10 @@ proc return_literal *() :TestData=
   result.ast.data.modules[result.module].body = some(result.id)
 
 
-proc return_affix *() :TestData=
+proc return_affix *(input_type :static string = "int") :TestData=
   const input_name = "add"
   const input_arg1 = "x"
   const input_arg2 = "y"
-  const input_type = "int"
   const input_op = "+"
   const input_keyword = "return"
   const input_source = input_name & input_arg1 & input_arg2 & input_type & input_op & input_keyword & "567890Z"

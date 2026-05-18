@@ -6,24 +6,29 @@
 import ./data
 
 
-proc immutable_runtime *() :TestData=
-  const input_source = "thingint42"
+proc immutable_runtime *(type_name :static string = "int") :TestData=
+  const input_name = "thing"
+  const input_value = "42"
+  const input_source = input_name & type_name & input_value & "567890Z"
   result = create(input_source)
+  let name_loc = astTF.Location(start: 0, `end`: uint64(input_name.len))
+  let type_loc = astTF.Location(start: name_loc.`end`, `end`: name_loc.`end` + uint64(type_name.len))
+  let value_loc = astTF.Location(start: type_loc.`end`, `end`: type_loc.`end` + uint64(input_value.len))
   let type_id = result.ast.add_expression(astTF.Expression(
     kind: astTF.eIdentifier,
     identifier: astTF.ExpressionIdentifier(
-      name: astTF.Identifier(location: astTF.Location(start: 5, `end`: 8)),
+      name: astTF.Identifier(location: type_loc),
     ),
   ))
   let value_id = result.ast.add_expression(astTF.Expression(
     kind: astTF.eLiteral,
     literal: astTF.ExpressionLiteral(
       kind: astTF.LiteralKind.integer,
-      value: astTF.Location(start: 8, `end`: 10),
+      value: value_loc,
     ),
   ))
   let binding_id = result.ast.add_binding(astTF.Binding(
-    name: some(astTF.Identifier(location: astTF.Location(start: 0, `end`: 5))),
+    name: some(astTF.Identifier(location: name_loc)),
     mutable: some(false),
     runtime: some(true),
     dataType: some(type_id),

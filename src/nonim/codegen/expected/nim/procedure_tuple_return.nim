@@ -1,1 +1,1 @@
-proc tee*(self :Stream) :(cint, cstring)
+proc tee *(self :Stream) :(cint, cstring)

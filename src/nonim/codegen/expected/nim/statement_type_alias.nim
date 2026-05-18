@@ -1,1 +1,1 @@
-type thing* = int
+type thing * = int

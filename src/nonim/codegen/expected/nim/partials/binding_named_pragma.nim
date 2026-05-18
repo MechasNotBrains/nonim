@@ -1,1 +1,1 @@
-thing* {.cdecl.} :int
+thing *{.cdecl.}:int

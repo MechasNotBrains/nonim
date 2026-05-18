@@ -1,1 +1,1 @@
-func thing*() :int
+func thing *() :int

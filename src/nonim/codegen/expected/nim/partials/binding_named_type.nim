@@ -1,1 +1,1 @@
-thing* :int
+thing *:int

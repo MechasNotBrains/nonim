@@ -1,1 +1,1 @@
-method thing*(a :int) :int
+method thing *(a :int) :int

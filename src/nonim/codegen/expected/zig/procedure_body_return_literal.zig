@@ -1,3 +1,3 @@
-fn thing () i64 {
+fn thing () isize {
   return 42;
 }

@@ -1,3 +1,3 @@
-type Thing* = object
-  one* :int
-  two* :int
+type Thing * = object
+  one *:int
+  two *:int

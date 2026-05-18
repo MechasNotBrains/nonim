@@ -3,8 +3,6 @@ proc find_first (n :int) :int=
   while true:
     if current == n:
       break
-
     current = current + 1
-
   return current
 

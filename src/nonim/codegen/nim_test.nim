@@ -330,91 +330,91 @@ describe "nonim.codegen.nim | Type Statement Cases":
     const Expected = expected("statement_type_alias.nim")
     var test_case = statement_type.alias()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate an enum type statement", proc()=
     const Expected = expected("statement_type_enum.nim")
     var test_case = statement_type.enumeration()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate an object type statement", proc()=
     const Expected = expected("statement_type_object.nim")
     var test_case = statement_type.object_simple()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate a generic object type statement", proc()=
     const Expected = expected("statement_type_object_generic.nim")
     var test_case = statement_type.object_generic()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate an object type with inheritance", proc()=
     const Expected = expected("statement_type_object_inherit.nim")
     var test_case = statement_type.object_inherit()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate an object type with multiple generic parameters", proc()=
     const Expected = expected("statement_type_object_generic_multi.nim")
     var test_case = statement_type.object_generic_multi()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must render only the first base for multiple inheritance", proc()=
     const Expected = expected("statement_type_object_inherit_multi.nim")
     var test_case = statement_type.object_inherit_multi()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate a union type with keyword and pragma combined", proc()=
     const Expected = expected("statement_type_union.nim")
     var test_case = statement_type.union()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate a type alias with distinct keyword on primitive", proc()=
     const Expected = expected("statement_type_primitive_keyword.nim")
     var test_case = statement_type.primitive_distinct()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate a primitive type with instantiation (generics)", proc()=
     const Expected = expected("statement_type_primitive_instantiation.nim")
     var test_case = statement_type.primitive_instantiation()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate a primitive type with multi-arg instantiation", proc()=
     const Expected = expected("statement_type_primitive_instantiation_multi.nim")
     var test_case = statement_type.primitive_instantiation_multi()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate a ref object type (ptr with reference=true)", proc()=
     const Expected = expected("statement_type_ptr_reference.nim")
     var test_case = statement_type.ptr_reference()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must render optional ref by name, not inline object body", proc()=
     const Expected = expected("statement_type_ptr_reference_optional.nim")
     var test_case = statement_type.ptr_reference_optional()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate an unnamed tuple type inline", proc()=
@@ -428,7 +428,7 @@ describe "nonim.codegen.nim | Type Statement Cases":
     const Expected = expected("procedure_tuple_return.nim")
     var test_case = statement_type.procedure_tuple_return()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
 
@@ -484,21 +484,21 @@ describe "nonim.codegen.nim | Statement.import Cases":
     const Expected = expected("statement_import.nim")
     var test_case = statement_import.simple()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate a from-import statement with symbols", proc()=
     const Expected = expected("statement_import_from.nim")
     var test_case = statement_import.from_symbols()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate an include statement", proc()=
     const Expected = expected("statement_include.nim")
     var test_case = statement_import.include_simple()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
 
@@ -510,7 +510,7 @@ describe "nonim.codegen.nim | Statement.alias Cases":
     const Expected = partial("statement_alias.nim")
     var test_case = statement_alias.simple()
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
 
@@ -522,21 +522,21 @@ describe "nonim.codegen.nim | Statement.comment Cases":
     const Expected = expected("statement_comment.nim")
     var test_case = statement_comment.line_from("//")
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate a doc comment from C doc comment", proc()=
     const Expected = expected("statement_comment_doc.nim")
     var test_case = statement_comment.doc_from("///")
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate a multi-line doc comment with prefix on every line", proc()=
     const Expected = expected("statement_comment_multiline.nim")
     var test_case = statement_comment.multiline_from("/**")
     var Out = Output.create()
-    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out)
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
 describe "nonim.codegen.nim | Statement.Variable":

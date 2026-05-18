@@ -1,1 +1,1 @@
-const thing: i64 = 42;
+const thing: isize = 42;

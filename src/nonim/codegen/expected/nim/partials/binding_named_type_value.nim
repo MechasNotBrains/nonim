@@ -1,1 +1,1 @@
-thing* :int= 42
+thing *:int= 42

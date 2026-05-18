@@ -1,3 +1,3 @@
-type Thing* = enum
+type Thing * = enum
   one,
   two = 42

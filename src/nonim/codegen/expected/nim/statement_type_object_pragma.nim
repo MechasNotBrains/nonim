@@ -1,3 +1,3 @@
-type Thing* {.importc.} = object
-  one* :int
-  two* :int
+type Thing *{.importc.} = object
+  one *:int
+  two *:int

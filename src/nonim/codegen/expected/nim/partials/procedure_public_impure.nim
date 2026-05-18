@@ -1,1 +1,1 @@
-proc thing*(a :int) :int
+proc thing *(a :int) :int

@@ -406,23 +406,25 @@ func binding_single *(
   # Generate the name
   if B.name.isSome:
     ast.identifier(module, B.name.get, target, Out)
+    if not B.dataType.isSome and not B.value.isSome:
+      if not B.private.get(false): Out.string(module, "*", target)
+      Out.string(module, ", ", target)
+      return B.next
+    else: Out.string(module, " ", target)
     if not B.private.get(false): Out.string(module, "*", target)
   # Generate the pragma
   if B.pragmas.isSome:
-    Out.string(module, " ", target)
     ast.pragma(module, B.pragmas.get, target, Out)
   # Generate the type, or skip to next
   if B.dataType.isSome:
-    Out.string(module, " :", target)
+    Out.string(module, ":", target)
     ast.expression(module, B.dataType.get, target, Out)
-  elif B.name.isSome and not B.value.isSome: # if no type, assume its a grouped binding   (a,b :type= value)
-    Out.string(module, ", ", target)
-    return B.next
   # Generate the value
   if B.value.isSome:
     if B.name.isSome or B.dataType.isSome:
       if B.dataType.isNone: Out.string(module, " ", target) # FIX: Formatting
-      Out.string(module, "= ", target)
+      Out.string(module, "=", target)
+      Out.string(module, " ", target)
     ast.expression(module, B.value.get, target, Out)
   # Continue to next
   if B.next.isSome: Out.string(module, separator, target)
@@ -457,7 +459,9 @@ func procedure *(
   elif P.impure.get(false): Out.string(module, "proc", target)
   else:          Out.string(module, "func", target)
   Out.string(module, " ", target)
-  if P.name.isSome: ast.identifier(module, P.name.get, target, Out)
+  if P.name.isSome:
+    ast.identifier(module, P.name.get, target, Out)
+    Out.string(module, " ", target)
   if not P.private.get(false): Out.string(module, "*", target)
   if P.generics.isSome:
     Out.string(module, "[", target)
@@ -468,7 +472,7 @@ func procedure *(
       generic_current = generic_binding.next
       if generic_current.isSome: Out.string(module, ", ", target)
     Out.string(module, "]", target)
-  Out.string(module, " (", target)
+  Out.string(module, "(", target)
   if P.arguments.isSome: ast.binding(module, P.arguments.get, target, Out)
   Out.string(module, ")", target)
   if P.returnType.isSome:
@@ -533,9 +537,12 @@ func type_alias *(
   if isBlock: Out.string(module, indentation, target)
   let A = ast.typ(id).alias
   if A.name.isSome: ast.identifier(module, A.name.get, target, Out)
-  else:             Out.string(module, "UNNAMED_TYPE_ALIAS", target)
-  if not A.private.get(false): Out.string(module, "*", target)
-  Out.string(module, " = ", target)
+  else: Out.string(module, "UNNAMED_TYPE_ALIAS", target)
+  Out.string(module, " ", target)
+  if not A.private.get(false):
+    Out.string(module, "*", target)
+    Out.string(module, " ", target)
+  Out.string(module, "= ", target)
   ast.expression(module, A.target, target, Out)
 #___________________
 func type_enum *(
@@ -549,14 +556,17 @@ func type_enum *(
   let base_indent = if isBlock: indentation & indentation else: indentation
   if isBlock: Out.string(module, indentation, target)
   let E = ast.typ(id).enumeration
-  if E.name.isSome: ast.identifier(module, E.name.get, target, Out)
-  else:             Out.string(module, "_", target)
-  if not E.private.get(false): Out.string(module, "*", target)
+  if E.name.isSome : ast.identifier(module, E.name.get, target, Out)
+  else             : Out.string(module, "_", target)
+  Out.string(module, " ", target)
+  if not E.private.get(false):
+    Out.string(module, "*", target)
   if E.pragmas.isSome:
-    let pragma = E.pragmas.get
+    ast.pragma(module, E.pragmas.get, target, Out)
+  if not (E.pragmas.isSome or E.private.get(false)):
     Out.string(module, " ", target)
-    ast.pragma(module, pragma, target, Out)
-  Out.string(module, " = ", target)
+  Out.string(module, "=", target)
+  Out.string(module, " ", target)
   Out.string(module, "enum", target)
   var current = E.values
   while current.isSome:
@@ -632,7 +642,8 @@ func type_object *(
         Out.string(module, ")", target)
       return
   if O.name.isSome: ast.identifier(module, O.name.get, target, Out)
-  else:             Out.string(module, "UNNAMED_TYPE_ALIAS", target)
+  else: Out.string(module, "UNNAMED_TYPE_ALIAS", target)
+  Out.string(module, " ", target)
   if not O.private.get(false): Out.string(module, "*", target)
   if O.generics.isSome:
     Out.string(module, "[", target)
@@ -644,14 +655,16 @@ func type_object *(
       if generic_current.isSome: Out.string(module, ", ", target)
     Out.string(module, "]", target)
   if O.pragmas.isSome:
-    Out.string(module, " ", target)
     Out.string(module, "{.", target)
     if O.keyword.isSome:
       ast.identifier(module, O.keyword.get, target, Out)
       Out.string(module, ", ", target)
     ast.pragma_list(module, O.pragmas.get, target, Out)
     Out.string(module, ".}", target)
-  Out.string(module, " = ", target)
+  if not (O.generics.isSome or O.pragmas.isSome or O.private.get(false)):
+    Out.string(module, " ", target)
+  Out.string(module, "=", target)
+  Out.string(module, " ", target)
   ast.type_object_body(module, id, target, Out, base_indent)
 #___________________
 func statement_type *(
@@ -857,6 +870,7 @@ func statement_expression *(
   of astTF.eConditional: ast.expression_conditional(module, S.id, depth, target, Out, mode)
   else:
     ast.expression(module, S.id, target, Out)
+    Out.string(module, "\n", target)
 #___________________
 func statement *(
     ast     : astTF.Ast;
@@ -877,8 +891,12 @@ func statement *(
   of astTF.sImport      : ast.statement_import(module, id, target, Out)
   of astTF.sAlias       : ast.statement_alias(module, id, target, Out, isBlock = false)
   of astTF.sKeyword     : ast.statement_keyword(module, id, target, Out)
-  of astTF.sExpression  : ast.statement_expression(module, id, target, Out, mode)
-  of astTF.sBranch      : ast.statement_branch(module, id, target, Out, mode)
+  of astTF.sExpression  :
+    ast.statement_expression(module, id, target, Out, mode)
+    return
+  of astTF.sBranch      :
+    ast.statement_branch(module, id, target, Out, mode)
+    return
   else                  : raise newException(Defect, "unreachable: " & $S.kind)
   Out.string(module, "\n", target)
 

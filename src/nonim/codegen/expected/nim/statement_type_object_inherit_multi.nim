@@ -1,1 +1,1 @@
-type DrawableCircle* = object of Circle
+type DrawableCircle * = object of Circle

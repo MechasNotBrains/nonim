@@ -1,1 +1,1 @@
-type Foo* = Map[string, int]
+type Foo * = Map[string, int]

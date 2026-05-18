@@ -13,11 +13,8 @@ proc accumulate (limit :int) :int=
     if current == 5:
       discard increment(current, 0)
       continue
-
     if 100 < total:
       break
-
-
   return total
 
 proc run () :int=

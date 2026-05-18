@@ -1,1 +1,1 @@
-type Foo* = distinct int
+type Foo * = distinct int

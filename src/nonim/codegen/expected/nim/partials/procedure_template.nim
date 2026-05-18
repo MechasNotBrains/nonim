@@ -1,1 +1,1 @@
-template thing*()
+template thing *()

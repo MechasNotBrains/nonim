@@ -1,2 +1,2 @@
-type Circle* = object of Shape
-  radius* :cfloat
+type Circle * = object of Shape
+  radius *:cfloat

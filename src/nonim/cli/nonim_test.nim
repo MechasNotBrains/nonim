@@ -27,7 +27,7 @@ proc generate_from (name :string) :string=
   var root = newNode(nkStmtList)
   for statement in compiled.statements:
     root.add(statement)
-  let converted = convert.convert(root, cases_dir/name/"input.nim")
+  let converted = convert.convert(root, Language.C, path = cases_dir/name/"input.nim")
   let output = converted.C()
   return output.modules[0].definitions
 
