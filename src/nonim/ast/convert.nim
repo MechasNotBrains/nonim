@@ -810,7 +810,7 @@ proc convert *(root :PNode; target :Language= Language.Nim; typed :bool= true; p
 
   state.statement_top_level(root)
 
-  if state.target == Language.C:
+  if state.target == Language.C and state.typed:
     var first_import = none(astTF.Id)
     var last_import = none(astTF.Id)
     if state.needs.stdbool:
