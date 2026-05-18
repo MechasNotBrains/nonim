@@ -55,6 +55,9 @@ static char const* const greeting = "hello";
 // [x] Literal: char
 static char const letter = 'a';
 
+// [x] Type: ptr
+static int64_t* const nothing = NULL;
+
 // [x] Variable: multiple bindings
 static int64_t const a = 0;
 static int64_t const b = 0;

@@ -97,7 +97,7 @@ If any validation fails, the codegen output is structurally invalid regardless o
 
 | Feature | Nim | C | Zig | Status |
 |---|---|---|---|---|
-| Type: ptr | `ptr int` | `int*` | `*i64` | [ ] |
+| Type: ptr | `ptr int` | `int*` | `*i64` | [x] |
 | Literal: float | `3.14` | `3.14` | `3.14` | [x] |
 | Literal: string | `"hello"` | `"hello"` | `"hello"` | [x] |
 | Literal: char | `'a'` | `'a'` | `'a'` | [x] |
@@ -108,7 +108,7 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Statement: passthrough | (unsupported syntax) | (unsupported syntax) | (unsupported syntax) | [ ] |
 | Statement: alias | `const A = B` | `#define A B` | `const A = B;` | [ ] |
 | Procedure: callable | `template` / `method` / `iterator` | N/A | N/A | [ ] |
-| Procedure: private | no `*` | `static` | no `pub` | [ ] |
+| Procedure: private | no `*` | `static` | no `pub` | [x] |
 | Procedure: impure | `proc` vs `func` | N/A | N/A | [ ] |
 | Format: whitespace | indentation-based | braces | braces | [ ] |
 

@@ -134,6 +134,21 @@ proc translate_type (state :var State; nim_type :string) :string=
 
 proc type_from_sym (state :var State; node :PNode) :Option[astTF.Id]=
   if node.kind == nkSym and node.sym.typ != nil:
+    if node.sym.typ.kind == tyPtr and node.sym.typ.len > 0:
+      let target_name = state.translate_type(typeToString(node.sym.typ[0]))
+      let target_loc = state.name_add(target_name)
+      let target_id = state.ast.add_type(astTF.Type(
+        kind: astTF.tPrimitive,
+        primitive: astTF.TypePrimitive(name: astTF.Identifier(location: target_loc)),
+      ))
+      let ptr_id = state.ast.add_type(astTF.Type(
+        kind: astTF.tPtr,
+        `ptr`: astTF.TypePtr(target: target_id),
+      ))
+      return some(state.ast.add_expression(astTF.Expression(
+        kind: astTF.eType,
+        `type`: astTF.ExpressionType(id: ptr_id),
+      )))
     let type_name = state.translate_type(typeToString(node.sym.typ))
     let type_loc = state.name_add(type_name)
     return some(state.ast.add_expression(astTF.Expression(
@@ -203,8 +218,26 @@ proc type_identifier (state :var State; node :PNode) :astTF.Id=
     identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
   ))
 
+proc type_node_to_type_id (state :var State; node :PNode) :astTF.Id=
+  let name = state.translate_type(node.name())
+  let name_loc = state.name_add(name)
+  state.ast.add_type(astTF.Type(
+    kind: astTF.tPrimitive,
+    primitive: astTF.TypePrimitive(name: astTF.Identifier(location: name_loc)),
+  ))
+
 proc type_expression (state :var State; node :PNode) :astTF.Id=
   case node.kind
+  of nkPtrTy:
+    let target_id = state.type_node_to_type_id(node[0])
+    let type_id = state.ast.add_type(astTF.Type(
+      kind: astTF.tPtr,
+      `ptr`: astTF.TypePtr(target: target_id),
+    ))
+    state.ast.add_expression(astTF.Expression(
+      kind: astTF.eType,
+      `type`: astTF.ExpressionType(id: type_id),
+    ))
   of nkBracketExpr:
     if node[0].kind == nkSym and node[0].sym.name.s == "array":
       state.expression_array_type(node)

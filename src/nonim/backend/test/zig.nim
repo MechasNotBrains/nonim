@@ -129,6 +129,10 @@ describe "nonim.zig | Types":
     let result = generate_zig(case_input("type_primitive"))
     result.eq case_expected("type_primitive")
 
+  it "must generate a pointer type", proc() =
+    let result = generate_zig(case_input("type_ptr"))
+    result.eq case_expected("type_ptr")
+
 describe "nonim.zig | Expressions":
   it "must generate array indexing", proc() =
     let result = generate_zig(case_input("expression_indexed"))

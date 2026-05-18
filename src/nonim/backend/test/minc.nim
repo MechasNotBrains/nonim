@@ -125,6 +125,10 @@ describe "nonim.minc | Types":
     let result = generate_c(case_input("type_object"))
     result.eq case_expected("type_object")
 
+  it "must generate a pointer type", proc() =
+    let result = generate_c(case_input("type_ptr"))
+    result.eq case_expected("type_ptr")
+
   it "must translate primitive types correctly", proc() =
     let result = generate_c(case_input("type_primitive"))
     result.eq case_expected("type_primitive")

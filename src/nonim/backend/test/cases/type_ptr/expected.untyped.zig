@@ -1,0 +1,1 @@
+const nothing: *int = null;

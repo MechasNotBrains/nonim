@@ -146,6 +146,9 @@ func type_name (ast :astTF.Ast; module :astTF.Id; expression_id :Option[astTF.Id
     of astTF.tArray:
       let elem_type = ast.data.types.get[type_data.array.element]
       ast.source(module, elem_type.primitive.name.location)
+    of astTF.tPtr:
+      let target_type = ast.data.types.get[type_data.`ptr`.target]
+      ast.source(module, target_type.primitive.name.location) & "*"
     else: "void"
   else: "void"
 

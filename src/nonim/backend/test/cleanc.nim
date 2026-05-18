@@ -89,6 +89,10 @@ describe "nonim.cleanc.c | Types":
     let result = generate(case_input("type_object"))
     result.eq case_expected("type_object")
 
+  it "must generate a pointer type", proc() =
+    let result = generate(case_input("type_ptr"))
+    result.eq case_expected("type_ptr")
+
 describe "nonim.cleanc.c | Literals":
   it "must generate bool literals", proc() =
     let result = generate(case_input("literal_bool"))

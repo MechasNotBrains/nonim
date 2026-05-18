@@ -48,6 +48,9 @@ let greeting :cstring= "hello"
 # [x] Literal: char
 let letter :char= 'a'
 
+# [x] Type: ptr
+let nothing :ptr int= nil
+
 # [x] Variable: multiple bindings
 let a, b :int= 0
 
