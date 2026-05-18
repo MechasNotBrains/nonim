@@ -34,7 +34,17 @@ func expression_literal (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
     Out.string(module, "NULL", output.Target.definition)
     return
   let value = ast.source(module, expression.literal.value)
-  Out.string(module, value, output.Target.definition)
+  case expression.literal.kind
+  of astTF.LiteralKind.string:
+    Out.string(module, "\"", output.Target.definition)
+    Out.string(module, value, output.Target.definition)
+    Out.string(module, "\"", output.Target.definition)
+  of astTF.LiteralKind.char:
+    Out.string(module, "'", output.Target.definition)
+    Out.string(module, value, output.Target.definition)
+    Out.string(module, "'", output.Target.definition)
+  else:
+    Out.string(module, value, output.Target.definition)
 
 func translate_operator (operator :string) :string=
   case operator

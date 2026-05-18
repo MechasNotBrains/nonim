@@ -102,6 +102,10 @@ describe "nonim.cleanc.c | Literals":
     let result = generate(case_input("literal_float"))
     result.eq case_expected("literal_float")
 
+  it "must generate string literal", proc() =
+    let result = generate(case_input("literal_string"))
+    result.eq case_expected("literal_string")
+
 describe "nonim.cleanc.c | Control Flow":
   it "must generate if/else from Nim if/else", proc() =
     let result = generate(case_input("control_if"))

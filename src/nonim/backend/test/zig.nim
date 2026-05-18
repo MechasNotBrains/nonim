@@ -116,6 +116,10 @@ describe "nonim.zig | Literals":
     let result = generate_zig(case_input("literal_float"))
     result.eq case_expected("literal_float")
 
+  it "must generate string literal", proc() =
+    let result = generate_zig(case_input("literal_string"))
+    result.eq case_expected("literal_string")
+
 describe "nonim.zig | Types":
   it "must translate primitive types correctly", proc() =
     let result = generate_zig(case_input("type_primitive"))

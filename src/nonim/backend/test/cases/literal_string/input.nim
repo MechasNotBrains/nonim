@@ -1,0 +1,1 @@
+let greeting :cstring= "hello"

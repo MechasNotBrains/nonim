@@ -49,6 +49,9 @@ fn nothing () void {
 // [x] Literal: float
 const pi: f64 = 3.14159;
 
+// [x] Literal: string
+const greeting: [:0]const u8 = "hello";
+
 // [x] Variable: multiple bindings
 const a: isize = 0;
 const b: isize = 0;

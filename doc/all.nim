@@ -42,6 +42,9 @@ proc nothing ()=
 # [x] Literal: float
 let pi :float64= 3.14159
 
+# [x] Literal: string
+let greeting :cstring= "hello"
+
 # [x] Variable: multiple bindings
 let a, b :int= 0
 

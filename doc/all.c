@@ -49,6 +49,9 @@ static void nothing () {
 // [x] Literal: float
 static double const pi = 3.14159;
 
+// [x] Literal: string
+static char const* const greeting = "hello";
+
 // [x] Variable: multiple bindings
 static int64_t const a = 0;
 static int64_t const b = 0;
