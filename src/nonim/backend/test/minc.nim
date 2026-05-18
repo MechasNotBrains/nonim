@@ -77,6 +77,11 @@ describe "nonim.minc | Procedures":
     let result = generate_c(case_input("expression_call"))
     result.eq case_expected("expression_call")
 
+describe "nonim.minc | Literals":
+  it "must generate bool literals", proc() =
+    let result = generate_c(case_input("literal_bool"))
+    result.eq case_expected("literal_bool")
+
 describe "nonim.minc | Control Flow":
   it "must generate if/else", proc() =
     let result = generate_c(case_input("control_if"))

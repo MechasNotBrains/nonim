@@ -33,6 +33,14 @@ fn noop (x: i64) void {
     _ = x / 2;
 }
 
+// [x] Literal: bool
+fn check_bool (x: bool) bool {
+  if (x) {
+    return true;
+  }
+  return false;
+}
+
 // [x] Variable: multiple bindings
 const a: isize = 0;
 const b: isize = 0;

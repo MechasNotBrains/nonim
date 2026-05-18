@@ -103,6 +103,11 @@ describe "nonim.zig | Control Flow":
     let result = generate_zig(case_input("statement_continue"))
     result.eq case_expected("statement_continue")
 
+describe "nonim.zig | Literals":
+  it "must generate bool literals", proc() =
+    let result = generate_zig(case_input("literal_bool"))
+    result.eq case_expected("literal_bool")
+
 describe "nonim.zig | Types":
   it "must translate primitive types correctly", proc() =
     let result = generate_zig(case_input("type_primitive"))

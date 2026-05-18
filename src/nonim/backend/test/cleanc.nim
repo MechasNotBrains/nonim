@@ -89,6 +89,11 @@ describe "nonim.cleanc.c | Types":
     let result = generate(case_input("type_object"))
     result.eq case_expected("type_object")
 
+describe "nonim.cleanc.c | Literals":
+  it "must generate bool literals", proc() =
+    let result = generate(case_input("literal_bool"))
+    result.eq case_expected("literal_bool")
+
 describe "nonim.cleanc.c | Control Flow":
   it "must generate if/else from Nim if/else", proc() =
     let result = generate(case_input("control_if"))

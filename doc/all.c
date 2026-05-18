@@ -33,6 +33,14 @@ static void noop (int const x) {
   (void)(x / 2);
 }
 
+// [x] Literal: bool
+static bool check_bool (bool const x) {
+  if (x) {
+    return true;
+  }
+  return false;
+}
+
 // [x] Variable: multiple bindings
 static int64_t const a = 0;
 static int64_t const b = 0;

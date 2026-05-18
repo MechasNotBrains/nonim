@@ -101,7 +101,7 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Literal: float | `3.14` | `3.14` | `3.14` | [ ] |
 | Literal: string | `"hello"` | `"hello"` | `"hello"` | [ ] |
 | Literal: char | `'a'` | `'a'` | `'a'` | [ ] |
-| Literal: bool | `true` / `false` | `true` / `false` | `true` / `false` | [ ] |
+| Literal: bool | `true` / `false` | `true` / `false` | `true` / `false` | [x] |
 | Literal: nil | `nil` | `NULL` | `null` | [ ] |
 | Statement: comment | `# comment` / `## doc` | `// comment` | `// comment` | [ ] |
 | Statement: import | `import os` | `#include <os.h>` | `const os = @import("os");` | [ ] |

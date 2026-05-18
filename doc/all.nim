@@ -29,6 +29,12 @@ proc main () :int=
 proc noop (x :int)=
   discard x div 2
 
+# [x] Literal: bool
+proc check_bool (x :bool) :bool=
+  if x:
+    return true
+  return false
+
 # [x] Variable: multiple bindings
 let a, b :int= 0
 
