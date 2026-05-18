@@ -82,6 +82,14 @@ describe "nonim.minc | Literals":
     let result = generate_c(case_input("literal_bool"))
     result.eq case_expected("literal_bool")
 
+  it "must generate nil as NULL", proc() =
+    let result = generate_c(case_input("literal_nil"))
+    result.eq case_expected("literal_nil")
+
+  it "must generate float literal", proc() =
+    let result = generate_c(case_input("literal_float"))
+    result.eq case_expected("literal_float")
+
 describe "nonim.minc | Control Flow":
   it "must generate if/else", proc() =
     let result = generate_c(case_input("control_if"))

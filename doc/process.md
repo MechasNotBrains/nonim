@@ -98,11 +98,11 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Feature | Nim | C | Zig | Status |
 |---|---|---|---|---|
 | Type: ptr | `ptr int` | `int*` | `*i64` | [ ] |
-| Literal: float | `3.14` | `3.14` | `3.14` | [ ] |
+| Literal: float | `3.14` | `3.14` | `3.14` | [x] |
 | Literal: string | `"hello"` | `"hello"` | `"hello"` | [ ] |
 | Literal: char | `'a'` | `'a'` | `'a'` | [ ] |
 | Literal: bool | `true` / `false` | `true` / `false` | `true` / `false` | [x] |
-| Literal: nil | `nil` | `NULL` | `null` | [ ] |
+| Literal: nil | `nil` | `NULL` | `null` | [x] |
 | Statement: comment | `# comment` / `## doc` | `// comment` | `// comment` | [ ] |
 | Statement: import | `import os` | `#include <os.h>` | `const os = @import("os");` | [ ] |
 | Statement: passthrough | (unsupported syntax) | (unsupported syntax) | (unsupported syntax) | [ ] |
@@ -187,3 +187,7 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Compound assign | `x += 1` | `x += 1;` | `x += 1;` | [ ] |
 | String interp | `&"hello {name}"` | N/A | `std.fmt` | [ ] |
 | Export | `export module` | N/A | `pub` | [ ] |
+
+| Feature | Description | Status |
+|---|---|---|
+| C23 stdlib configuration | Conditionally use C23 keywords (`bool`, `true`, `false`, `nullptr`) instead of `<stdbool.h>` / `NULL`, based on user configuration for the cleanc backend | [ ] |

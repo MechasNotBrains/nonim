@@ -30,6 +30,9 @@ func expression_identifier (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out 
 
 func expression_literal (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
+  if expression.literal.kind == astTF.LiteralKind.nil:
+    Out.string(module, "null", output.Target.definition)
+    return
   let value = ast.source(module, expression.literal.value)
   Out.string(module, value, output.Target.definition)
 

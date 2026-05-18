@@ -41,6 +41,14 @@ fn check_bool (x: bool) bool {
   return false;
 }
 
+// [x] Literal: nil
+fn nothing () void {
+  _ = null;
+}
+
+// [x] Literal: float
+const pi: f64 = 3.14159;
+
 // [x] Variable: multiple bindings
 const a: isize = 0;
 const b: isize = 0;

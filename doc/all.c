@@ -41,6 +41,14 @@ static bool check_bool (bool const x) {
   return false;
 }
 
+// [x] Literal: nil
+static void nothing () {
+  (void)(NULL);
+}
+
+// [x] Literal: float
+static double const pi = 3.14159;
+
 // [x] Variable: multiple bindings
 static int64_t const a = 0;
 static int64_t const b = 0;

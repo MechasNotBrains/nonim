@@ -84,6 +84,14 @@ describe "nonim.minz | Literals":
     let result = generate_zig(case_input("literal_bool"))
     result.eq case_expected("literal_bool")
 
+  it "must generate nil as null", proc() =
+    let result = generate_zig(case_input("literal_nil"))
+    result.eq case_expected("literal_nil")
+
+  it "must generate float literal", proc() =
+    let result = generate_zig(case_input("literal_float"))
+    result.eq case_expected("literal_float")
+
 describe "nonim.minz | Control Flow":
   it "must generate if/else", proc() =
     let result = generate_zig(case_input("control_if"))

@@ -154,17 +154,34 @@ proc exported (node :PNode) :bool=
 proc expression (state :var State; node :PNode) :astTF.Id
 proc expression_array_type (state :var State; node :PNode) :astTF.Id
 
+proc expression_literal_nil (state :var State) :astTF.Id=
+  let value_str = case state.target
+    of Language.C:   "NULL"
+    of Language.Zig: "null"
+    of Language.Nim: "nil"
+  let value_loc = state.name_add(value_str)
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eLiteral,
+    literal: astTF.ExpressionLiteral(kind: astTF.LiteralKind.nil, value: value_loc),
+  ))
+
+proc expression_literal_bool (state :var State; value :string) :astTF.Id=
+  let value_loc = state.name_add(value)
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eLiteral,
+    literal: astTF.ExpressionLiteral(kind: astTF.LiteralKind.bool, value: value_loc),
+  ))
+
 proc expression_literal (state :var State; node :PNode) :astTF.Id=
+  if node.kind in Nil: return state.expression_literal_nil()
   let literal_kind = case node.kind
     of Char:  astTF.LiteralKind.char
     of Int:   astTF.LiteralKind.integer
     of UInt:  astTF.LiteralKind.integer
     of Float: astTF.LiteralKind.float
     of Str:   astTF.LiteralKind.string
-    of Nil:   astTF.LiteralKind.nil
     else:     astTF.LiteralKind.generic
-  let value_str = node.strValue
-  let value_loc = state.name_add(value_str)
+  let value_loc = state.name_add(node.strValue)
   state.ast.add_expression(astTF.Expression(
     kind: astTF.eLiteral,
     literal: astTF.ExpressionLiteral(kind: literal_kind, value: value_loc),
@@ -294,7 +311,13 @@ proc expression_array_type (state :var State; node :PNode) :astTF.Id=
 proc expression (state :var State; node :PNode) :astTF.Id=
   case node.kind
   of SomeLit:                      state.expression_literal(node)
-  of SomeIdent, nkSym, nkPostfix:  state.expression_identifier(node)
+  of nkSym:
+    let name = node.sym.name.s
+    if name == "true" or name == "false":
+      state.expression_literal_bool(name)
+    else:
+      state.expression_identifier(node)
+  of SomeIdent, nkPostfix:         state.expression_identifier(node)
   of nkInfix:                      state.expression_infix(node)
   of nkPrefix:                     state.expression_prefix(node)
   of nkCall, nkCommand:            state.expression_call(node)

@@ -35,6 +35,13 @@ proc check_bool (x :bool) :bool=
     return true
   return false
 
+# [x] Literal: nil
+proc nothing ()=
+  discard nil
+
+# [x] Literal: float
+let pi :float64= 3.14159
+
 # [x] Variable: multiple bindings
 let a, b :int= 0
 
