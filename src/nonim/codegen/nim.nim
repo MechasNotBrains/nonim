@@ -510,9 +510,11 @@ func variable *(
   ) :void=
   let V = ast.statement(id).variable
   let B = ast.binding(V.id)
+  let depth = ast.node_depth(V.depth)
   if isBlock:
     Out.string(module, indentation, target)
   else:
+    for indentation_level in 0 ..< depth: Out.string(module, indentation, target)
     Out.string(module,
       if B.mutable.get(false):   "var "
       elif B.runtime.get(false): "let "
@@ -692,13 +694,14 @@ func statement_procedure *(
     id      : astTF.Id;
     target  : output.Target;
     Out     : var Output;
+    mode    : BlockMode;
   ) :void=
   let S = ast.statement(id).procedure
   let P = ast.procedure(S.id)
   ast.procedure(module, S.id, target, Out)
   if P.body.isSome:
     Out.string(module, "=\n", target)
-    ast.statement_list(module, P.body.get, target, Out)
+    ast.statement_list(module, P.body.get, target, Out, mode)
 #___________________
 func statement_passthrough *(
     ast     : astTF.Ast;
@@ -786,14 +789,15 @@ func expression_loop *(
     depth   : int;
     target  : output.Target;
     Out     : var Output;
+    mode    : BlockMode;
   ) :void=
   let expr = ast.expression(id)
   Out.string(module, "while ", target)
   if expr.loop.condition.isSome:
     ast.expression(module, expr.loop.condition.get, target, Out)
-  Out.string(module, ":", target)
+  Out.string(module, ":\n", target)
   if expr.loop.body.isSome:
-    ast.statement_list(module, expr.loop.body.get, target, Out)
+    ast.statement_list(module, expr.loop.body.get, target, Out, mode)
 #___________________
 func statement_branch *(
     ast     : astTF.Ast;
@@ -801,6 +805,7 @@ func statement_branch *(
     id      : astTF.Id;
     target  : output.Target;
     Out     : var Output;
+    mode    : BlockMode;
   ) :void=
   var current = some(id)
   while current.isSome:
@@ -814,7 +819,7 @@ func statement_branch *(
     else:
       Out.string(module, "else:\n", target)
     if branch.body.isSome:
-      ast.statement_list(module, branch.body.get, target, Out)
+      ast.statement_list(module, branch.body.get, target, Out, mode)
     current = branch.next
 #___________________
 func expression_conditional *(
@@ -824,15 +829,16 @@ func expression_conditional *(
     depth   : int;
     target  : output.Target;
     Out     : var Output;
+    mode    : BlockMode;
   ) :void=
   let expr = ast.expression(id)
   Out.string(module, "if ", target)
   ast.expression(module, expr.conditional.condition, target, Out)
   Out.string(module, ":\n", target)
   if expr.conditional.body.isSome:
-    ast.statement_list(module, expr.conditional.body.get, target, Out)
+    ast.statement_list(module, expr.conditional.body.get, target, Out, mode)
   if expr.conditional.branches.isSome:
-    ast.statement_branch(module, expr.conditional.branches.get, target, Out)
+    ast.statement_branch(module, expr.conditional.branches.get, target, Out, mode)
 #___________________
 func statement_expression *(
     ast     : astTF.Ast;
@@ -840,14 +846,15 @@ func statement_expression *(
     id      : astTF.Id;
     target  : output.Target;
     Out     : var Output;
+    mode    : BlockMode;
   ) :void=
   let S = ast.statement(id).expression
   let expr = ast.expression(S.id)
   let depth = ast.node_depth(S.depth)
   for indentation_level in 0 ..< depth: Out.string(module, indentation, target)
   case expr.kind
-  of astTF.eLoop:        ast.expression_loop(module, S.id, depth, target, Out)
-  of astTF.eConditional: ast.expression_conditional(module, S.id, depth, target, Out)
+  of astTF.eLoop:        ast.expression_loop(module, S.id, depth, target, Out, mode)
+  of astTF.eConditional: ast.expression_conditional(module, S.id, depth, target, Out, mode)
   else:
     ast.expression(module, S.id, target, Out)
 #___________________
@@ -857,20 +864,21 @@ func statement *(
     id      : astTF.Id;
     target  : output.Target;
     Out     : var Output;
+    mode    : BlockMode;
   ) :void=
   let S = ast.statement(id)
   case S.kind
   of astTF.sPragma      : ast.pragma(module, S.pragma.id, target, Out)
   of astTF.sVariable    : ast.variable(module, id, target, Out, isBlock = false)
-  of astTF.sProcedure   : ast.statement_procedure(module, id, target, Out)
+  of astTF.sProcedure   : ast.statement_procedure(module, id, target, Out, mode)
   of astTF.sType        : ast.statement_type(module, id, target, Out, isBlock = false)
   of astTF.sPassthrough : ast.statement_passthrough(module, id, target, Out)
   of astTF.sComment     : ast.statement_comment(module, id, target, Out)
   of astTF.sImport      : ast.statement_import(module, id, target, Out)
   of astTF.sAlias       : ast.statement_alias(module, id, target, Out, isBlock = false)
   of astTF.sKeyword     : ast.statement_keyword(module, id, target, Out)
-  of astTF.sExpression  : ast.statement_expression(module, id, target, Out)
-  of astTF.sBranch      : ast.statement_branch(module, id, target, Out)
+  of astTF.sExpression  : ast.statement_expression(module, id, target, Out, mode)
+  of astTF.sBranch      : ast.statement_branch(module, id, target, Out, mode)
   else                  : raise newException(Defect, "unreachable: " & $S.kind)
   Out.string(module, "\n", target)
 
@@ -885,6 +893,7 @@ func statement_block *(
     target  : output.Target;
     Out     : var Output;
     isBlock : bool;
+    mode    : BlockMode;
   ) :void=
   let S = ast.statement(id)
   case S.kind
@@ -892,7 +901,7 @@ func statement_block *(
   of astTF.sType        : ast.statement_type(module, id, target, Out, isBlock)
   of astTF.sAlias       : ast.statement_alias(module, id, target, Out, isBlock)
   of astTF.sPragma      : ast.pragma(module, S.pragma.id, target, Out)
-  of astTF.sProcedure   : ast.statement_procedure(module, id, target, Out)
+  of astTF.sProcedure   : ast.statement_procedure(module, id, target, Out, mode)
   of astTF.sPassthrough : ast.statement_passthrough(module, id, target, Out)
   of astTF.sComment     : ast.statement_comment(module, id, target, Out)
   of astTF.sImport      : ast.statement_import(module, id, target, Out)
@@ -912,14 +921,14 @@ func statement_list *(
     let current_id = current.get
     let keyword = ast.block_keyword(current_id)
     if mode == BlockMode.none or keyword.len == 0:
-      ast.statement(module, current_id, target, Out)
+      ast.statement(module, current_id, target, Out, mode)
       current = ast.statement_next(current_id)
       continue
     let next_id = ast.statement_next(current_id)
     let has_group = mode == BlockMode.always or
       (next_id.isSome and ast.block_keyword(next_id.get) == keyword)
     if not has_group:
-      ast.statement(module, current_id, target, Out)
+      ast.statement(module, current_id, target, Out, mode)
       current = next_id
       continue
     Out.string(module, keyword, target)
@@ -927,7 +936,7 @@ func statement_list *(
     while current.isSome:
       let inner_id = current.get
       if ast.block_keyword(inner_id) != keyword: break
-      ast.statement_block(module, inner_id, target, Out, isBlock = true)
+      ast.statement_block(module, inner_id, target, Out, isBlock = true, mode = mode)
       current = ast.statement_next(inner_id)
 
 #_______________________________________
