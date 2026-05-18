@@ -1,3 +1,5 @@
+#include <stdbool.h>
+#include <stdint.h>
 static void nim_types (int64_t const a, uint32_t const b, float const c, bool const d) {
   (void)(a);
   (void)(b);

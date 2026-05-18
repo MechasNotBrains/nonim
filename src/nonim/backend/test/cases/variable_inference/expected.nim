@@ -1,4 +1,4 @@
 proc thing ()=
-var current* :int= 42
+  var current :int= 42
   discard current
 

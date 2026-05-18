@@ -29,6 +29,17 @@ No backend progresses without the others having parity.
 8. **Run ALL tests**: All 3 codegen unit tests AND all 5 backend integration tests must pass. No backend can be skipped.
 9. **Mark done**: Update the `[ ]` to `[x]` in all three `doc/all.*` files.
 
+## Phase Landmarks
+
+After completing each phase, a landmark test (`cases/phaseN/input.nim`) must be created that exercises ALL features of that phase in a single realistic program. This landmark must pass on all 5 backends. The landmark test is in each backend test file under `describe "nonim.lang | astTF Phase Landmarks"`.
+
+Phase landmarks MUST also validate the expected output files with the target language's own toolchain:
+- **Nim**: `nim check expected.nim`
+- **Zig**: `zig ast-check expected.zig`
+- **C**: `clang -fsyntax-only expected.c`
+
+If any validation fails, the codegen output is structurally invalid regardless of string matching.
+
 ## Rules
 
 - ALL 5 BACKENDS must pass. No backend is exempt.
@@ -36,6 +47,7 @@ No backend progresses without the others having parity.
 - The codegen tests run BEFORE the backend tests.
 - NEVER implement a feature in one backend without the others.
 - Test cases are shared — one `input.nim` produces expected output for every target language.
+- Expected files MUST be validated with the target language toolchain (`nim check`, `zig ast-check`, `zig cc -fsyntax-only`). NEVER use codegen output as expected files without this validation — that's circular and catches nothing.
 - When typed and untyped produce different output (e.g., type translation, operator reordering), use `expected.untyped.c` / `expected.untyped.zig` alongside the typed `expected.c` / `expected.zig`. The untyped test runners check for the `.untyped.` variant first, falling back to the regular file.
 - Input files MUST have explicit type annotations — untyped backends cannot infer types.
 - The converter is target-aware (Language enum) and typed-aware (`typed: bool`). Type translation happens in the converter ONLY for typed ASTs. Untyped passes type names through verbatim.

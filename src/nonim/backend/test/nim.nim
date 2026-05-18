@@ -4,7 +4,7 @@
 ## Integration tests for the nim (typed) backend.
 #_______________________________________________________________|
 # @deps std
-from std/os import `/`, parentDir
+from std/os import `/`, parentDir, execShellCmd
 # @deps nimc
 import "$nim"/compiler/[ast]
 # @deps tests
@@ -13,6 +13,7 @@ import minitest
 from ../../../nonim import nil
 import ../../nimc/Typed
 import ../../ast as astTF
+import ../../codegen/nim as nim_codegen
 
 
 const cases_dir = currentSourcePath().parentDir()/"cases"
@@ -27,7 +28,7 @@ proc typed_ast (source :string) :astTF.Ast=
   return astTF.convert(root, astTF.Language.Nim)
 
 proc generate_nim (source :string) :string=
-  let output = nonim.codegen.nim(typed_ast(source), mode = nonim.codegen.BlockMode.none)
+  let output = nonim.codegen.nim(typed_ast(source), mode = nim_codegen.BlockMode.none)
   return output.modules[0].definitions
 
 proc case_input (name :string) :string=
@@ -36,6 +37,15 @@ proc case_input (name :string) :string=
 proc case_expected (name :string) :string=
   readFile(cases_dir/name/"expected.nim")
 
+
+describe "nonim.nim | astTF Phase Landmarks":
+  it "must generate a complete Phase 0 program", proc() =
+    let result = generate_nim(case_input("phase0"))
+    result.eq case_expected("phase0")
+
+  it "must pass nim check on Phase 0 output", proc() =
+    let code = execShellCmd("nim check " & cases_dir/"phase0"/"expected.nim")
+    code.eq 0
 
 describe "nonim.nim | Variables":
   it "must generate let binding", proc() =

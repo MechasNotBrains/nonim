@@ -1,5 +1,6 @@
 proc countdown (n :int)=
-var current* :int= n
-  while 0 < current:    current = current - 1
+  var current :int= n
+  while 0 < current:
+    current = current - 1
 
 

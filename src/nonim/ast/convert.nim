@@ -20,6 +20,10 @@ type Language * = enum
   Zig
   Nim
 
+type Needs = object
+  stdint   :bool
+  stdbool  :bool
+
 type State = object
   ast            :astTF.Ast
   module         :astTF.Id
@@ -27,6 +31,7 @@ type State = object
   previous_stmt  :Option[astTF.Id]
   target         :Language
   typed          :bool
+  needs          :Needs
 
 
 proc name_add (state :var State; name :string) :astTF.Location=
@@ -46,42 +51,51 @@ proc name (node :PNode) :string=
   else:          ""
 
 
-proc translate_type (state :State; nim_type :string) :string=
+proc translate_type (state :var State; nim_type :string) :string=
   if not state.typed: return nim_type
   case state.target
   of Language.C:
-    case nim_type
-    of "int":      "int64_t"
-    of "int8":     "int8_t"
-    of "int16":    "int16_t"
-    of "int32":    "int32_t"
-    of "int64":    "int64_t"
-    of "uint":     "uint64_t"
-    of "uint8":    "uint8_t"
-    of "uint16":   "uint16_t"
-    of "uint32":   "uint32_t"
-    of "uint64":   "uint64_t"
-    of "float":    "double"
-    of "float32":  "float"
-    of "float64":  "double"
-    of "bool":     "bool"
-    of "char":     "char"
-    of "cint":     "int"
-    of "cuint":    "unsigned int"
-    of "clong":    "long"
-    of "culong":   "unsigned long"
-    of "clonglong":"long long"
-    of "cfloat":   "float"
-    of "cdouble":  "double"
-    of "cchar":    "char"
-    of "cschar":   "signed char"
-    of "cuchar":   "unsigned char"
-    of "cshort":   "short"
-    of "cushort":  "unsigned short"
-    of "csize_t":  "size_t"
-    of "cstring":  "char const*"
-    of "void":     "void"
-    else:          nim_type
+    let result = case nim_type
+      of "int":      "int64_t"
+      of "int8":     "int8_t"
+      of "int16":    "int16_t"
+      of "int32":    "int32_t"
+      of "int64":    "int64_t"
+      of "uint":     "uint64_t"
+      of "uint8":    "uint8_t"
+      of "uint16":   "uint16_t"
+      of "uint32":   "uint32_t"
+      of "uint64":   "uint64_t"
+      of "float":    "double"
+      of "float32":  "float"
+      of "float64":  "double"
+      of "bool":     "bool"
+      of "char":     "char"
+      of "cint":     "int"
+      of "cuint":    "unsigned int"
+      of "clong":    "long"
+      of "culong":   "unsigned long"
+      of "clonglong":"long long"
+      of "cfloat":   "float"
+      of "cdouble":  "double"
+      of "cchar":    "char"
+      of "cschar":   "signed char"
+      of "cuchar":   "unsigned char"
+      of "cshort":   "short"
+      of "cushort":  "unsigned short"
+      of "csize_t":  "size_t"
+      of "cstring":  "char const*"
+      of "void":     "void"
+      else:          nim_type
+    case result
+    of "int64_t", "int8_t", "int16_t", "int32_t",
+       "uint64_t", "uint8_t", "uint16_t", "uint32_t",
+       "size_t":
+      state.needs.stdint = true
+    of "bool":
+      state.needs.stdbool = true
+    else: discard
+    result
   of Language.Zig:
     case nim_type
     of "int":      "isize"
@@ -525,7 +539,9 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
     state.previous_stmt = some(statement_id)
 
   proc body_variable (state :var State; child :PNode) =
-    if child.kind != nkVarSection: return
+    if child.kind notin {nkVarSection, nkLetSection, nkConstSection}: return
+    let is_mutable = child.kind == nkVarSection
+    let is_runtime = child.kind in {nkVarSection, nkLetSection}
     for definition in child:
       if definition.kind != nkIdentDefs: continue
       let name_node = definition[0]
@@ -545,8 +561,9 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
       let depth_id = some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
       let binding_id = state.ast.add_binding(astTF.Binding(
         name: some(astTF.Identifier(location: name_loc)),
-        mutable: some(true),
-        runtime: some(true),
+        private: some(true),
+        mutable: some(is_mutable),
+        runtime: some(is_runtime),
         dataType: data_type,
         value: value,
       ))
@@ -604,7 +621,7 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
         state.body_while(child)
       of nkAsgn:
         state.body_assignment(child)
-      of nkVarSection:
+      of nkVarSection, nkLetSection, nkConstSection:
         state.body_variable(child)
         return
       else:
@@ -792,6 +809,41 @@ proc convert *(root :PNode; target :Language= Language.Nim; typed :bool= true; p
   state.ast.data.modules.add(astTF.Module(path: path, source: ""))
 
   state.statement_top_level(root)
+
+  if state.target == Language.C:
+    var first_import = none(astTF.Id)
+    var last_import = none(astTF.Id)
+    if state.needs.stdbool:
+      let path_loc = state.name_add("stdbool.h")
+      let import_id = state.ast.add_statement(astTF.Statement(
+        kind: astTF.sImport,
+        `import`: astTF.StatementImport(path: path_loc),
+      ))
+      if first_import.isNone: first_import = some(import_id)
+      if last_import.isSome:
+        var prev = state.ast.statement(last_import.get)
+        prev.`import`.next = some(import_id)
+        state.ast.data.statements.get[last_import.get] = prev
+      last_import = some(import_id)
+    if state.needs.stdint:
+      let path_loc = state.name_add("stdint.h")
+      let import_id = state.ast.add_statement(astTF.Statement(
+        kind: astTF.sImport,
+        `import`: astTF.StatementImport(path: path_loc),
+      ))
+      if first_import.isNone: first_import = some(import_id)
+      if last_import.isSome:
+        var prev = state.ast.statement(last_import.get)
+        prev.`import`.next = some(import_id)
+        state.ast.data.statements.get[last_import.get] = prev
+      last_import = some(import_id)
+    if first_import.isSome:
+      let original_body = state.ast.data.modules[state.module].body
+      if original_body.isSome:
+        var last = state.ast.statement(last_import.get)
+        last.`import`.next = original_body
+        state.ast.data.statements.get[last_import.get] = last
+      state.ast.data.modules[state.module].body = first_import
 
   state.ast.data.modules[state.module].source = state.source
   return state.ast

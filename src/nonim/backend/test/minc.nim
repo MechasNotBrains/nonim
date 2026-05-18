@@ -4,7 +4,7 @@
 ## Integration tests for the minc (untyped C) backend.
 #_______________________________________________________________|
 # @deps std
-from std/os import `/`, parentDir, fileExists
+from std/os import `/`, parentDir, fileExists, execShellCmd
 # @deps nimc
 import "$nim"/compiler/[ast]
 # @deps tests
@@ -33,6 +33,15 @@ proc case_expected (name :string) :string=
   if fileExists(untyped_path): return readFile(untyped_path)
   readFile(cases_dir/name/"expected.c")
 
+
+describe "nonim.minc | astTF Phase Landmarks":
+  it "must generate a complete Phase 0 program", proc() =
+    let result = generate_c(case_input("phase0"))
+    result.eq case_expected("phase0")
+
+  it "must pass clang syntax check on Phase 0 output", proc() =
+    let code = execShellCmd("clang -fsyntax-only " & cases_dir/"phase0"/"expected.untyped.c")
+    code.eq 0
 
 describe "nonim.minc | Variables":
   it "must generate static const int from let binding", proc() =

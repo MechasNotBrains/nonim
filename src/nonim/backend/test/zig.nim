@@ -4,7 +4,7 @@
 ## Unit tests for the zig backend.
 #__________________________________|
 # @deps std
-from std/os import `/`, parentDir
+from std/os import `/`, parentDir, execShellCmd
 # @deps nimc
 import "$nim"/compiler/[ast]
 # @deps tests
@@ -36,6 +36,15 @@ proc case_input (name :string) :string=
 proc case_expected (name :string) :string=
   readFile(cases_dir/name/"expected.zig")
 
+
+describe "nonim.zig | astTF Phase Landmarks":
+  it "must generate a complete Phase 0 program", proc() =
+    let result = generate_zig(case_input("phase0"))
+    result.eq case_expected("phase0")
+
+  it "must pass zig ast-check on Phase 0 output", proc() =
+    let code = execShellCmd("zig ast-check " & cases_dir/"phase0"/"expected.zig")
+    code.eq 0
 
 describe "nonim.zig | Variables":
   it "must generate const from let binding", proc() =

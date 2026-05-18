@@ -6,7 +6,7 @@
 ## then generates output and checks it matches expected.
 #___________________________________________________________________|
 # @deps std
-from std/os import `/`, parentDir
+from std/os import `/`, parentDir, execShellCmd
 # @deps nimc
 import "$nim"/compiler/[ast]
 # @deps tests
@@ -39,6 +39,15 @@ proc case_expected (name :string) :string=
   readFile(cases_dir/name/"expected.c")
 
 
+
+describe "nonim.cleanc | astTF Phase Landmarks":
+  it "must generate a complete Phase 0 program", proc() =
+    let result = generate(case_input("phase0"))
+    result.eq case_expected("phase0")
+
+  it "must pass clang syntax check on Phase 0 output", proc() =
+    let code = execShellCmd("clang -fsyntax-only " & cases_dir/"phase0"/"expected.c")
+    code.eq 0
 
 describe "nonim.cleanc.c | Variables":
   it "must generate static const int from let binding", proc() =

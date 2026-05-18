@@ -4,7 +4,7 @@
 ## Integration tests for the minz (untyped Zig) backend.
 #_______________________________________________________________|
 # @deps std
-from std/os import `/`, parentDir, fileExists
+from std/os import `/`, parentDir, fileExists, execShellCmd
 # @deps nimc
 import "$nim"/compiler/[ast]
 # @deps tests
@@ -26,6 +26,8 @@ proc generate_zig (source :string) :string=
   return output.modules[0].definitions
 
 proc case_input (name :string) :string=
+  let zig_path = cases_dir/name/"input.untyped_zig.nim"
+  if fileExists(zig_path): return readFile(zig_path)
   readFile(cases_dir/name/"input.nim")
 
 proc case_expected (name :string) :string=
@@ -33,6 +35,15 @@ proc case_expected (name :string) :string=
   if fileExists(untyped_path): return readFile(untyped_path)
   readFile(cases_dir/name/"expected.zig")
 
+
+describe "nonim.minz | astTF Phase Landmarks":
+  it "must generate a complete Phase 0 program", proc() =
+    let result = generate_zig(case_input("phase0"))
+    result.eq case_expected("phase0")
+
+  it "must pass zig ast-check on Phase 0 output", proc() =
+    let code = execShellCmd("zig ast-check " & cases_dir/"phase0"/"expected.untyped.zig")
+    code.eq 0
 
 describe "nonim.minz | Variables":
   it "must generate const from let binding", proc() =
