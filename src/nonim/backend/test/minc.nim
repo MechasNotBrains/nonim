@@ -94,6 +94,10 @@ describe "nonim.minc | Literals":
     let result = generate_c(case_input("literal_string"))
     result.eq case_expected("literal_string")
 
+  it "must generate char literal", proc() =
+    let result = generate_c(case_input("literal_char"))
+    result.eq case_expected("literal_char")
+
 describe "nonim.minc | Control Flow":
   it "must generate if/else", proc() =
     let result = generate_c(case_input("control_if"))

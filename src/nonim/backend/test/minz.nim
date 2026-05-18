@@ -96,6 +96,10 @@ describe "nonim.minz | Literals":
     let result = generate_zig(case_input("literal_string"))
     result.eq case_expected("literal_string")
 
+  it "must generate char literal", proc() =
+    let result = generate_zig(case_input("literal_char"))
+    result.eq case_expected("literal_char")
+
 describe "nonim.minz | Control Flow":
   it "must generate if/else", proc() =
     let result = generate_zig(case_input("control_if"))

@@ -100,7 +100,7 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Type: ptr | `ptr int` | `int*` | `*i64` | [ ] |
 | Literal: float | `3.14` | `3.14` | `3.14` | [x] |
 | Literal: string | `"hello"` | `"hello"` | `"hello"` | [x] |
-| Literal: char | `'a'` | `'a'` | `'a'` | [ ] |
+| Literal: char | `'a'` | `'a'` | `'a'` | [x] |
 | Literal: bool | `true` / `false` | `true` / `false` | `true` / `false` | [x] |
 | Literal: nil | `nil` | `NULL` | `null` | [x] |
 | Statement: comment | `# comment` / `## doc` | `// comment` | `// comment` | [ ] |

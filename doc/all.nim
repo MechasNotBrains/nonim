@@ -45,6 +45,9 @@ let pi :float64= 3.14159
 # [x] Literal: string
 let greeting :cstring= "hello"
 
+# [x] Literal: char
+let letter :char= 'a'
+
 # [x] Variable: multiple bindings
 let a, b :int= 0
 
