@@ -308,16 +308,22 @@ func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :
     Out.string(module, ";\n", output.Target.definition)
 
 
+func statement_import (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let statement = ast.data.statements.get[id]
+  let path = ast.source(module, statement.`import`.path)
+  Out.string(module, "#include <" & path & ">\n", output.Target.definition)
+
 func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let statement = ast.data.statements.get[id]
   case statement.kind
-  of astTF.sVariable:  ast.statement_variable(module, id, Out)
-  of astTF.sProcedure: ast.statement_procedure(module, id, Out)
-  of astTF.sKeyword:   ast.statement_keyword(module, id, Out)
-  of astTF.sType:      ast.statement_type(module, id, Out)
-  of astTF.sBranch:    ast.statement_branch(module, id, Out)
+  of astTF.sVariable:   ast.statement_variable(module, id, Out)
+  of astTF.sProcedure:  ast.statement_procedure(module, id, Out)
+  of astTF.sKeyword:    ast.statement_keyword(module, id, Out)
+  of astTF.sType:       ast.statement_type(module, id, Out)
+  of astTF.sBranch:     ast.statement_branch(module, id, Out)
   of astTF.sExpression: ast.statement_expression(module, id, Out)
-  else:                assert false, "codegen.C: unsupported statement kind: " & $statement.kind
+  of astTF.sImport:     ast.statement_import(module, id, Out)
+  else:                 assert false, "codegen.C: unsupported statement kind: " & $statement.kind
 
 
 func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
