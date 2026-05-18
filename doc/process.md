@@ -89,28 +89,22 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Type: primitive | `int` / `float32` | `int64_t` / `float` | `isize` / `f32` | [x] |
 | Type: array | `array[10, int]` | `int64_t[10]` | `[10]isize` | [x] |
 | Type: cstring | `cstring` | `char const*` | `[:0]const u8` | [ ] |
-| Type: string | `string` | (dynamic, TBD) | (dynamic, TBD) | [ ] |
-| Type: seq | `seq[int]` | (dynamic array, TBD) | (std.ArrayList, TBD) | [ ] |
-| Type: int/uint platform size | `int`/`uint` mapped to 64-bit for now; needs proper platform-aware solution alongside string/seq/tuple runtime types | | | [ ] |
 
 ### Phase 1: Practical Programs
 
 | Feature | Nim | C | Zig | Status |
 |---|---|---|---|---|
+| Procedure: private | no `*` | `static` | no `pub` | [x] |
 | Type: ptr | `ptr int` | `int*` | `*i64` | [x] |
 | Literal: float | `3.14` | `3.14` | `3.14` | [x] |
 | Literal: string | `"hello"` | `"hello"` | `"hello"` | [x] |
 | Literal: char | `'a'` | `'a'` | `'a'` | [x] |
 | Literal: bool | `true` / `false` | `true` / `false` | `true` / `false` | [x] |
 | Literal: nil | `nil` | `NULL` | `null` | [x] |
+| Statement: passthrough | `{.emit: "....".}` | `....` | `....` | [ ] |
 | Statement: comment | `# comment` / `## doc` | `// comment` | `// comment` | [ ] |
 | Statement: import | `import os` | `#include <os.h>` | `const os = @import("os");` | [ ] |
-| Statement: passthrough | (unsupported syntax) | (unsupported syntax) | (unsupported syntax) | [ ] |
-| Statement: alias | `const A = B` | `#define A B` | `const A = B;` | [ ] |
-| Procedure: callable | `template` / `method` / `iterator` | N/A | N/A | [ ] |
-| Procedure: private | no `*` | `static` | no `pub` | [x] |
-| Procedure: impure | `proc` vs `func` | N/A | N/A | [ ] |
-| Format: whitespace | indentation-based | braces | braces | [ ] |
+| Format: whitespace | ? | ? | ? | [ ] |
 
 ### Phase 2: Branches & Pragmas
 
@@ -122,6 +116,7 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Pragma: on statement | `proc x() {.cdecl.}` | `__attribute__((cdecl))` | `export` / `inline` | [ ] |
 | Pragma: on binding | `x {.volatile.}` | `volatile x` | `@volatileCast(x)` | [ ] |
 | Expression: block | `block: ...` | `({ ... })` (GCC ext) | `blk: { ... }` | [ ] |
+| Procedure: impure | `proc` vs `func` | `__attribute__((const))` on output | ignore, regular proc | [ ] |
 
 ### Phase 3: Type System
 
@@ -163,7 +158,7 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | TypePrimitive: ptr | `ptr int` | `int*` | `*i64` | [ ] |
 | Expression: group | `(x + y)` | `(x + y)` | `(x + y)` | [ ] |
 
-### Not in astTF phases (Nim-specific)
+### After P5
 
 | Feature | Nim | C | Zig | Status |
 |---|---|---|---|---|
@@ -187,6 +182,11 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Compound assign | `x += 1` | `x += 1;` | `x += 1;` | [ ] |
 | String interp | `&"hello {name}"` | N/A | `std.fmt` | [ ] |
 | Export | `export module` | N/A | `pub` | [ ] |
+| Type: string | `string` | (dynamic, TBD) | (dynamic, TBD) | [ ] |
+| Type: seq | `seq[int]` | (dynamic array, TBD) | (std.ArrayList, TBD) | [ ] |
+| Type: int/uint platform size | `int`/`uint` mapped to 64-bit for now; needs proper platform-aware solution alongside string/seq/tuple runtime types | | | [ ] |
+| Statement: alias | `const A = B` | `#define A B` | `const A = B;` | [ ] |
+| Procedure: callable | `template` / `method` / `iterator` | N/A | N/A | [ ] |
 
 | Feature | Description | Status |
 |---|---|---|
