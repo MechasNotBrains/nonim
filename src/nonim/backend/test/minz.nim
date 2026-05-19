@@ -158,6 +158,10 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_operator"))
     result.eq case_expected("expression_operator")
 
+  it "must generate @ prefix for Zig builtins", proc() =
+    let result = generate_zig(case_input("expression_at_prefix"))
+    result.eq case_expected("expression_at_prefix")
+
 describe "nonim.minz | Passthrough":
   it "must emit raw code from emit pragma", proc() =
     let result = generate_zig(case_input("statement_passthrough"))

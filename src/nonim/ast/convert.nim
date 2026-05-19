@@ -543,7 +543,7 @@ proc statement_variable (state :var State; node :PNode) =
     if definition.kind == nkCommentStmt:
       state.statement_comment(definition)
       continue
-    if definition.kind != nkIdentDefs: continue
+    if definition.kind notin {nkIdentDefs, nkConstDef}: continue
     let type_node = definition[^2]
     let value_node = definition[^1]
     let name_count = definition.safeLen - 2
