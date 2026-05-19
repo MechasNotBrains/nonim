@@ -13,6 +13,7 @@ import minitest
 from ../../../nonim import nil
 import ../../nimc/Untyped
 import ../../ast as astTF
+import ../../backend/preprocess
 
 
 const cases_dir = currentSourcePath().parentDir()/"cases"
@@ -27,6 +28,12 @@ proc generate_c (source :string) :string=
 
 proc case_input (name :string) :string=
   readFile(cases_dir/name/"input.nim")
+
+proc generate_c_file (name :string) :string=
+  let input_path = cases_dir/name/"input.nim"
+  let source = preprocess.processIncludes(readFile(input_path), input_path)
+  let output = nonim.codegen.C(untyped_ast(source))
+  return output.modules[0].definitions
 
 proc case_expected (name :string) :string=
   let untyped_path = cases_dir/name/"expected.untyped.c"
@@ -151,3 +158,20 @@ describe "nonim.minc | Comments":
   it "must generate a doc comment", proc() =
     let result = generate_c(case_input("statement_comment"))
     result.eq case_expected("statement_comment")
+
+describe "nonim.minc | Includes":
+  it "must generate a global include with angle brackets", proc() =
+    let result = generate_c(case_input("include_global"))
+    result.eq case_expected("include_global")
+
+  it "must generate a local include with quotes", proc() =
+    let result = generate_c(case_input("include_local"))
+    result.eq case_expected("include_local")
+
+  it "must inline extensionless include via preprocessor", proc() =
+    let result = generate_c_file("include_recursive")
+    result.eq case_expected("include_recursive")
+
+  it "must inline nested recursive includes", proc() =
+    let result = generate_c_file("include_nested")
+    result.eq case_expected("include_nested")

@@ -151,3 +151,8 @@ describe "nonim.nim | Comments":
   it "must generate a doc comment", proc() =
     let result = generate_nim(case_input("statement_comment"))
     result.eq case_expected("statement_comment")
+
+describe "nonim.nim | Imports":
+  it "must generate an import statement", proc() =
+    let result = generate_nim(case_input("statement_import"))
+    result.eq case_expected("statement_import")

@@ -62,3 +62,33 @@ proc include_simple *() :TestData=
     ),
   ))
   result.ast.data.modules[result.module].body = some(result.id)
+
+
+proc include_global *() :TestData=
+  const input_path = "stdint.h"
+  const input_source = input_path & "567890Z"
+  result = create(input_source)
+  let path_loc = astTF.Location(start: 0, `end`: input_path.len)
+  result.id = result.ast.add_statement(astTF.Statement(
+    kind: astTF.sImport,
+    `import`: astTF.StatementImport(
+      path: path_loc,
+      global: some(true),
+    ),
+  ))
+  result.ast.data.modules[result.module].body = some(result.id)
+
+
+proc include_local *() :TestData=
+  const input_path = "path/to/file.h"
+  const input_source = input_path & "567890Z"
+  result = create(input_source)
+  let path_loc = astTF.Location(start: 0, `end`: input_path.len)
+  result.id = result.ast.add_statement(astTF.Statement(
+    kind: astTF.sImport,
+    `import`: astTF.StatementImport(
+      path: path_loc,
+      global: some(false),
+    ),
+  ))
+  result.ast.data.modules[result.module].body = some(result.id)

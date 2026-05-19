@@ -326,9 +326,13 @@ func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :
 
 
 func statement_import (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
-  let statement = ast.data.statements.get[id]
-  let path = ast.source(module, statement.`import`.path)
-  Out.string(module, "#include <" & path & ">\n", output.Target.definition)
+  let S = ast.statement(id).`import`
+  let path = ast.source(module, S.path)
+  let is_global = S.global.get(true)
+  if is_global:
+    Out.string(module, "#include <" & path & ">\n", output.Target.definition)
+  else:
+    Out.string(module, "#include \"" & path & "\"\n", output.Target.definition)
 
 func statement_passthrough (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let S = ast.statement(id).passthrough

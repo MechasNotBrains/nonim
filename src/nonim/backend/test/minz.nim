@@ -13,6 +13,7 @@ import minitest
 from ../../../nonim import nil
 import ../../nimc/Untyped
 import ../../ast as astTF
+import ../../backend/preprocess
 
 
 const cases_dir = currentSourcePath().parentDir()/"cases"
@@ -29,6 +30,12 @@ proc case_input (name :string) :string=
   let zig_path = cases_dir/name/"input.untyped_zig.nim"
   if fileExists(zig_path): return readFile(zig_path)
   readFile(cases_dir/name/"input.nim")
+
+proc generate_zig_file (name :string) :string=
+  let input_path = cases_dir/name/"input.nim"
+  let source = preprocess.processIncludes(readFile(input_path), input_path)
+  let output = nonim.codegen.zig(untyped_ast(source))
+  return output.modules[0].definitions
 
 proc case_expected (name :string) :string=
   let untyped_path = cases_dir/name/"expected.untyped.zig"
@@ -153,3 +160,12 @@ describe "nonim.minz | Comments":
   it "must generate a doc comment", proc() =
     let result = generate_zig(case_input("statement_comment"))
     result.eq case_expected("statement_comment")
+
+describe "nonim.minz | Includes":
+  it "must inline extensionless include via preprocessor", proc() =
+    let result = generate_zig_file("include_recursive")
+    result.eq case_expected("include_recursive")
+
+  it "must inline nested recursive includes", proc() =
+    let result = generate_zig_file("include_nested")
+    result.eq case_expected("include_nested")

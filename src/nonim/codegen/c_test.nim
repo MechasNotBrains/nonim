@@ -17,6 +17,7 @@ import ./test/statement_keyword
 import ./test/procedure_body
 import ./test/statement_passthrough
 import ./test/statement_comment
+import ./test/statement_import
 import ./test/format_whitespace
 
 const expected_dir = "./expected/c/"
@@ -112,6 +113,19 @@ describe "nonim.codegen.c | Statement.Comment":
   it "must generate a multi-line doc comment", proc() =
     const Expected = expected("statement_comment_multiline.c")
     let test_case = statement_comment.multiline_from("##")
+    let result = test_case.ast.C()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.c | Statement.Include":
+  it "must generate a global include with angle brackets", proc() =
+    const Expected = expected("include_global.c")
+    let test_case = statement_import.include_global()
+    let result = test_case.ast.C()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate a local include with quotes", proc() =
+    const Expected = expected("include_local.c")
+    let test_case = statement_import.include_local()
     let result = test_case.ast.C()
     result.modules[0].definitions.eq Expected
 

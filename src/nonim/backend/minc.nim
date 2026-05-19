@@ -11,10 +11,11 @@ import ../nimc/Untyped
 import ../ast/convert
 import ../codegen/C
 import ../codegen/output
+import ./preprocess
 
 
 proc generate *(options :Options) :Output=
-  let source    = readFile(options.input)
+  let source    = preprocess.processIncludes(readFile(options.input), options.input)
   let root      = Untyped.compile(source, options.input)
   let converted = root.convert(Language.C, typed=false, options.input)
   return converted.C()

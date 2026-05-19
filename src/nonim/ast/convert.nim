@@ -416,21 +416,65 @@ proc statement_comment (state :var State; node :PNode) =
   state.statement_chain(statement_id)
 
 
+proc include_path (node :PNode) :string=
+  case node.kind
+  of nkIdent:    node.ident.s
+  of nkSym:      node.sym.name.s
+  of nkDotExpr:  node[0].include_path() & "." & node[1].include_path()
+  of nkInfix:    node[1].include_path() & "/" & node[2].include_path()
+  of nkPrefix:   node[1].include_path()
+  of nkStrLit..nkTripleStrLit: node.strVal
+  else:          ""
+
+proc include_is_global (node :PNode) :bool=
+  case node.kind
+  of nkPrefix:  node[0].name() == "@"
+  of nkDotExpr: node[0].include_is_global()
+  of nkInfix:   node[1].include_is_global()
+  else:         false
+
+proc include_has_ext (node :PNode) :bool=
+  case node.kind
+  of nkDotExpr: true
+  of nkInfix:   node[2].include_has_ext()
+  else:         false
+
 proc statement_import (state :var State; node :PNode) =
+  let keyword_text = case node.kind
+    of nkImportStmt:       "import"
+    of nkFromStmt:         "from"
+    of nkImportExceptStmt: "import"
+    of nkIncludeStmt:      "include"
+    else:                  "import"
+  let keyword_loc = state.name_add(keyword_text)
+  let keyword = astTF.Identifier(location: keyword_loc, synthetic: some(true))
+  let is_include = node.kind == nkIncludeStmt
   for child in node:
-    let module_name = case child.kind
-      of nkIdent:  child.ident.s
-      of nkSym:    child.sym.name.s
-      of nkInfix:  child[1].name() & "/" & child[2].name()
-      of nkPrefix: child[0].name() & child[1].name()
-      of nkStrLit..nkTripleStrLit: child.strVal
-      else:        ""
+    var module_name :string
+    var is_global = false
+    if is_include and (child.kind in {nkDotExpr, nkInfix, nkPrefix}):
+      module_name = child.include_path()
+      is_global = child.include_is_global()
+      if not is_global and not child.include_has_ext():
+        module_name = ""
+    else:
+      module_name = case child.kind
+        of nkIdent:  child.ident.s
+        of nkSym:    child.sym.name.s
+        of nkInfix:  child[1].name() & "/" & child[2].name()
+        of nkPrefix: child[0].name() & child[1].name()
+        of nkStrLit..nkTripleStrLit: child.strVal
+        else:        ""
     if module_name.len == 0: continue
     let name_loc = state.name_add(module_name)
+    var global_opt = none(bool)
+    if is_include: global_opt = some(is_global)
     let statement = astTF.Statement(
       kind: astTF.sImport,
       `import`: astTF.StatementImport(
+        keyword: some(keyword),
         path: name_loc,
+        global: global_opt,
       ),
     )
     let statement_id = state.ast.add_statement(statement)
@@ -856,7 +900,7 @@ proc statement_top_level (state :var State; node :PNode) =
     state.statement_variable(node)
   of nkCommentStmt:
     state.statement_comment(node)
-  of nkImportStmt, nkFromStmt, nkImportExceptStmt:
+  of nkImportStmt, nkFromStmt, nkImportExceptStmt, nkIncludeStmt:
     state.statement_import(node)
   of nkTypeDef:
     state.statement_type(node)

@@ -103,8 +103,12 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Literal: nil | `nil` | `NULL` | `null` | [x] |
 | Statement: passthrough | `{.emit: "....".}` | `....` | `....` | [x] |
 | Statement: comment | `# comment` / `## doc` | `// comment` | `// comment` | [x] |
-| Statement: import | `import os` | `#include <os.h>` | `const os = @import("os");` | [ ] |
 | Format: whitespace | ? | ? | ? | [x] |
+| Import: nim | `import std/os` / `include path/to/file` | — | — | [x] |
+| Import: minc | `include @stdint.h` / `include path/file.h` / `include module` | `#include <>`/`#include ""`/recursive preprocess | — | [x] |
+| Import: minz | `import name` / `include module` (recursive preprocess) / `include @file` and `include path/file.zig` (post-process) | — | `const name = @import("name")` / recursive preprocess (done) / post-process pass on output (TBD, see `doc/minz.md`) | [ ] |
+| Import: cleanc | — | `#include <os.h>` | — | [ ] |
+| Import: zig | `import os` | — | `const os = @import("os");` | [ ] |
 
 ### Phase 2: Branches & Pragmas
 
@@ -191,3 +195,4 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Feature | Description | Status |
 |---|---|---|
 | C23 stdlib configuration | Conditionally use C23 keywords (`bool`, `true`, `false`, `nullptr`) instead of `<stdbool.h>` / `NULL`, based on user configuration for the cleanc backend | [ ] |
+
