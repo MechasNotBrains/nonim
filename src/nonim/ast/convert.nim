@@ -253,6 +253,19 @@ proc expression_identifier (state :var State; name :string) :astTF.Id=
     identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
   ))
 
+proc expression_dot (state :var State; node :PNode) :astTF.Id=
+  let left_id = state.expression(node[0])
+  let right_id = state.expression(node[1])
+  let operator_loc = state.name_add(".")
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eAffix,
+    affix: astTF.ExpressionAffix(
+      left: some(left_id),
+      right: some(right_id),
+      operator: operator_loc,
+    ),
+  ))
+
 proc expression_infix (state :var State; node :PNode) :astTF.Id=
   let operator_node = node[0]
   let left_node = node[1]
@@ -351,6 +364,7 @@ proc expression (state :var State; node :PNode) :astTF.Id=
     else:
       state.expression_identifier(node)
   of SomeIdent, nkPostfix:         state.expression_identifier(node)
+  of nkDotExpr:                    state.expression_dot(node)
   of nkInfix:                      state.expression_infix(node)
   of nkPrefix:                     state.expression_prefix(node)
   of nkCall, nkCommand:            state.expression_call(node)
