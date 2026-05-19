@@ -683,21 +683,19 @@ func statement_type *(
   of astTF.tObject      : ast.type_object(module, T.id, target, Out, isBlock)
   else                  : raise newException(Defect, "unreachable")
 
-func statement_keyword *(
+func expression_keyword *(
     ast     : astTF.Ast;
     module  : astTF.Id;
     id      : astTF.Id;
     target  : output.Target;
     Out     : var Output;
   ) :void=
-  let S = ast.statement(id).keyword
-  let depth = ast.node_depth(S.depth)
-  let keyword = ast.source(module, S.keyword.location, S.keyword.synthetic.get(false))
-  for indentation_level in 0 ..< depth: Out.string(module, indentation, target)
+  let E = ast.data.expressions.get[id]
+  let keyword = ast.source(module, E.keyword.keyword.location, E.keyword.keyword.synthetic.get(false))
   Out.string(module, keyword, target)
-  if S.value.isSome:
+  if E.keyword.value.isSome:
     Out.string(module, " ", target)
-    ast.expression(module, S.value.get, target, Out)
+    ast.expression(module, E.keyword.value.get, target, Out)
 
 func statement_list *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; mode :BlockMode= defaultBlockMode()) :void
 
@@ -891,7 +889,6 @@ func statement *(
   of astTF.sComment     : ast.statement_comment(module, id, target, Out)
   of astTF.sImport      : ast.statement_import(module, id, target, Out)
   of astTF.sAlias       : ast.statement_alias(module, id, target, Out, isBlock = false)
-  of astTF.sKeyword     : ast.statement_keyword(module, id, target, Out)
   of astTF.sExpression  :
     ast.statement_expression(module, id, target, Out, mode)
     return

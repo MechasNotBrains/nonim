@@ -270,22 +270,19 @@ func statement_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :v
     Out.string(module, ");\n", output.Target.definition)
 
 
-func statement_keyword (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
-  let statement = ast.data.statements.get[id]
-  let depth = ast.node_depth(statement.keyword.depth)
-  let keyword = ast.source(module, statement.keyword.keyword.location)
-  for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+func expression_keyword (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
+  let keyword = ast.source(module, expr.keyword.keyword.location)
   if keyword == "discard":
     Out.string(module, "(void)(", output.Target.definition)
-    if statement.keyword.value.isSome:
-      ast.expression(module, statement.keyword.value.get, Out)
-    Out.string(module, ");\n", output.Target.definition)
+    if expr.keyword.value.isSome:
+      ast.expression(module, expr.keyword.value.get, Out)
+    Out.string(module, ")", output.Target.definition)
   else:
     Out.string(module, keyword, output.Target.definition)
-    if statement.keyword.value.isSome:
+    if expr.keyword.value.isSome:
       Out.string(module, " ", output.Target.definition)
-      ast.expression(module, statement.keyword.value.get, Out)
-    Out.string(module, ";\n", output.Target.definition)
+      ast.expression(module, expr.keyword.value.get, Out)
 
 
 func statement_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
@@ -357,7 +354,6 @@ func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output)
   case statement.kind
   of astTF.sVariable:    ast.statement_variable(module, id, Out)
   of astTF.sProcedure:   ast.statement_procedure(module, id, Out)
-  of astTF.sKeyword:     ast.statement_keyword(module, id, Out)
   of astTF.sType:        ast.statement_type(module, id, Out)
   of astTF.sBranch:      ast.statement_branch(module, id, Out)
   of astTF.sExpression:  ast.statement_expression(module, id, Out)
@@ -400,7 +396,6 @@ func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
       of astTF.sImport:      statement.`import`.next
       of astTF.sType:        statement.`type`.next
       of astTF.sAlias:       statement.alias.next
-      of astTF.sKeyword:     statement.keyword.next
       of astTF.sExpression:  statement.expression.next
       of astTF.sBranch:      none(astTF.Id)
       else:                  none(astTF.Id)

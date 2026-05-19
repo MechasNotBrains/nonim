@@ -46,6 +46,7 @@ proc fromJsonNode (jsonNode :JsonNode; T :typedesc[astTF.Expression]) :astTF.Exp
     of "loop":        return astTF.Expression(kind: astTF.eLoop,        loop:        value.to(astTF.ExpressionLoop))
     of "group":       return astTF.Expression(kind: astTF.eGroup,       group:       value.to(astTF.ExpressionGroup))
     of "type":        return astTF.Expression(kind: astTF.eType,        `type`:      value.to(astTF.ExpressionType))
+    of "keyword":     return astTF.Expression(kind: astTF.eKeyword,     keyword:     value.to(astTF.ExpressionKeyword))
     else: discard
   raise newException(ValueError, "unknown expression variant: " & $jsonNode)
 
@@ -53,7 +54,6 @@ proc fromJsonNode (jsonNode :JsonNode; T :typedesc[astTF.Statement]) :astTF.Stat
   for key, value in jsonNode.pairs:
     case key
     of "expression":  return astTF.Statement(kind: astTF.sExpression,  expression:  value.to(astTF.StatementExpression))
-    of "keyword":     return astTF.Statement(kind: astTF.sKeyword,     keyword:     value.to(astTF.StatementKeyword))
     of "variable":    return astTF.Statement(kind: astTF.sVariable,    variable:    value.to(astTF.StatementVariable))
     of "procedure":   return astTF.Statement(kind: astTF.sProcedure,   procedure:   value.to(astTF.StatementProcedure))
     of "comment":     return astTF.Statement(kind: astTF.sComment,     comment:     value.to(astTF.StatementComment))

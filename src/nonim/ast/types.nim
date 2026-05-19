@@ -23,6 +23,8 @@ export astTF.ExpressionLiteral
 export astTF.ExpressionIdentifier
 export astTF.ExpressionKind
 export astTF.ExpressionType
+export astTF.ExpressionKeyword
+export astTF.ExpressionObject
 export astTF.Expression
 export astTF.Binding
 export astTF.Procedure
@@ -36,7 +38,6 @@ export astTF.Procedure
 export astTF.StatementPragma
 export astTF.StatementVariable
 export astTF.StatementProcedure
-export astTF.StatementKeyword
 export astTF.StatementType
 export astTF.StatementImport
 export astTF.StatementPassthrough

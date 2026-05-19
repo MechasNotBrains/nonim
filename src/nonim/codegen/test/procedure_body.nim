@@ -19,12 +19,18 @@ proc return_literal *(input_type :static string = "int") :TestData=
   let type_id = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: type_loc))))
   let type_expr = result.ast.add_expression_type(type_id)
   let value_id = result.ast.add_expression(astTF.Expression(kind: astTF.eLiteral, literal: astTF.ExpressionLiteral(kind: astTF.LiteralKind.integer, value: value_loc)))
-  let depth_id = result.ast.add_depth(astTF.Depth(indent: some(1'u64)))
-  let body_id = result.ast.add_statement(astTF.Statement(
-    kind: astTF.sKeyword,
-    keyword: astTF.StatementKeyword(
+  let keyword_id = result.ast.add_expression(astTF.Expression(
+    kind: astTF.eKeyword,
+    keyword: astTF.ExpressionKeyword(
       keyword: astTF.Identifier(location: keyw_loc),
       value: some(value_id),
+    ),
+  ))
+  let depth_id = result.ast.add_depth(astTF.Depth(indent: some(1'u64)))
+  let body_id = result.ast.add_statement(astTF.Statement(
+    kind: astTF.sExpression,
+    expression: astTF.StatementExpression(
+      id: keyword_id,
       depth: some(depth_id),
     ),
   ))
@@ -67,12 +73,18 @@ proc return_affix *(input_type :static string = "int") :TestData=
     operator: op_loc,
     right: some(right_id),
   )))
-  let depth_id = result.ast.add_depth(astTF.Depth(indent: some(1'u64)))
-  let body_id = result.ast.add_statement(astTF.Statement(
-    kind: astTF.sKeyword,
-    keyword: astTF.StatementKeyword(
+  let keyword_id = result.ast.add_expression(astTF.Expression(
+    kind: astTF.eKeyword,
+    keyword: astTF.ExpressionKeyword(
       keyword: astTF.Identifier(location: keyw_loc),
       value: some(affix_id),
+    ),
+  ))
+  let depth_id = result.ast.add_depth(astTF.Depth(indent: some(1'u64)))
+  let body_id = result.ast.add_statement(astTF.Statement(
+    kind: astTF.sExpression,
+    expression: astTF.StatementExpression(
+      id: keyword_id,
       depth: some(depth_id),
     ),
   ))

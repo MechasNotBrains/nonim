@@ -33,6 +33,7 @@ func expression_next *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=
     of astTF.eConditional: E.conditional.next
     of astTF.eLoop:        E.loop.next
     of astTF.eType:        E.`type`.next
+    of astTF.eKeyword:     E.keyword.next
 
 func statement_next *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=
   let S = atf.data.statements.get[id]
@@ -46,7 +47,6 @@ func statement_next *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=
     of astTF.sPassthrough: S.passthrough.next
     of astTF.sPragma:      S.pragma.next
     of astTF.sExpression:  S.expression.next
-    of astTF.sKeyword:     S.keyword.next
     of astTF.sBranch:      S.branch.next
 
 func source *(

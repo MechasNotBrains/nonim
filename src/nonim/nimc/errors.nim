@@ -15,6 +15,8 @@ type NimcError * = object of CatchableError
 #_____________________________
 var errorStr :string
 proc errorAST *(conf :ConfigRef; info :TLineInfo; msg :TMsgKind; arg :string)=
+  if msg == errGenerated and arg == "expected 'except'": return
+  if msg == errGenerated and arg == "expression expected, but found '.'": return
   if errorStr.len == 0 and msg <= errMax:
     errorStr = formatMsg(conf, info, msg, arg)
     debugEcho errorStr

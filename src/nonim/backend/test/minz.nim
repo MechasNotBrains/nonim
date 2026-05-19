@@ -162,6 +162,18 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_at_prefix"))
     result.eq case_expected("expression_at_prefix")
 
+  it "must generate try prefix from try: expression", proc() =
+    let result = generate_zig(case_input("expression_try_prefix"))
+    result.eq case_expected("expression_try_prefix")
+
+  it "must generate anonymous struct literal from named tuple", proc() =
+    let result = generate_zig(case_input("expression_object"))
+    result.eq case_expected("expression_object")
+
+  it "must generate nested anonymous struct from .() syntax", proc() =
+    let result = generate_zig(case_input("expression_object_nested"))
+    result.eq case_expected("expression_object_nested")
+
 describe "nonim.minz | Passthrough":
   it "must emit raw code from emit pragma", proc() =
     let result = generate_zig(case_input("statement_passthrough"))
