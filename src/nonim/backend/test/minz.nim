@@ -168,6 +168,10 @@ describe "nonim.minz | Comments":
     let result = generate_zig(case_input("statement_comment"))
     result.eq case_expected("statement_comment")
 
+  it "must generate a module doc comment from ##!", proc() =
+    let result = generate_zig(case_input("statement_comment_module"))
+    result.eq case_expected("statement_comment_module")
+
 describe "nonim.minz | Includes":
   it "must inline a global include from a .zig file", proc() =
     let result = generate_zig_file("include_global")

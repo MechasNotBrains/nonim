@@ -336,12 +336,14 @@ func statement_comment (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var
   let S = ast.statement(id).comment
   let C = ast.comment(S.id)
   let kind_text = ast.source(module, C.kind.location, C.kind.synthetic.get(false))
-  let prefix = if kind_text == "##" or kind_text == "///" or kind_text == "/**": "/// "
-               else: "// "
+  let is_doc = kind_text == "##" or kind_text == "///" or kind_text == "/**"
   let text = ast.source(module, C.text, false)
   var first = true
   for line in text.split("\n"):
     if not first: Out.string(module, "\n", output.Target.definition)
+    let prefix = if is_doc and line.len > 0 and line[0] == '!': "//"
+                 elif is_doc: "/// "
+                 else: "// "
     Out.string(module, prefix & line, output.Target.definition)
     first = false
   Out.string(module, "\n", output.Target.definition)
