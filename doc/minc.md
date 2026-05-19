@@ -38,3 +38,10 @@ Implementation (`backend/preprocess.nim`):
 - A `HashSet[string]` of already-included absolute paths prevents infinite recursion
 - The final flattened source string is passed to the Nim parser — include lines are consumed and never reach the converter
 
+
+### 4. Dot access: `std.thing.other()` → `std_thing_other()`
+C has no module-scoped member access like Zig or Nim.
+In the untyped minc backend, dot-access chains must be flattened by the converter
+into a single identifier with `.` replaced by `_`.
+This is a converter-level transformation (not codegen), applied when `target == Language.C` and `typed == false`.
+
