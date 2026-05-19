@@ -16,6 +16,8 @@ import ./test/statement_variable
 import ./test/statement_keyword
 import ./test/procedure_body
 import ./test/statement_passthrough
+import ./test/statement_comment
+import ./test/format_whitespace
 
 const expected_dir = "./expected/c/"
 template expected (path :static system.string) :system.string= staticRead(expected_dir & path)
@@ -91,5 +93,37 @@ describe "nonim.codegen.c | Statement.Passthrough":
   it "must generate a passthrough statement", proc() =
     const Expected = expected("statement_passthrough.c")
     let test_case = statement_passthrough.simple()
+    let result = test_case.ast.C()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.c | Statement.Comment":
+  it "must generate a regular comment", proc() =
+    const Expected = expected("statement_comment.c")
+    let test_case = statement_comment.line_from("#")
+    let result = test_case.ast.C()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate a doc comment", proc() =
+    const Expected = expected("statement_comment_doc.c")
+    let test_case = statement_comment.doc_from("##")
+    let result = test_case.ast.C()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate a multi-line doc comment", proc() =
+    const Expected = expected("statement_comment_multiline.c")
+    let test_case = statement_comment.multiline_from("##")
+    let result = test_case.ast.C()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.c | Format.Whitespace":
+  it "must normalize whitespace between two procs", proc() =
+    const Expected = expected("format_two_procs.c")
+    let test_case = format_whitespace.two_procs()
+    let result = test_case.ast.C()
+    result.modules[0].definitions.eq Expected
+
+  it "must normalize whitespace between var and proc", proc() =
+    const Expected = expected("format_var_then_proc.c")
+    let test_case = format_whitespace.var_then_proc()
     let result = test_case.ast.C()
     result.modules[0].definitions.eq Expected

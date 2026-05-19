@@ -83,6 +83,12 @@ type Vec2 = object
 # [x] Statement: passthrough (emit pragma)
 {.emit: "raw code here".}
 
+# [x] Statement: comment
+# this is a regular comment
+## this is a doc comment
+
+# [x] Format: whitespace (normalized output spacing)
+
 # [ ] Type: enum
 type Direction = enum
   north

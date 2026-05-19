@@ -151,3 +151,8 @@ describe "nonim.cleanc.c | Passthrough":
     let result = generate(case_input("statement_passthrough"))
     result.eq case_expected("statement_passthrough")
 
+describe "nonim.cleanc.c | Comments":
+  it "must generate a doc comment", proc() =
+    let result = generate(case_input("statement_comment"))
+    result.eq case_expected("statement_comment")
+

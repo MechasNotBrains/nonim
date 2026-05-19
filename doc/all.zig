@@ -98,6 +98,12 @@ const Vec2 = struct {
 // [x] Statement: passthrough (from emit pragma)
 raw code here
 
+// [x] Statement: comment
+// this is a regular comment
+/// this is a doc comment
+
+// [x] Format: whitespace (normalized output spacing)
+
 // [ ] Type: enum
 const Direction = enum {
     north,

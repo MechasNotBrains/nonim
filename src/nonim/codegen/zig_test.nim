@@ -16,6 +16,8 @@ import ./test/statement_variable
 import ./test/statement_keyword
 import ./test/procedure_body
 import ./test/statement_passthrough
+import ./test/statement_comment
+import ./test/format_whitespace
 
 const expected_dir = "./expected/zig/"
 template expected (path :static system.string) :system.string= staticRead(expected_dir & path)
@@ -91,5 +93,37 @@ describe "nonim.codegen.zig | Statement.Passthrough":
   it "must generate a passthrough statement", proc() =
     const Expected = expected("statement_passthrough.zig")
     let test_case = statement_passthrough.simple()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.zig | Statement.Comment":
+  it "must generate a regular comment", proc() =
+    const Expected = expected("statement_comment.zig")
+    let test_case = statement_comment.line_from("#")
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate a doc comment", proc() =
+    const Expected = expected("statement_comment_doc.zig")
+    let test_case = statement_comment.doc_from("##")
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate a multi-line doc comment", proc() =
+    const Expected = expected("statement_comment_multiline.zig")
+    let test_case = statement_comment.multiline_from("##")
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.zig | Format.Whitespace":
+  it "must normalize whitespace between two procs", proc() =
+    const Expected = expected("format_two_procs.zig")
+    let test_case = format_whitespace.two_procs()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+  it "must normalize whitespace between var and proc", proc() =
+    const Expected = expected("format_var_then_proc.zig")
+    let test_case = format_whitespace.var_then_proc()
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected

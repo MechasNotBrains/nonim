@@ -146,3 +146,8 @@ describe "nonim.minc | Passthrough":
   it "must emit raw code from emit pragma", proc() =
     let result = generate_c(case_input("statement_passthrough"))
     result.eq case_expected("statement_passthrough")
+
+describe "nonim.minc | Comments":
+  it "must generate a doc comment", proc() =
+    let result = generate_c(case_input("statement_comment"))
+    result.eq case_expected("statement_comment")

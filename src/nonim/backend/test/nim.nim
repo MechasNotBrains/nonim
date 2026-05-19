@@ -146,3 +146,8 @@ describe "nonim.nim | Passthrough":
   it "must emit raw code wrapped in emit pragma", proc() =
     let result = generate_nim(case_input("statement_passthrough"))
     result.eq case_expected("statement_passthrough")
+
+describe "nonim.nim | Comments":
+  it "must generate a doc comment", proc() =
+    let result = generate_nim(case_input("statement_comment"))
+    result.eq case_expected("statement_comment")

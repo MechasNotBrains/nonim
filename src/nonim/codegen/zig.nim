@@ -2,6 +2,7 @@
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
 from std/options import some, none, isSome, isNone, get, Option
+from std/strutils import split
 import ../ast as astTF
 import ./output
 import ./base
@@ -316,6 +317,20 @@ func statement_passthrough (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out 
   let S = ast.statement(id).passthrough
   Out.string(module, ast.source(module, S.location, false) & "\n", output.Target.definition)
 
+func statement_comment (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let S = ast.statement(id).comment
+  let C = ast.comment(S.id)
+  let kind_text = ast.source(module, C.kind.location, C.kind.synthetic.get(false))
+  let prefix = if kind_text == "##" or kind_text == "///" or kind_text == "/**": "/// "
+               else: "// "
+  let text = ast.source(module, C.text, false)
+  var first = true
+  for line in text.split("\n"):
+    if not first: Out.string(module, "\n", output.Target.definition)
+    Out.string(module, prefix & line, output.Target.definition)
+    first = false
+  Out.string(module, "\n", output.Target.definition)
+
 func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let statement = ast.data.statements.get[id]
   case statement.kind
@@ -326,6 +341,7 @@ func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output)
   of astTF.sBranch:      ast.statement_branch(module, id, Out)
   of astTF.sExpression:  ast.statement_expression(module, id, Out)
   of astTF.sPassthrough: ast.statement_passthrough(module, id, Out)
+  of astTF.sComment:     ast.statement_comment(module, id, Out)
   else:                  assert false, "codegen.zig: unsupported statement kind: " & $statement.kind
 
 

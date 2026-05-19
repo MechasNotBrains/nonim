@@ -402,7 +402,7 @@ proc statement_top_level (state :var State; node :PNode)
 proc statement_comment (state :var State; node :PNode) =
   let text = node.comment()
   let text_loc = state.name_add(text)
-  let kind_loc = state.name_add("#")
+  let kind_loc = state.name_add("##")
   let comment_data = astTF.Comment(
     kind: astTF.Identifier(location: kind_loc),
     text: text_loc,

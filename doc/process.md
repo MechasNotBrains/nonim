@@ -102,9 +102,9 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Literal: bool | `true` / `false` | `true` / `false` | `true` / `false` | [x] |
 | Literal: nil | `nil` | `NULL` | `null` | [x] |
 | Statement: passthrough | `{.emit: "....".}` | `....` | `....` | [x] |
-| Statement: comment | `# comment` / `## doc` | `// comment` | `// comment` | [ ] |
+| Statement: comment | `# comment` / `## doc` | `// comment` | `// comment` | [x] |
 | Statement: import | `import os` | `#include <os.h>` | `const os = @import("os");` | [ ] |
-| Format: whitespace | ? | ? | ? | [ ] |
+| Format: whitespace | ? | ? | ? | [x] |
 
 ### Phase 2: Branches & Pragmas
 

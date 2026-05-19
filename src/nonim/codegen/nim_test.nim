@@ -25,6 +25,7 @@ import ./test/statement_comment
 import ./test/statement_type
 import ./test/statement_list
 import ./test/procedure_body
+import ./test/format_whitespace
 
 
 const expected_dir = "./expected/nim/"
@@ -563,6 +564,19 @@ describe "nonim.codegen.nim | Procedure.Body":
   it "must generate a procedure body with return affix expression", proc() =
     const Expected = expected("procedure_body_return_affix.nim")
     let test_case = procedure_body.return_affix()
+    let result = test_case.ast.nim()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.nim | Format.Whitespace":
+  it "must normalize whitespace between two procs", proc() =
+    const Expected = expected("format_two_procs.nim")
+    let test_case = format_whitespace.two_procs()
+    let result = test_case.ast.nim()
+    result.modules[0].definitions.eq Expected
+
+  it "must normalize whitespace between var and proc", proc() =
+    const Expected = expected("format_var_then_proc.nim")
+    let test_case = format_whitespace.var_then_proc()
     let result = test_case.ast.nim()
     result.modules[0].definitions.eq Expected
 

@@ -1,0 +1,2 @@
+proc foo *()
+proc bar *()
