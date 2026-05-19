@@ -141,3 +141,8 @@ describe "nonim.minc | Expressions":
   it "must translate Nim operators to C operators", proc() =
     let result = generate_c(case_input("expression_operator"))
     result.eq case_expected("expression_operator")
+
+describe "nonim.minc | Passthrough":
+  it "must emit raw code from emit pragma", proc() =
+    let result = generate_c(case_input("statement_passthrough"))
+    result.eq case_expected("statement_passthrough")

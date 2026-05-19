@@ -15,6 +15,7 @@ import ./test/expression_call
 import ./test/statement_variable
 import ./test/statement_keyword
 import ./test/procedure_body
+import ./test/statement_passthrough
 
 const expected_dir = "./expected/c/"
 template expected (path :static system.string) :system.string= staticRead(expected_dir & path)
@@ -83,5 +84,12 @@ describe "nonim.codegen.c | Procedure.Body":
   it "must generate a procedure body with return affix expression", proc() =
     const Expected = expected("procedure_body_return_affix.c")
     let test_case = procedure_body.return_affix()
+    let result = test_case.ast.C()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.c | Statement.Passthrough":
+  it "must generate a passthrough statement", proc() =
+    const Expected = expected("statement_passthrough.c")
+    let test_case = statement_passthrough.simple()
     let result = test_case.ast.C()
     result.modules[0].definitions.eq Expected

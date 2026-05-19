@@ -15,6 +15,7 @@ import ./test/expression_call
 import ./test/statement_variable
 import ./test/statement_keyword
 import ./test/procedure_body
+import ./test/statement_passthrough
 
 const expected_dir = "./expected/zig/"
 template expected (path :static system.string) :system.string= staticRead(expected_dir & path)
@@ -83,5 +84,12 @@ describe "nonim.codegen.zig | Procedure.Body":
   it "must generate a procedure body with return affix expression", proc() =
     const Expected = expected("procedure_body_return_affix.zig")
     let test_case = procedure_body.return_affix("isize")
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.zig | Statement.Passthrough":
+  it "must generate a passthrough statement", proc() =
+    const Expected = expected("statement_passthrough.zig")
+    let test_case = statement_passthrough.simple()
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected

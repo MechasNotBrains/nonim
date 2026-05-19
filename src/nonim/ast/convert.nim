@@ -826,6 +826,27 @@ proc statement_type (state :var State; node :PNode) =
     state.statement_chain(statement_id)
 
 
+proc statement_passthrough (state :var State; node :PNode) =
+  if node.kind != nkPragma or node.safeLen < 1: return
+  let child = node[0]
+  if child.kind != nkExprColonExpr or child.safeLen < 2: return
+  let pragma_name = child[0].name()
+  if pragma_name != "emit": return
+  var value_node = child[1]
+  if value_node.kind == nkArgList and value_node.safeLen > 0:
+    value_node = value_node[0]
+  let text = case value_node.kind
+    of nkStrLit..nkTripleStrLit: value_node.strVal
+    else: return
+  let text_loc = state.name_add(text)
+  let statement = astTF.Statement(
+    kind: astTF.sPassthrough,
+    passthrough: astTF.StatementPassthrough(location: text_loc),
+  )
+  let statement_id = state.ast.add_statement(statement)
+  state.statement_chain(statement_id)
+
+
 proc statement_top_level (state :var State; node :PNode) =
   if node == nil: return
   case node.kind
@@ -843,6 +864,8 @@ proc statement_top_level (state :var State; node :PNode) =
     for child in node:
       if child.kind == nkTypeDef:
         state.statement_type(child)
+  of nkPragma:
+    state.statement_passthrough(node)
   of nkStmtList:
     for child in node:
       state.statement_top_level(child)

@@ -141,3 +141,8 @@ describe "nonim.nim | Expressions":
   it "must translate Nim operators", proc() =
     let result = generate_nim(case_input("expression_operator"))
     result.eq case_expected("expression_operator")
+
+describe "nonim.nim | Passthrough":
+  it "must emit raw code wrapped in emit pragma", proc() =
+    let result = generate_nim(case_input("statement_passthrough"))
+    result.eq case_expected("statement_passthrough")

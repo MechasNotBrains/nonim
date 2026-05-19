@@ -95,6 +95,9 @@ typedef struct {
   float y;
 } Vec2;
 
+// [x] Statement: passthrough (from emit pragma)
+raw code here
+
 // [ ] Type: enum
 typedef enum {
   north,

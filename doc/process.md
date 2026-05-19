@@ -88,7 +88,7 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Statement: keyword continue | `continue` | `continue;` | `continue;` | [x] |
 | Type: primitive | `int` / `float32` | `int64_t` / `float` | `isize` / `f32` | [x] |
 | Type: array | `array[10, int]` | `int64_t[10]` | `[10]isize` | [x] |
-| Type: cstring | `cstring` | `char const*` | `[:0]const u8` | [ ] |
+| Type: cstring | `cstring` | `char const*` | `[:0]const u8` | [x] |
 
 ### Phase 1: Practical Programs
 
@@ -101,7 +101,7 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Literal: char | `'a'` | `'a'` | `'a'` | [x] |
 | Literal: bool | `true` / `false` | `true` / `false` | `true` / `false` | [x] |
 | Literal: nil | `nil` | `NULL` | `null` | [x] |
-| Statement: passthrough | `{.emit: "....".}` | `....` | `....` | [ ] |
+| Statement: passthrough | `{.emit: "....".}` | `....` | `....` | [x] |
 | Statement: comment | `# comment` / `## doc` | `// comment` | `// comment` | [ ] |
 | Statement: import | `import os` | `#include <os.h>` | `const os = @import("os");` | [ ] |
 | Format: whitespace | ? | ? | ? | [ ] |

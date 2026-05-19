@@ -80,6 +80,9 @@ type Vec2 = object
   x :float32
   y :float32
 
+# [x] Statement: passthrough (emit pragma)
+{.emit: "raw code here".}
+
 # [ ] Type: enum
 type Direction = enum
   north

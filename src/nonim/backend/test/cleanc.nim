@@ -146,3 +146,8 @@ describe "nonim.cleanc.c | Operators":
     let result = generate(case_input("expression_operator"))
     result.eq case_expected("expression_operator")
 
+describe "nonim.cleanc.c | Passthrough":
+  it "must emit raw code from emit pragma", proc() =
+    let result = generate(case_input("statement_passthrough"))
+    result.eq case_expected("statement_passthrough")
+

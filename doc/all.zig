@@ -95,6 +95,9 @@ const Vec2 = struct {
   y: f32,
 };
 
+// [x] Statement: passthrough (from emit pragma)
+raw code here
+
 // [ ] Type: enum
 const Direction = enum {
     north,

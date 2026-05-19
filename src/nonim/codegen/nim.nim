@@ -724,7 +724,8 @@ func statement_passthrough *(
     Out     : var Output;
   ) :void=
   let S = ast.statement(id).passthrough
-  Out.string(module, ast.source(module, S.location, false), target)
+  let text = ast.source(module, S.location, false)
+  Out.string(module, "{.emit: \"" & text & "\".}", target)
 #___________________
 func statement_comment *(
     ast     : astTF.Ast;

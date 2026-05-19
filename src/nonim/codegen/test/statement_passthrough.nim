@@ -7,7 +7,7 @@ import ./data
 
 
 proc simple *() :TestData=
-  const input_text = "# unsupported: __attribute__((packed))"
+  const input_text = "__some_thing   =   42;"
   const input_source = input_text & "567890Z"
   result = create(input_source)
   let text_loc = astTF.Location(start: 0, `end`: input_text.len)
