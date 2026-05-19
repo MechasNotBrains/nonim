@@ -23,6 +23,23 @@ proc simple *() :TestData=
   result.ast.data.modules[result.module].body = some(result.id)
 
 
+proc path_import *() :TestData=
+  const input_keyword = "import"
+  const input_path = "std/os"
+  const input_source = input_keyword & input_path & "567890Z"
+  result = create(input_source)
+  let keyw_loc = astTF.Location(start: 0, `end`: input_keyword.len)
+  let path_loc = astTF.Location(start: keyw_loc.`end`, `end`: keyw_loc.`end` + input_path.len)
+  result.id = result.ast.add_statement(astTF.Statement(
+    kind: astTF.sImport,
+    `import`: astTF.StatementImport(
+      keyword: some(astTF.Identifier(location: keyw_loc)),
+      path: path_loc,
+    ),
+  ))
+  result.ast.data.modules[result.module].body = some(result.id)
+
+
 proc from_symbols *() :TestData=
   const input_keyword = "from"
   const input_path = "foo"

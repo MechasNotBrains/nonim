@@ -15,6 +15,7 @@ import ./test/expression_call
 import ./test/statement_variable
 import ./test/statement_keyword
 import ./test/procedure_body
+import ./test/statement_import
 import ./test/statement_passthrough
 import ./test/statement_comment
 import ./test/format_whitespace
@@ -112,6 +113,19 @@ describe "nonim.codegen.zig | Statement.Comment":
   it "must generate a multi-line doc comment", proc() =
     const Expected = expected("statement_comment_multiline.zig")
     let test_case = statement_comment.multiline_from("##")
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.zig | Statement.Import":
+  it "must generate a zig import statement", proc() =
+    const Expected = expected("statement_import.zig")
+    let test_case = statement_import.simple()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+  it "must use last path segment as binding name", proc() =
+    const Expected = expected("statement_import_path.zig")
+    let test_case = statement_import.path_import()
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 

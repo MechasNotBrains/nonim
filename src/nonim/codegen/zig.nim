@@ -59,18 +59,26 @@ func translate_operator (operator :string) :string=
 func expression_affix (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
   let is_prefix = expression.affix.left.isNone
+  let op = translate_operator(ast.source(module, expression.affix.operator))
+  let spaced = op != "."
   if expression.affix.left.isSome:
     ast.expression(module, expression.affix.left.get, Out)
-    Out.string(module, " ", output.Target.definition)
-  Out.string(module, translate_operator(ast.source(module, expression.affix.operator)), output.Target.definition)
-  if not is_prefix: Out.string(module, " ", output.Target.definition)
+    if spaced: Out.string(module, " ", output.Target.definition)
+  Out.string(module, op, output.Target.definition)
+  if spaced and not is_prefix: Out.string(module, " ", output.Target.definition)
   if expression.affix.right.isSome:
     ast.expression(module, expression.affix.right.get, Out)
 
 func expression_call (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
-  ast.expression(module, expression.call.name, Out)
-  Out.string(module, "(", output.Target.definition)
+  let name_expr = ast.data.expressions.get[expression.call.name]
+  let is_tuple = name_expr.kind == astTF.eIdentifier and
+    ast.source(module, name_expr.identifier.name.location) == "."
+  let open  = if is_tuple: ".{" else: "("
+  let close = if is_tuple: "}"  else: ")"
+  if not is_tuple:
+    ast.expression(module, expression.call.name, Out)
+  Out.string(module, open, output.Target.definition)
   if expression.call.arguments.isSome:
     var current = some(expression.call.arguments.get)
     var first = true
@@ -82,7 +90,7 @@ func expression_call (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var O
       if binding.value.isSome:
         ast.expression(module, binding.value.get, Out)
       current = binding.next
-  Out.string(module, ")", output.Target.definition)
+  Out.string(module, close, output.Target.definition)
 
 func expression_indexed (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expr = ast.data.expressions.get[id]
@@ -313,6 +321,13 @@ func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :
     Out.string(module, ";\n", output.Target.definition)
 
 
+func statement_import (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let S = ast.statement(id).`import`
+  let path = ast.source(module, S.path)
+  let parts = path.split("/")
+  let name = parts[parts.len - 1]
+  Out.string(module, "const " & name & " = @import(\"" & path & "\");\n", output.Target.definition)
+
 func statement_passthrough (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let S = ast.statement(id).passthrough
   Out.string(module, ast.source(module, S.location, false) & "\n", output.Target.definition)
@@ -340,6 +355,7 @@ func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output)
   of astTF.sType:        ast.statement_type(module, id, Out)
   of astTF.sBranch:      ast.statement_branch(module, id, Out)
   of astTF.sExpression:  ast.statement_expression(module, id, Out)
+  of astTF.sImport:      ast.statement_import(module, id, Out)
   of astTF.sPassthrough: ast.statement_passthrough(module, id, Out)
   of astTF.sComment:     ast.statement_comment(module, id, Out)
   else:                  assert false, "codegen.zig: unsupported statement kind: " & $statement.kind
