@@ -14,6 +14,7 @@ from ../../../nonim import nil
 import ../../nimc/Untyped
 import ../../ast as astTF
 import ../../backend/preprocess
+import ../../backend/postprocess
 
 
 const cases_dir = currentSourcePath().parentDir()/"cases"
@@ -32,10 +33,12 @@ proc case_input (name :string) :string=
   readFile(cases_dir/name/"input.nim")
 
 proc generate_zig_file (name :string) :string=
-  let input_path = cases_dir/name/"input.nim"
+  let zig_input = cases_dir/name/"input.untyped_zig.nim"
+  let input_path = if fileExists(zig_input): zig_input
+                   else: cases_dir/name/"input.nim"
   let source = preprocess.processIncludes(readFile(input_path), input_path)
-  let output = nonim.codegen.zig(untyped_ast(source))
-  return output.modules[0].definitions
+  var definitions = nonim.codegen.zig(untyped_ast(source)).modules[0].definitions
+  return postprocess.processZigIncludes(definitions, input_path)
 
 proc case_expected (name :string) :string=
   let untyped_path = cases_dir/name/"expected.untyped.zig"
@@ -162,6 +165,14 @@ describe "nonim.minz | Comments":
     result.eq case_expected("statement_comment")
 
 describe "nonim.minz | Includes":
+  it "must inline a global include from a .zig file", proc() =
+    let result = generate_zig_file("include_global")
+    result.eq case_expected("include_global")
+
+  it "must inline a local include from a .zig file", proc() =
+    let result = generate_zig_file("include_local")
+    result.eq case_expected("include_local")
+
   it "must inline extensionless include via preprocessor", proc() =
     let result = generate_zig_file("include_recursive")
     result.eq case_expected("include_recursive")

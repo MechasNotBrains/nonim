@@ -11,30 +11,15 @@ It resolves extensionless `include` lines by recursively inlining the referenced
 before the Nim parser sees the code. Called by `backend/minz.nim` before `Untyped.compile`.
 
 
-### 2. Global include (`@`) and local include (with extension): NOT native to Zig
-**Status: not implemented.**
+### 2. Global include (`@`) and local include (`.zig` extension): NOT native to Zig
+**Status: implemented** (`backend/postprocess.nim`, run from `backend/minz.nim` after codegen).
 
 Zig has no native equivalent of C's `#include <...>` or `#include "..."`.
-The `@` prefix and extension-based include forms (`include @stdint.h`, `include path/to/file.h`)
-do not map to any Zig construct.
+Users must reference `.zig` files explicitly, e.g. `include @stdint.zig` or `include path/to/file.zig`.
+C-style `.h` paths are a minc concern only.
 
-**Plan:**
-These cases will fall through to the parser as `statement.passthrough`.
-The converter will not produce `StatementImport` nodes for them.
-Instead, they will be emitted as raw text.
-A **post-process pass** will then operate on the resulting Zig output code string
-to resolve these includes by copy/pasting the contents of the referenced `.zig` files directly into the output.
+These cases are emitted as passthrough `include …` lines by the converter,
+then resolved and inlined by the post-process pass (`backend/includes.nim` shared loop).
 
-This is fundamentally different from the minc approach:
-- **minc**: The converter distinguishes `@`/extension includes and the C codegen emits `#include <>`/`#include ""` directives.
-            The C compiler handles the actual file resolution.
-- **minz**: Since Zig has no include directives, nonim must resolve the files itself and physically inline the contents into the output string.
-            This happens as a post-processing step AFTER codegen, not before parsing.
-
-The post-process pass:
-1. Runs after `codegen/zig.nim` produces the output string
-2. Scans the output for passthrough lines that look like include directives
-3. Resolves the referenced `.zig` files relative to the output location
-4. Replaces the passthrough lines with the file contents
-5. May need recursion (included files can themselves contain includes)
-
+- **minc**: `@`/extension includes become `#include` directives; the C compiler resolves paths.
+- **minz**: nonim resolves `.zig` files relative to the input file and inlines their contents into the output.

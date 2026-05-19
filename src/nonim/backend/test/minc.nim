@@ -27,10 +27,18 @@ proc generate_c (source :string) :string=
   return output.modules[0].definitions
 
 proc case_input (name :string) :string=
+  let untyped_c = cases_dir/name/"input.untyped_c.nim"
+  if fileExists(untyped_c): return readFile(untyped_c)
+  let c_path = cases_dir/name/"input.c.nim"
+  if fileExists(c_path): return readFile(c_path)
   readFile(cases_dir/name/"input.nim")
 
 proc generate_c_file (name :string) :string=
-  let input_path = cases_dir/name/"input.nim"
+  let untyped_c = cases_dir/name/"input.untyped_c.nim"
+  let c_path = cases_dir/name/"input.c.nim"
+  let input_path = if fileExists(untyped_c): untyped_c
+                   elif fileExists(c_path): c_path
+                   else: cases_dir/name/"input.nim"
   let source = preprocess.processIncludes(readFile(input_path), input_path)
   let output = nonim.codegen.C(untyped_ast(source))
   return output.modules[0].definitions

@@ -422,7 +422,10 @@ proc include_path (node :PNode) :string=
   of nkSym:      node.sym.name.s
   of nkDotExpr:  node[0].include_path() & "." & node[1].include_path()
   of nkInfix:    node[1].include_path() & "/" & node[2].include_path()
-  of nkPrefix:   node[1].include_path()
+  of nkPrefix:
+    let pref = node[0].name()
+    if pref == "@": node[1].include_path()
+    else: pref & node[1].include_path()
   of nkStrLit..nkTripleStrLit: node.strVal
   else:          ""
 
@@ -437,6 +440,7 @@ proc include_has_ext (node :PNode) :bool=
   case node.kind
   of nkDotExpr: true
   of nkInfix:   node[2].include_has_ext()
+  of nkPrefix:  node[1].include_has_ext()
   else:         false
 
 proc statement_import (state :var State; node :PNode) =
@@ -466,19 +470,30 @@ proc statement_import (state :var State; node :PNode) =
         of nkStrLit..nkTripleStrLit: child.strVal
         else:        ""
     if module_name.len == 0: continue
-    let name_loc = state.name_add(module_name)
-    var global_opt = none(bool)
-    if is_include: global_opt = some(is_global)
-    let statement = astTF.Statement(
-      kind: astTF.sImport,
-      `import`: astTF.StatementImport(
-        keyword: some(keyword),
-        path: name_loc,
-        global: global_opt,
-      ),
-    )
-    let statement_id = state.ast.add_statement(statement)
-    state.statement_chain(statement_id)
+    if is_include and state.target == Language.Zig and (is_global or child.include_has_ext()):
+      let passthrough_text = if is_global: "include @" & module_name
+                             else: "include " & module_name
+      let text_loc = state.name_add(passthrough_text)
+      let statement = astTF.Statement(
+        kind: astTF.sPassthrough,
+        passthrough: astTF.StatementPassthrough(location: text_loc),
+      )
+      let statement_id = state.ast.add_statement(statement)
+      state.statement_chain(statement_id)
+    else:
+      let name_loc = state.name_add(module_name)
+      var global_opt = none(bool)
+      if is_include: global_opt = some(is_global)
+      let statement = astTF.Statement(
+        kind: astTF.sImport,
+        `import`: astTF.StatementImport(
+          keyword: some(keyword),
+          path: name_loc,
+          global: global_opt,
+        ),
+      )
+      let statement_id = state.ast.add_statement(statement)
+      state.statement_chain(statement_id)
 
 
 proc statement_variable (state :var State; node :PNode) =

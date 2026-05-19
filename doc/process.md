@@ -106,7 +106,7 @@ If any validation fails, the codegen output is structurally invalid regardless o
 | Format: whitespace | ? | ? | ? | [x] |
 | Import: nim | `import std/os` / `include path/to/file` | — | — | [x] |
 | Import: minc | `include @stdint.h` / `include path/file.h` / `include module` | `#include <>`/`#include ""`/recursive preprocess | — | [x] |
-| Import: minz | `import name` / `include module` (recursive preprocess) / `include @file` and `include path/file.zig` (post-process) | — | `const name = @import("name")` / recursive preprocess (done) / post-process pass on output (TBD, see `doc/minz.md`) | [ ] |
+| Import: minz | `import name` / `include module` (recursive preprocess) / `include @file` and `include path/file.zig` (post-process) | — | `const name = @import("name")` / recursive preprocess (done) / post-process pass on output (see `doc/minz.md`) | [x] |
 | Import: cleanc | — | `#include <os.h>` | — | [ ] |
 | Import: zig | `import os` | — | `const os = @import("os");` | [ ] |
 
