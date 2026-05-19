@@ -592,6 +592,7 @@ proc statement_keyword (state :var State; node :PNode; depth :uint64= 0) :astTF.
     of nkBreakStmt:  "break"
     of nkContinueStmt: "continue"
     of nkDiscardStmt: "discard"
+    of nkDefer: "defer"
     else: "unknown"
   let keyword_loc = state.name_add(keyword_str)
   var value = none(astTF.Id)
@@ -605,6 +606,12 @@ proc statement_keyword (state :var State; node :PNode; depth :uint64= 0) :astTF.
     let discard_content = node[0]
     if discard_content.kind != nkEmpty:
       value = some(state.expression(discard_content))
+  elif node.kind == nkDefer and node.safeLen > 0:
+    let defer_body = node[0]
+    if defer_body.kind == nkStmtList and defer_body.safeLen > 0:
+      value = some(state.expression(defer_body[0]))
+    elif defer_body.kind != nkEmpty:
+      value = some(state.expression(defer_body))
   let depth_id = if depth > 0: some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
                  else: none(astTF.Id)
   state.ast.add_statement(astTF.Statement(
@@ -774,7 +781,7 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
 
   proc body_statement (state :var State; child :PNode) =
     let statement_id = case child.kind
-      of nkReturnStmt, nkBreakStmt, nkContinueStmt, nkDiscardStmt:
+      of nkReturnStmt, nkBreakStmt, nkContinueStmt, nkDiscardStmt, nkDefer:
         state.statement_keyword(child, depth)
       of nkIfStmt:
         state.statement_conditional(child, depth)
