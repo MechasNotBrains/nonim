@@ -6,5 +6,5 @@
 when isMainModule:
   import ./cli
   import ./backend/minz
-  let options = cli.options_parse()
+  let options = cli.options_parse(default_backend = cli.Backend.minz)
   minz.run(options)

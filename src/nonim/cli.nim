@@ -34,9 +34,9 @@ type Options * = object
   quiet    *:bool
 
 
-proc options_parse *(args :seq[string]= commandLineParams()) :Options=
+proc options_parse *(args :seq[string]= commandLineParams(); default_backend :Backend= Backend.cleanc) :Options=
   result = Options(
-    backend: Backend.cleanc,
+    backend: default_backend,
     command: Command.codegen,
   )
   var parser = initOptParser(args)
@@ -72,10 +72,10 @@ proc options_parse *(args :seq[string]= commandLineParams()) :Options=
       case positional_index
       of 0:
         case parser.key
-        of "c":   result.command = Command.compile
-        of "cc":  result.command = Command.codegen
-        of "r":   result.command = Command.run
-        else:     result.input = parser.key
+        of "c":  result.command = Command.compile
+        of "cc": result.command = Command.codegen
+        of "r":  result.command = Command.run
+        else: quit("nonim: invalid command '" & parser.key & "', expected c, cc, or r", 1)
       of 1: result.input = parser.key
       of 2: result.output = parser.key
       else: discard

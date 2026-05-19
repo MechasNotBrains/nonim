@@ -18,21 +18,34 @@ proc make_target *(options :Options; sources :seq[string]) :B.Target=
   result = B.target(B.Kind.Program, sources[0], options.output, sources, cfg)
 
 
+proc ext_src *(options :Options) :string=
+  case options.backend
+  of Backend.minz, Backend.zig: ".zig"
+  else: ".c"
+
+proc ext_hdr *(options :Options) :string=
+  case options.backend
+  of Backend.minz, Backend.zig: ".h.zig"
+  else: ".h"
+
+
 proc write_output *(options :Options; output :Output; trg :B.Target) =
   createDir(options.dir.cache)
   createDir(options.dir.code)
+  let src = options.ext_src()
+  let hdr = options.ext_hdr()
   for index, module in output.modules:
     let name = if module.path.len > 0: module.path.splitFile.name
                else: options.output.splitFile.name
-    let cache_c = options.dir.cache/name.changeFileExt(".c")
-    let cache_h = options.dir.cache/name.changeFileExt(".h")
-    let code_c  = options.dir.code/name.changeFileExt(".c")
-    let code_h  = options.dir.code/name.changeFileExt(".h")
+    let cache_src = options.dir.cache/name.changeFileExt(src)
+    let code_src  = options.dir.code/name.changeFileExt(src)
     if module.definitions.len > 0:
-      writeFile(cache_c, module.definitions)
-      trg.format(cache_c)
-      copyFile(cache_c, code_c)
+      writeFile(cache_src, module.definitions)
+      trg.format(cache_src)
+      copyFile(cache_src, code_src)
     if module.declarations.len > 0:
+      let cache_h = options.dir.cache/name.changeFileExt(hdr)
+      let code_h  = options.dir.code/name.changeFileExt(hdr)
       writeFile(cache_h, module.declarations)
       trg.format(cache_h)
       copyFile(cache_h, code_h)
@@ -43,7 +56,7 @@ proc sources_collect *(options :Options; output :Output) :seq[string]=
     let name = if module.path.len > 0: module.path.splitFile.name
                else: options.output.splitFile.name
     if module.definitions.len > 0:
-      result.add(options.dir.cache/name.changeFileExt(".c"))
+      result.add(options.dir.cache/name.changeFileExt(options.ext_src()))
 
 
 proc run *(options :Options; output :Output) =
