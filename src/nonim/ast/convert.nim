@@ -307,6 +307,29 @@ proc expression_call (state :var State; node :PNode) :astTF.Id=
     ),
   ))
 
+proc expression_tuple (state :var State; node :PNode) :astTF.Id=
+  let dot_id = state.expression_identifier(".")
+  var first_argument = none(astTF.Id)
+  var previous_binding = none(astTF.Id)
+  for i in 0 ..< node.safeLen:
+    let value_id = state.expression(node[i])
+    let binding = astTF.Binding(value: some(value_id))
+    let binding_id = state.ast.add_binding(binding)
+    if first_argument.isNone:
+      first_argument = some(binding_id)
+    if previous_binding.isSome:
+      var prev = state.ast.binding(previous_binding.get)
+      prev.next = some(binding_id)
+      state.ast.data.bindings.get[previous_binding.get] = prev
+    previous_binding = some(binding_id)
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eCall,
+    call: astTF.ExpressionCall(
+      name: dot_id,
+      arguments: first_argument,
+    ),
+  ))
+
 proc expression_prefix (state :var State; node :PNode) :astTF.Id=
   let operator_node = node[0]
   let right_node = node[1]
@@ -368,6 +391,7 @@ proc expression (state :var State; node :PNode) :astTF.Id=
   of nkInfix:                      state.expression_infix(node)
   of nkPrefix:                     state.expression_prefix(node)
   of nkCall, nkCommand:            state.expression_call(node)
+  of nkTupleConstr, nkPar:         state.expression_tuple(node)
   of nkBracketExpr:
     if node[0].kind == nkSym and node[0].sym.name.s == "array":
       state.expression_array_type(node)
@@ -740,6 +764,14 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
       expression: astTF.StatementExpression(id: affix_id, depth: depth_id),
     ))
 
+  proc body_call (state :var State; child :PNode) :astTF.Id=
+    let call_id = state.expression_call(child)
+    let depth_id = some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
+    state.ast.add_statement(astTF.Statement(
+      kind: astTF.sExpression,
+      expression: astTF.StatementExpression(id: call_id, depth: depth_id),
+    ))
+
   proc body_statement (state :var State; child :PNode) =
     let statement_id = case child.kind
       of nkReturnStmt, nkBreakStmt, nkContinueStmt, nkDiscardStmt:
@@ -750,6 +782,8 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
         state.body_while(child)
       of nkAsgn:
         state.body_assignment(child)
+      of nkCall, nkCommand:
+        state.body_call(child)
       of nkVarSection, nkLetSection, nkConstSection:
         state.body_variable(child)
         return
