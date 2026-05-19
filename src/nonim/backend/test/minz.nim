@@ -132,6 +132,10 @@ describe "nonim.minz | Statements":
     let result = generate_zig(case_input("statement_discard"))
     result.eq case_expected("statement_discard")
 
+  it "must generate defer keyword", proc() =
+    let result = generate_zig(case_input("statement_defer"))
+    result.eq case_expected("statement_defer")
+
 describe "nonim.minz | Types":
   it "must generate a struct from object type", proc() =
     let result = generate_zig(case_input("type_object"))
