@@ -48,24 +48,23 @@ proc ext_hdr *(options :Options) :string=
 
 proc write_output *(options :Options; output :Output; trg :B.Target) =
   createDir(options.dir.cache)
-  createDir(options.dir.code)
+  let has_code_dir = options.dir.code.len > 0
+  if has_code_dir: createDir(options.dir.code)
   let src = options.ext_src()
   let hdr = options.ext_hdr()
   for index, module in output.modules:
     let name = if module.path.len > 0: module.path.splitFile.name
                else: options.output.splitFile.name
     let cache_src = options.dir.cache/name.changeFileExt(src)
-    let code_src  = options.dir.code/name.changeFileExt(src)
     if module.definitions.len > 0:
       writeFile(cache_src, module.definitions)
       trg.format(cache_src)
-      copyFile(cache_src, code_src)
+      if has_code_dir: copyFile(cache_src, options.dir.code/name.changeFileExt(src))
     if module.declarations.len > 0:
       let cache_h = options.dir.cache/name.changeFileExt(hdr)
-      let code_h  = options.dir.code/name.changeFileExt(hdr)
       writeFile(cache_h, module.declarations)
       trg.format(cache_h)
-      copyFile(cache_h, code_h)
+      if has_code_dir: copyFile(cache_h, options.dir.code/name.changeFileExt(hdr))
 
 
 proc sources_collect *(options :Options; output :Output) :seq[string]=

@@ -104,5 +104,3 @@ proc options_parse *(args :seq[string]= commandLineParams(); default_backend :Ba
 
   if result.output.len == 0 and result.input.len > 0:
     result.output = result.input.changeFileExt("")
-  if result.dir.code.len == 0:
-    result.dir.code = getCurrentDir()
