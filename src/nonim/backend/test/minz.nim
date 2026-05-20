@@ -182,6 +182,10 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_object_nested"))
     result.eq case_expected("expression_object_nested")
 
+  it "must generate parenthesized group expression", proc() =
+    let result = generate_zig(case_input("expression_group"))
+    result.eq case_expected("expression_group")
+
 describe "nonim.minz | Passthrough":
   it "must emit raw code from emit pragma", proc() =
     let result = generate_zig(case_input("statement_passthrough"))

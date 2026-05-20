@@ -130,6 +130,12 @@ func expression_object (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var
     current = field.next
   Out.string(module, "}", output.Target.definition)
 
+func expression_group (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expression = ast.data.expressions.get[id]
+  Out.string(module, "(", output.Target.definition)
+  ast.expression(module, expression.group.inner, Out)
+  Out.string(module, ")", output.Target.definition)
+
 func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
   case expression.kind
@@ -140,6 +146,7 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Outpu
   of astTF.eIndexed:    ast.expression_indexed(module, id, Out)
   of astTF.eKeyword:    ast.expression_keyword(module, id, Out)
   of astTF.eObject:     ast.expression_object(module, id, Out)
+  of astTF.eGroup:      ast.expression_group(module, id, Out)
   else: assert false, "codegen.zig: unsupported expression kind: " & $expression.kind
 
 func expression_loop (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=

@@ -367,6 +367,15 @@ proc expression_tuple (state :var State; node :PNode) :astTF.Id=
     ),
   ))
 
+proc expression_parenthesis (state :var State; node :PNode) :astTF.Id=
+  if node.safeLen == 1 and node[0].kind != nkExprColonExpr:
+    let inner_id = state.expression(node[0])
+    return state.ast.add_expression(astTF.Expression(
+      kind: astTF.eGroup,
+      group: astTF.ExpressionGroup(inner: inner_id),
+    ))
+  return state.expression_tuple(node)
+
 proc expression_obj_constr (state :var State; node :PNode) :astTF.Id=
   var first_field = none(astTF.Id)
   var previous_field = none(astTF.Id)
@@ -470,7 +479,7 @@ proc expression (state :var State; node :PNode) :astTF.Id=
   of nkInfix:                      state.expression_infix(node)
   of nkPrefix:                     state.expression_prefix(node)
   of nkCall, nkCommand:            state.expression_call(node)
-  of nkTupleConstr, nkPar:         state.expression_tuple(node)
+  of nkTupleConstr, nkPar:         state.expression_parenthesis(node)
   of nkObjConstr:                  state.expression_obj_constr(node)
   of nkTryStmt:                    state.expression_try(node)
   of nkBracketExpr:
