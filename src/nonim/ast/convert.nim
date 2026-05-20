@@ -977,6 +977,54 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
       expression: astTF.StatementExpression(id: keyword_id, depth: depth_id),
     ))
 
+  proc body_case (state :var State; child :PNode) :astTF.Id=
+    let subject_id = state.expression(child[0])
+    var first_branch = none(astTF.Id)
+    var previous_branch = none(astTF.Id)
+    for branch_index in 1 ..< child.safeLen:
+      let branch_node = child[branch_index]
+      var condition = none(astTF.Id)
+      var body_id = none(astTF.Id)
+      if branch_node.kind == nkOfBranch:
+        let body_node = branch_node[branch_node.safeLen - 1]
+        body_id = some(state.statement_body(body_node, depth + 2))
+        var first_value = none(astTF.Id)
+        var previous_value = none(astTF.Id)
+        for value_index in 0 ..< branch_node.safeLen - 1:
+          let value_id = state.expression(branch_node[value_index])
+          if first_value.isNone: first_value = some(value_id)
+          if previous_value.isSome:
+            state.ast.expression_next_set(previous_value.get, some(value_id))
+          previous_value = some(value_id)
+        condition = first_value
+      elif branch_node.kind == nkElse:
+        body_id = some(state.statement_body(branch_node[0], depth + 2))
+      let branch_depth = some(state.ast.add_depth(astTF.Depth(indent: some(depth + 1))))
+      let branch_id = state.ast.add_statement(astTF.Statement(
+        kind: astTF.sBranch,
+        branch: astTF.StatementBranch(condition: condition, body: body_id, depth: branch_depth),
+      ))
+      if first_branch.isNone: first_branch = some(branch_id)
+      if previous_branch.isSome:
+        var prev = state.ast.statement(previous_branch.get)
+        prev.branch.next = some(branch_id)
+        state.ast.data.statements.get[previous_branch.get] = prev
+      previous_branch = some(branch_id)
+    let keyword_loc = state.name_add("switch")
+    let depth_id = some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
+    let cond_expr_id = state.ast.add_expression(astTF.Expression(
+      kind: astTF.eConditional,
+      conditional: astTF.ExpressionConditional(
+        keyword: some(keyword_loc),
+        condition: subject_id,
+        branches: first_branch,
+      ),
+    ))
+    state.ast.add_statement(astTF.Statement(
+      kind: astTF.sExpression,
+      expression: astTF.StatementExpression(id: cond_expr_id, depth: depth_id),
+    ))
+
   proc body_statement (state :var State; child :PNode) =
     let statement_id = case child.kind
       of nkReturnStmt, nkBreakStmt, nkContinueStmt, nkDiscardStmt, nkDefer, nkTryStmt:
@@ -991,6 +1039,8 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
         state.body_infix(child)
       of nkBlockStmt:
         state.body_block(child)
+      of nkCaseStmt:
+        state.body_case(child)
       of nkCall, nkCommand:
         state.body_call(child)
       of nkVarSection, nkLetSection, nkConstSection:

@@ -35,6 +35,25 @@ func expression_next *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=
     of astTF.eType:        E.`type`.next
     of astTF.eKeyword:     E.keyword.next
 
+proc expression_next_set *(atf :var astTF.astTF; id :astTF.Id; next :Option[astTF.Id]) =
+  var E = atf.data.expressions.get[id]
+  case E.kind
+  of astTF.eIdentifier:  E.identifier.next = next
+  of astTF.eLiteral:     E.literal.next = next
+  of astTF.eAffix:       E.affix.next = next
+  of astTF.eCall:        E.call.next = next
+  of astTF.eGroup:       E.group.next = next
+  of astTF.eIndexed:     E.indexed.next = next
+  of astTF.eBlock:       E.block.next = next
+  of astTF.eArray:       E.array.next = next
+  of astTF.eObject:      E.`object`.next = next
+  of astTF.eRange:       E.`range`.next = next
+  of astTF.eConditional: E.conditional.next = next
+  of astTF.eLoop:        E.loop.next = next
+  of astTF.eType:        E.`type`.next = next
+  of astTF.eKeyword:     E.keyword.next = next
+  atf.data.expressions.get[id] = E
+
 func statement_next *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=
   let S = atf.data.statements.get[id]
   result = case S.kind

@@ -184,8 +184,43 @@ func expression_loop (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
   Out.string(module, "}\n", output.Target.definition)
 
+func expression_switch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
+  Out.string(module, "switch (", output.Target.definition)
+  ast.expression(module, expr.conditional.condition, Out)
+  Out.string(module, ") {\n", output.Target.definition)
+  if expr.conditional.branches.isSome:
+    var current = some(expr.conditional.branches.get)
+    while current.isSome:
+      let branch = ast.data.statements.get[current.get].branch
+      let branch_depth = ast.node_depth(branch.depth)
+      for indentation in 0 ..< branch_depth: Out.string(module, Tab, output.Target.definition)
+      if branch.condition.isSome:
+        var value_current = some(branch.condition.get)
+        var first_value = true
+        while value_current.isSome:
+          if not first_value: Out.string(module, ", ", output.Target.definition)
+          ast.expression(module, value_current.get, Out)
+          first_value = false
+          value_current = ast.expression_next(value_current.get)
+        Out.string(module, " => {\n", output.Target.definition)
+      else:
+        Out.string(module, "else => {\n", output.Target.definition)
+      if branch.body.isSome:
+        ast.statement_list(module, branch.body.get, Out)
+      for indentation in 0 ..< branch_depth: Out.string(module, Tab, output.Target.definition)
+      Out.string(module, "},\n", output.Target.definition)
+      current = branch.next
+  for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+  Out.string(module, "}\n", output.Target.definition)
+
 func expression_conditional (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
   let expr = ast.data.expressions.get[id]
+  if expr.conditional.keyword.isSome:
+    let keyword = ast.source(module, expr.conditional.keyword.get)
+    if keyword == "switch":
+      ast.expression_switch(module, id, depth, Out)
+      return
   Out.string(module, "if (", output.Target.definition)
   ast.expression(module, expr.conditional.condition, Out)
   Out.string(module, ") {\n", output.Target.definition)

@@ -1,6 +1,8 @@
-proc foo() =
+proc foo(x :int) =
   let y = 0
-  block blk:
-    let x = 1
-  block _:
-    let z = 2
+  case x
+  of 1, 2: discard
+  of 3:
+    let z = 1
+    discard z
+  else: discard

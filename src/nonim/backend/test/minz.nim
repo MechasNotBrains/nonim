@@ -143,6 +143,18 @@ describe "nonim.minz | Control Flow":
     let result = generate_zig(case_input("expression_block_unnamed"))
     result.eq case_expected("expression_block_unnamed")
 
+  it "must generate case/of as switch", proc() =
+    let result = generate_zig(case_input("control_case"))
+    result.eq case_expected("control_case")
+
+  it "must generate multi-value case/of as switch", proc() =
+    let result = generate_zig(case_input("control_case_multi"))
+    result.eq case_expected("control_case_multi")
+
+  it "must generate nested case/of as switch", proc() =
+    let result = generate_zig(case_input("control_case_nested"))
+    result.eq case_expected("control_case_nested")
+
 describe "nonim.minz | Statements":
   it "must generate discard as _ = expr", proc() =
     let result = generate_zig(case_input("statement_discard"))
