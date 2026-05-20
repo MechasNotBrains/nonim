@@ -952,6 +952,31 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
       expression: astTF.StatementExpression(id: infix_id, depth: depth_id),
     ))
 
+  proc body_block (state :var State; child :PNode) :astTF.Id=
+    let label_node = child[0]
+    let body_node = child[1]
+    let block_body_id = if body_node.kind != nkEmpty: some(state.statement_body(body_node, depth + 1))
+                        else: none(astTF.Id)
+    var block_expr = astTF.Expression(kind: astTF.eBlock)
+    block_expr.`block`.body = block_body_id
+    let block_id = state.ast.add_expression(block_expr)
+    let label_name = if label_node.kind != nkEmpty: label_node.ident.s else: "_"
+    let keyword_loc = state.name_add("block")
+    let label_loc = state.name_add(label_name)
+    let keyword_id = state.ast.add_expression(astTF.Expression(
+      kind: astTF.eKeyword,
+      keyword: astTF.ExpressionKeyword(
+        keyword: astTF.Identifier(location: keyword_loc),
+        label: some(astTF.Identifier(location: label_loc)),
+        value: some(block_id),
+      ),
+    ))
+    let depth_id = some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
+    state.ast.add_statement(astTF.Statement(
+      kind: astTF.sExpression,
+      expression: astTF.StatementExpression(id: keyword_id, depth: depth_id),
+    ))
+
   proc body_statement (state :var State; child :PNode) =
     let statement_id = case child.kind
       of nkReturnStmt, nkBreakStmt, nkContinueStmt, nkDiscardStmt, nkDefer, nkTryStmt:
@@ -964,6 +989,8 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
         state.body_assignment(child)
       of nkInfix:
         state.body_infix(child)
+      of nkBlockStmt:
+        state.body_block(child)
       of nkCall, nkCommand:
         state.body_call(child)
       of nkVarSection, nkLetSection, nkConstSection:

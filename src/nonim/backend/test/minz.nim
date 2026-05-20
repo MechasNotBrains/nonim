@@ -135,6 +135,14 @@ describe "nonim.minz | Control Flow":
     let result = generate_zig(case_input("statement_continue"))
     result.eq case_expected("statement_continue")
 
+  it "must generate named block", proc() =
+    let result = generate_zig(case_input("expression_block"))
+    result.eq case_expected("expression_block")
+
+  it "must generate unnamed block from block _:", proc() =
+    let result = generate_zig(case_input("expression_block_unnamed"))
+    result.eq case_expected("expression_block_unnamed")
+
 describe "nonim.minz | Statements":
   it "must generate discard as _ = expr", proc() =
     let result = generate_zig(case_input("statement_discard"))

@@ -119,6 +119,23 @@ func expression_keyword (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
       Out.string(module, " ", output.Target.definition)
       ast.expression(module, expr.keyword.value.get, Out)
 
+func expression_block (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
+  Out.string(module, "{\n", output.Target.definition)
+  if expr.`block`.body.isSome:
+    ast.statement_list(module, expr.`block`.body.get, Out)
+  for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+  Out.string(module, "}\n", output.Target.definition)
+
+func expression_keyword_block (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
+  if expr.keyword.label.isSome:
+    let label = ast.source(module, expr.keyword.label.get.location)
+    if label != "_":
+      Out.string(module, label & ": ", output.Target.definition)
+  if expr.keyword.value.isSome:
+    ast.expression_block(module, expr.keyword.value.get, depth, Out)
+
 func expression_object (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expr = ast.data.expressions.get[id]
   Out.string(module, ".{", output.Target.definition)
@@ -362,8 +379,12 @@ func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :
   of astTF.eLoop:        ast.expression_loop(module, statement.expression.id, depth, Out)
   of astTF.eConditional: ast.expression_conditional(module, statement.expression.id, depth, Out)
   of astTF.eKeyword:
-    ast.expression_keyword(module, statement.expression.id, Out)
-    Out.string(module, ";\n", output.Target.definition)
+    let keyword_text = ast.source(module, expr.keyword.keyword.location)
+    if keyword_text == "block":
+      ast.expression_keyword_block(module, statement.expression.id, depth, Out)
+    else:
+      ast.expression_keyword(module, statement.expression.id, Out)
+      Out.string(module, ";\n", output.Target.definition)
   else:
     ast.expression(module, statement.expression.id, Out)
     Out.string(module, ";\n", output.Target.definition)

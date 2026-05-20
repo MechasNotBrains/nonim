@@ -2,5 +2,3 @@ proc foo() =
   let y = 0
   block blk:
     let x = 1
-  block _:
-    let z = 2
