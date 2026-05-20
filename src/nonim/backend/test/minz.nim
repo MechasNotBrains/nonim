@@ -188,6 +188,27 @@ describe "nonim.minz | Comments":
     let result = generate_zig(case_input("statement_comment_module"))
     result.eq case_expected("statement_comment_module")
 
+describe "nonim.minz | Imports":
+  it "must generate @import from import statement", proc() =
+    let result = generate_zig(case_input("statement_import"))
+    result.eq case_expected("statement_import")
+
+  it "must generate pub const from from-import with symbols", proc() =
+    let result = generate_zig(case_input("import_from"))
+    result.eq case_expected("import_from")
+
+  it "must generate pub const with alias from from-import with as", proc() =
+    let result = generate_zig(case_input("import_from_alias"))
+    result.eq case_expected("import_from_alias")
+
+  it "must generate module import from @-prefixed path", proc() =
+    let result = generate_zig(case_input("import_module"))
+    result.eq case_expected("import_module")
+
+  it "must generate from-import with @-prefixed module path", proc() =
+    let result = generate_zig(case_input("import_from_module"))
+    result.eq case_expected("import_from_module")
+
 describe "nonim.minz | Includes":
   it "must inline a global include from a .zig file", proc() =
     let result = generate_zig_file("include_global")

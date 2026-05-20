@@ -50,54 +50,47 @@ proc name (node :PNode) :string=
   of nkAccQuoted: node.strValue
   else:          ""
 
+proc translate_type_c (state :var State; nim_type :string) :string=
+  result = case nim_type
+    of "int":      "int64_t"
+    of "int8":     "int8_t"
+    of "int16":    "int16_t"
+    of "int32":    "int32_t"
+    of "int64":    "int64_t"
+    of "uint":     "uint64_t"
+    of "uint8":    "uint8_t"
+    of "uint16":   "uint16_t"
+    of "uint32":   "uint32_t"
+    of "uint64":   "uint64_t"
+    of "float":    "double"
+    of "float32":  "float"
+    of "float64":  "double"
+    of "bool":     "bool"
+    of "char":     "char"
+    of "cint":     "int"
+    of "cuint":    "unsigned int"
+    of "clong":    "long"
+    of "culong":   "unsigned long"
+    of "clonglong":"long long"
+    of "cfloat":   "float"
+    of "cdouble":  "double"
+    of "cchar":    "char"
+    of "cschar":   "signed char"
+    of "cuchar":   "unsigned char"
+    of "cshort":   "short"
+    of "cushort":  "unsigned short"
+    of "csize_t":  "size_t"
+    of "cstring":  "char const*"
+    of "void":     "void"
+    else:          nim_type
+  state.needs.stdint = result in [
+    "int64_t",  "int8_t",  "int16_t",  "int32_t",
+    "uint64_t", "uint8_t", "uint16_t", "uint32_t",
+    "size_t" ]
+  state.needs.stdbool = result == "bool"
 
-proc translate_type (state :var State; nim_type :string) :string=
-  if not state.typed: return nim_type
-  case state.target
-  of Language.C:
-    let result = case nim_type
-      of "int":      "int64_t"
-      of "int8":     "int8_t"
-      of "int16":    "int16_t"
-      of "int32":    "int32_t"
-      of "int64":    "int64_t"
-      of "uint":     "uint64_t"
-      of "uint8":    "uint8_t"
-      of "uint16":   "uint16_t"
-      of "uint32":   "uint32_t"
-      of "uint64":   "uint64_t"
-      of "float":    "double"
-      of "float32":  "float"
-      of "float64":  "double"
-      of "bool":     "bool"
-      of "char":     "char"
-      of "cint":     "int"
-      of "cuint":    "unsigned int"
-      of "clong":    "long"
-      of "culong":   "unsigned long"
-      of "clonglong":"long long"
-      of "cfloat":   "float"
-      of "cdouble":  "double"
-      of "cchar":    "char"
-      of "cschar":   "signed char"
-      of "cuchar":   "unsigned char"
-      of "cshort":   "short"
-      of "cushort":  "unsigned short"
-      of "csize_t":  "size_t"
-      of "cstring":  "char const*"
-      of "void":     "void"
-      else:          nim_type
-    case result
-    of "int64_t", "int8_t", "int16_t", "int32_t",
-       "uint64_t", "uint8_t", "uint16_t", "uint32_t",
-       "size_t":
-      state.needs.stdint = true
-    of "bool":
-      state.needs.stdbool = true
-    else: discard
-    result
-  of Language.Zig:
-    case nim_type
+proc translate_type_zig (state :var State; nim_type :string) :string=
+  result = case nim_type
     of "int":      "isize"
     of "int8":     "i8"
     of "int16":    "i16"
@@ -129,31 +122,36 @@ proc translate_type (state :var State; nim_type :string) :string=
     of "cstring":  "[:0]const u8"
     of "void":     "void"
     else:          nim_type
-  of Language.Nim:
-    nim_type
+
+proc translate_type (state :var State; nim_type :string) :string=
+  if not state.typed: return nim_type
+  result = case state.target
+    of Language.C   : state.translate_type_c(nim_type)
+    of Language.Zig : state.translate_type_zig(nim_type)
+    of Language.Nim : nim_type
 
 proc type_from_sym (state :var State; node :PNode) :Option[astTF.Id]=
   if node.kind == nkSym and node.sym.typ != nil:
     if node.sym.typ.kind == tyPtr and node.sym.typ.len > 0:
       let target_name = state.translate_type(typeToString(node.sym.typ[0]))
-      let target_loc = state.name_add(target_name)
-      let target_id = state.ast.add_type(astTF.Type(
-        kind: astTF.tPrimitive,
-        primitive: astTF.TypePrimitive(name: astTF.Identifier(location: target_loc)),
+      let target_loc  = state.name_add(target_name)
+      let target_id   = state.ast.add_type(astTF.Type(
+        kind      : astTF.tPrimitive,
+        primitive : astTF.TypePrimitive(name: astTF.Identifier(location: target_loc)),
       ))
       let ptr_id = state.ast.add_type(astTF.Type(
-        kind: astTF.tPtr,
-        `ptr`: astTF.TypePtr(target: target_id),
+        kind  : astTF.tPtr,
+        `ptr` : astTF.TypePtr(target: target_id),
       ))
       return some(state.ast.add_expression(astTF.Expression(
-        kind: astTF.eType,
-        `type`: astTF.ExpressionType(id: ptr_id),
+        kind   : astTF.eType,
+        `type` : astTF.ExpressionType(id: ptr_id),
       )))
     let type_name = state.translate_type(typeToString(node.sym.typ))
-    let type_loc = state.name_add(type_name)
+    let type_loc  = state.name_add(type_name)
     return some(state.ast.add_expression(astTF.Expression(
-      kind: astTF.eIdentifier,
-      identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: type_loc)),
+      kind       : astTF.eIdentifier,
+      identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: type_loc)),
     )))
   return none(astTF.Id)
 
@@ -168,6 +166,8 @@ proc exported (node :PNode) :bool=
 #_____________________________
 proc expression (state :var State; node :PNode) :astTF.Id
 proc expression_array_type (state :var State; node :PNode) :astTF.Id
+proc expression_infix (state :var State; node :PNode) :astTF.Id
+proc expression_prefix (state :var State; node :PNode) :astTF.Id
 
 proc expression_literal_nil (state :var State) :astTF.Id=
   let value_str = case state.target
@@ -226,25 +226,35 @@ proc type_node_to_type_id (state :var State; node :PNode) :astTF.Id=
     primitive: astTF.TypePrimitive(name: astTF.Identifier(location: name_loc)),
   ))
 
-proc type_expression (state :var State; node :PNode) :astTF.Id=
-  case node.kind
-  of nkPtrTy:
-    let target_id = state.type_node_to_type_id(node[0])
-    let type_id = state.ast.add_type(astTF.Type(
-      kind: astTF.tPtr,
-      `ptr`: astTF.TypePtr(target: target_id),
-    ))
-    state.ast.add_expression(astTF.Expression(
-      kind: astTF.eType,
-      `type`: astTF.ExpressionType(id: type_id),
-    ))
-  of nkBracketExpr:
-    if node[0].kind == nkSym and node[0].sym.name.s == "array":
-      state.expression_array_type(node)
-    else:
-      state.type_identifier(node)
+proc type_bracket (state :var State; node :PNode) :astTF.Id=
+  if node[0].kind == nkSym and node[0].sym.name.s == "array":
+    state.expression_array_type(node)
   else:
     state.type_identifier(node)
+
+proc type_pointer (state :var State; node :PNode) :astTF.Id=
+  let target_id = state.type_node_to_type_id(node[0])
+  let type_id = state.ast.add_type(astTF.Type(
+    kind: astTF.tPtr,
+    `ptr`: astTF.TypePtr(target: target_id),
+  ))
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eType,
+    `type`: astTF.ExpressionType(id: type_id),
+  ))
+
+proc type_error (state :var State; node :PNode) :astTF.Id=
+  case node.kind
+  of nkPrefix : result = state.expression_prefix(node)
+  of nkInfix  : result = state.expression_infix(node)
+  else        : assert false, "astTF.convert.type_error: Tried to convert a non-affix into an error union expression."
+
+proc expression_type (state :var State; node :PNode) :astTF.Id=
+  case node.kind
+  of nkPtrTy           : state.type_pointer(node)
+  of nkBracketExpr     : state.type_bracket(node)
+  of nkPrefix, nkInfix : state.type_error(node)
+  else                 : state.type_identifier(node)
 
 proc expression_identifier (state :var State; name :string) :astTF.Id=
   let name_loc = state.name_add(name)
@@ -550,6 +560,18 @@ proc include_has_ext (node :PNode) :bool=
   of nkPrefix:  node[1].include_has_ext()
   else:         false
 
+proc symbol_path (node :PNode) :string=
+  case node.kind
+  of nkIdent:    node.ident.s
+  of nkSym:      node.sym.name.s
+  of nkDotExpr:  node[0].symbol_path() & "." & node[1].symbol_path()
+  else:          ""
+
+proc resolve_import_path (raw_path :string; is_module :bool) :string=
+  if is_module: return raw_path
+  if '/' in raw_path or '.' in raw_path: return raw_path
+  return "./" & raw_path & ".zig"
+
 proc statement_import (state :var State; node :PNode) =
   let keyword_text = case node.kind
     of nkImportStmt:       "import"
@@ -560,6 +582,53 @@ proc statement_import (state :var State; node :PNode) =
   let keyword_loc = state.name_add(keyword_text)
   let keyword = astTF.Identifier(location: keyword_loc, synthetic: some(true))
   let is_include = node.kind == nkIncludeStmt
+  if node.kind == nkFromStmt:
+    let is_module = node[0].include_is_global()
+    let raw_name = node[0].include_path()
+    if raw_name.len == 0: return
+    let module_name = if state.target == Language.Zig: resolve_import_path(raw_name, is_module)
+                      else: raw_name
+    var first_symbol = none(astTF.Id)
+    var previous_symbol = none(astTF.Id)
+    for index in 1 ..< node.safeLen:
+      let child = node[index]
+      var symbol_name :string
+      var alias_name :string
+      if child.kind == nkInfix and child[0].name() == "as":
+        symbol_name = child[1].symbol_path()
+        alias_name = child[2].symbol_path()
+      else:
+        symbol_name = child.symbol_path()
+      if symbol_name.len == 0: continue
+      let name_loc = state.name_add(symbol_name)
+      var target = none(astTF.Identifier)
+      if alias_name.len > 0:
+        let alias_loc = state.name_add(alias_name)
+        target = some(astTF.Identifier(location: alias_loc))
+      let alias_entry = astTF.Alias(
+        name: astTF.Identifier(location: name_loc),
+        target: target,
+      )
+      let alias_id = state.ast.add_alias(alias_entry)
+      if first_symbol.isNone:
+        first_symbol = some(alias_id)
+      if previous_symbol.isSome:
+        var prev = state.ast.alias(previous_symbol.get)
+        prev.next = some(alias_id)
+        state.ast.data.aliases.get[previous_symbol.get] = prev
+      previous_symbol = some(alias_id)
+    let path_loc = state.name_add(module_name)
+    let statement = astTF.Statement(
+      kind: astTF.sImport,
+      `import`: astTF.StatementImport(
+        keyword: some(keyword),
+        path: path_loc,
+        symbols: first_symbol,
+      ),
+    )
+    let statement_id = state.ast.add_statement(statement)
+    state.statement_chain(statement_id)
+    return
   for child in node:
     var module_name :string
     var is_global = false
@@ -569,13 +638,16 @@ proc statement_import (state :var State; node :PNode) =
       if not is_global and not child.include_has_ext():
         module_name = ""
     else:
-      module_name = case child.kind
+      let is_module = child.kind == nkPrefix and child[0].name() == "@"
+      let raw_name = case child.kind
         of nkIdent:  child.ident.s
         of nkSym:    child.sym.name.s
-        of nkInfix:  child[1].name() & "/" & child[2].name()
-        of nkPrefix: child[0].name() & child[1].name()
+        of nkInfix:  child[1].include_path() & "/" & child[2].include_path()
+        of nkPrefix: child[1].include_path()
         of nkStrLit..nkTripleStrLit: child.strVal
         else:        ""
+      module_name = if state.target == Language.Zig: resolve_import_path(raw_name, is_module)
+                    else: raw_name
     if module_name.len == 0: continue
     if is_include and state.target == Language.Zig and (is_global or child.include_has_ext()):
       let passthrough_text = if is_global: "include @" & module_name
@@ -619,7 +691,7 @@ proc statement_variable (state :var State; node :PNode) =
 
     var data_type = none(astTF.Id)
     if type_node.kind != nkEmpty:
-      data_type = some(state.type_expression(type_node))
+      data_type = some(state.expression_type(type_node))
 
     var value = none(astTF.Id)
     if value_node.kind != nkEmpty:
@@ -787,7 +859,7 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
       let name_loc = state.name_add(name_str)
       var data_type = none(astTF.Id)
       if type_node.kind != nkEmpty:
-        data_type = some(state.type_expression(type_node))
+        data_type = some(state.expression_type(type_node))
       else:
         data_type = state.type_from_sym(name_node)
       var value = none(astTF.Id)
@@ -910,7 +982,7 @@ proc statement_procedure (state :var State; node :PNode) =
       let type_node = param_group[type_index]
       var param_type = none(astTF.Id)
       if type_node.kind != nkEmpty:
-        param_type = some(state.type_expression(type_node))
+        param_type = some(state.expression_type(type_node))
 
       for name_index in 0 ..< type_index:
         let param_name_node = param_group[name_index]
@@ -938,7 +1010,7 @@ proc statement_procedure (state :var State; node :PNode) =
   if params_node.kind == nkFormalParams and params_node.safeLen > 0:
     let return_node = params_node[0]
     if return_node.kind != nkEmpty:
-      return_type = some(state.type_expression(return_node))
+      return_type = some(state.expression_type(return_node))
 
   var body_id = none(astTF.Id)
   let body_node = node[6]
@@ -946,17 +1018,17 @@ proc statement_procedure (state :var State; node :PNode) =
     body_id = some(state.statement_body(body_node))
 
   let proc_data = astTF.Procedure(
-    name: some(name_ident),
-    private: some(not is_exported),
-    impure: some(not is_func),
-    arguments: first_argument,
-    returnType: return_type,
-    body: body_id,
+    name       : some(name_ident),
+    private    : some(not is_exported),
+    impure     : some(not is_func),
+    arguments  : first_argument,
+    returnType : return_type,
+    body       : body_id,
   )
   let procedure_id = state.ast.add_procedure(proc_data)
   let statement = astTF.Statement(
-    kind: astTF.sProcedure,
-    procedure: astTF.StatementProcedure(id: procedure_id),
+    kind      : astTF.sProcedure,
+    procedure : astTF.StatementProcedure(id: procedure_id),
   )
   let statement_id = state.ast.add_statement(statement)
   state.statement_chain(statement_id)
@@ -981,7 +1053,7 @@ proc statement_type (state :var State; node :PNode) =
         let type_node = field_def[type_index]
         var field_type = none(astTF.Id)
         if type_node.kind != nkEmpty:
-          field_type = some(state.type_expression(type_node))
+          field_type = some(state.expression_type(type_node))
         for name_index in 0 ..< type_index:
           let field_name_node = field_def[name_index]
           let field_name_str = field_name_node.name()
@@ -1065,13 +1137,18 @@ proc statement_top_level (state :var State; node :PNode) =
 #_______________________________________
 # @section Entry Point
 #_____________________________
-proc convert *(root :PNode; target :Language= Language.Nim; typed :bool= true; path :string= "input.nim") :astTF.Ast=
+proc convert *(
+    root   : PNode;
+    target : Language = Language.Nim;
+    typed  : bool     = true;
+    path   : string   = "input.nim";
+  ) :astTF.Ast=
   var state = State(
-    ast: astTF.Ast(root: 0, data: astTF.AstData(modules: @[])),
-    source: "",
-    previous_stmt: none(astTF.Id),
-    target: target,
-    typed: typed,
+    ast           : astTF.Ast(root: 0, data: astTF.AstData(modules: @[])),
+    source        : "",
+    previous_stmt : none(astTF.Id),
+    target        : target,
+    typed         : typed,
   )
   state.module = astTF.Id(state.ast.data.modules.len)
   state.ast.data.modules.add(astTF.Module(path: path, source: ""))
