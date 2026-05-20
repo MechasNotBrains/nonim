@@ -171,49 +171,64 @@ func expression_conditional (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; dep
 #_______________________________________
 # @section Type Mapping
 #_____________________________
-func type_name (ast :astTF.Ast; module :astTF.Id; expression_id :astTF.Id) :string=
-  let expression = ast.data.expressions.get[expression_id]
+func type_name (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string
+
+func type_name_identifier (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
+  let expression = ast.data.expressions.get[id]
+  result = ast.source(module, expression.identifier.name.location)
+
+func type_name_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
+  let expression = ast.data.expressions.get[id]
+  let type_data  = ast.data.types.get[expression.`type`.id]
+  case type_data.kind
+  of astTF.tPrimitive:
+    result = ast.source(module, type_data.primitive.name.location)
+  of astTF.tArray:
+    let elem_type = ast.data.types.get[type_data.array.element]
+    let elem_name = ast.source(module, elem_type.primitive.name.location)
+    if type_data.array.length.isSome:
+      let length_expr = ast.data.expressions.get[type_data.array.length.get]
+      result = "[" & ast.source(module, length_expr.literal.value) & "]" & elem_name
+    else:
+      result = "[]" & elem_name
+  of astTF.tPtr:
+    let target_type = ast.data.types.get[type_data.`ptr`.target]
+    result = "*" & ast.source(module, target_type.primitive.name.location)
+  else: result = "void"
+
+func type_name_affix (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
+  let expression = ast.data.expressions.get[id]
+  if expression.affix.left.isSome: result.add ast.type_name(module, expression.affix.left.get)
+  result.add ast.source(module, expression.affix.operator)
+  if expression.affix.right.isSome: result.add ast.type_name(module, expression.affix.right.get)
+
+func type_name (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
+  let expression = ast.data.expressions.get[id]
   case expression.kind
-  of astTF.eIdentifier:
-    ast.source(module, expression.identifier.name.location)
-  of astTF.eType:
-    let type_data = ast.data.types.get[expression.`type`.id]
-    case type_data.kind
-    of astTF.tPrimitive:
-      ast.source(module, type_data.primitive.name.location)
-    of astTF.tArray:
-      let elem_type = ast.data.types.get[type_data.array.element]
-      let elem_name = ast.source(module, elem_type.primitive.name.location)
-      if type_data.array.length.isSome:
-        let length_expr = ast.data.expressions.get[type_data.array.length.get]
-        "[" & ast.source(module, length_expr.literal.value) & "]" & elem_name
-      else:
-        "[]" & elem_name
-    of astTF.tPtr:
-      let target_type = ast.data.types.get[type_data.`ptr`.target]
-      "*" & ast.source(module, target_type.primitive.name.location)
-    else: "void"
-  else: "void"
+  of astTF.eIdentifier : ast.type_name_identifier(module, id)
+  of astTF.eType       : ast.type_name_type(module, id)
+  of astTF.eAffix      : ast.type_name_affix(module, id)
+  else                 : "void"
+
 
 #_______________________________________
 # @section Statements
 #_____________________________
 func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let statement = ast.data.statements.get[id]
-  let binding = ast.data.bindings.get[statement.variable.id]
+  let binding   = ast.data.bindings.get[statement.variable.id]
 
   let is_mutable = binding.mutable.get(false)
   let is_private = binding.private.get(true)
-  let depth = ast.node_depth(statement.variable.depth)
+  let depth      = ast.node_depth(statement.variable.depth)
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
 
   if not is_private and depth == 0:
     Out.string(module, "pub ", output.Target.definition)
 
-  if is_mutable:
-    Out.string(module, "var ", output.Target.definition)
-  else:
-    Out.string(module, "const ", output.Target.definition)
+  case is_mutable
+  of on  : Out.string(module, "var ",   output.Target.definition)
+  of off : Out.string(module, "const ", output.Target.definition)
 
   if binding.name.isSome:
     let name = ast.source(module, binding.name.get.location)
@@ -340,9 +355,23 @@ func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :
     Out.string(module, ";\n", output.Target.definition)
 
 
+func statement_import_from (ast :astTF.Ast; module :astTF.Id; path :string; symbols :astTF.Id; Out :var Output) :void=
+  var current = some(symbols)
+  while current.isSome:
+    let symbol = ast.alias(current.get)
+    let symbol_name = ast.source(module, symbol.name.location)
+    let symbol_parts = symbol_name.split(".")
+    let const_name = if symbol.target.isSome: ast.source(module, symbol.target.get.location)
+                     else: symbol_parts[symbol_parts.len - 1]
+    Out.string(module, "pub const " & const_name & " = @import(\"" & path & "\")." & symbol_name & ";\n", output.Target.definition)
+    current = symbol.next
+
 func statement_import (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let S = ast.statement(id).`import`
   let path = ast.source(module, S.path)
+  if S.symbols.isSome:
+    ast.statement_import_from(module, path, S.symbols.get, Out)
+    return
   let parts = path.split("/")
   let name = parts[parts.len - 1]
   Out.string(module, "const " & name & " = @import(\"" & path & "\");\n", output.Target.definition)

@@ -129,6 +129,12 @@ describe "nonim.codegen.zig | Statement.Import":
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 
+  it "must generate pub const per symbol from from-import", proc() =
+    const Expected = expected("statement_import_from_symbols.zig")
+    let test_case = statement_import.from_symbols()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
 describe "nonim.codegen.zig | Format.Whitespace":
   it "must normalize whitespace between two procs", proc() =
     const Expected = expected("format_two_procs.zig")
