@@ -85,6 +85,14 @@ describe "nonim.minz | Procedures":
     let result = generate_zig(case_input("procedure_exported"))
     result.eq case_expected("procedure_exported")
 
+  it "must generate error union return type", proc() =
+    let result = generate_zig(case_input("procedure_error_union"))
+    result.eq case_expected("procedure_error_union")
+
+  it "must generate explicit error union return type", proc() =
+    let result = generate_zig(case_input("procedure_error_union_explicit"))
+    result.eq case_expected("procedure_error_union_explicit")
+
   it "must generate a function call expression", proc() =
     let result = generate_zig(case_input("expression_call"))
     result.eq case_expected("expression_call")

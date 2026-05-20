@@ -1,0 +1,2 @@
+proc main *() : !void=
+  return
