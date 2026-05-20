@@ -55,6 +55,10 @@ describe "nonim.minz | astTF Phase Landmarks":
     let code = execShellCmd("zig ast-check " & cases_dir/"phase0"/"expected.untyped.zig")
     code.eq 0
 
+  it "must generate a complete Phase 2 program", proc() =
+    let result = generate_zig(case_input("phase2"))
+    result.eq case_expected("phase2")
+
 describe "nonim.minz | Variables":
   it "must generate const from let binding", proc() =
     let result = generate_zig(case_input("variable"))
