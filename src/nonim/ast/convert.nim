@@ -1164,9 +1164,11 @@ proc statement_type (state :var State; node :PNode) =
           let field_name_str = field_name_node.name()
           if field_name_str.len == 0: continue
           let field_name_loc = state.name_add(field_name_str)
+          let field_is_exported = field_name_node.exported()
           let is_last_in_group = name_index == type_index - 1
           let field_binding = astTF.Binding(
             name: some(astTF.Identifier(location: field_name_loc)),
+            private: some(not field_is_exported),
             dataType: if is_last_in_group: field_type else: none(astTF.Id),
           )
           let field_id = state.ast.add_binding(field_binding)
@@ -1182,6 +1184,73 @@ proc statement_type (state :var State; node :PNode) =
       `object`: astTF.TypeObject(
         name: some(astTF.Identifier(location: name_loc)),
         fields: first_field,
+        private: some(not is_exported),
+      ),
+    ))
+    let statement_id = state.ast.add_statement(astTF.Statement(
+      kind: astTF.sType,
+      `type`: astTF.StatementType(id: type_id),
+    ))
+    state.statement_chain(statement_id)
+  elif body_node.kind == nkProcTy:
+    let params_node = body_node[0]
+    var first_argument = none(astTF.Id)
+    var previous_binding = none(astTF.Id)
+    if params_node.kind == nkFormalParams and params_node.safeLen > 1:
+      for param_index in 1 ..< params_node.safeLen:
+        let param_group = params_node[param_index]
+        if param_group.kind != nkIdentDefs: continue
+        let type_index = param_group.safeLen - 2
+        let type_node = param_group[type_index]
+        var param_type = none(astTF.Id)
+        if type_node.kind != nkEmpty:
+          param_type = some(state.expression_type(type_node))
+        for param_name_index in 0 ..< type_index:
+          let param_name_node = param_group[param_name_index]
+          let param_name_str = param_name_node.name()
+          if param_name_str.len == 0: continue
+          let is_last_in_group = param_name_index == type_index - 1
+          let param_name_loc = state.name_add(param_name_str)
+          let param_binding = astTF.Binding(
+            name: some(astTF.Identifier(location: param_name_loc)),
+            dataType: if is_last_in_group: param_type else: none(astTF.Id),
+          )
+          let binding_id = state.ast.add_binding(param_binding)
+          if first_argument.isNone:
+            first_argument = some(binding_id)
+          if previous_binding.isSome:
+            var prev = state.ast.binding(previous_binding.get)
+            prev.next = some(binding_id)
+            state.ast.data.bindings.get[previous_binding.get] = prev
+          previous_binding = some(binding_id)
+    var return_type = none(astTF.Id)
+    if params_node.kind == nkFormalParams and params_node.safeLen > 0:
+      let return_node = params_node[0]
+      if return_node.kind != nkEmpty:
+        return_type = some(state.expression_type(return_node))
+    let proc_data = astTF.Procedure(
+      name: some(astTF.Identifier(location: name_loc)),
+      private: some(not is_exported),
+      arguments: first_argument,
+      returnType: return_type,
+    )
+    let procedure_id = state.ast.add_procedure(proc_data)
+    let type_id = state.ast.add_type(astTF.Type(
+      kind: astTF.tProcedure,
+      procedure: astTF.TypeProcedure(id: procedure_id),
+    ))
+    let statement_id = state.ast.add_statement(astTF.Statement(
+      kind: astTF.sType,
+      `type`: astTF.StatementType(id: type_id),
+    ))
+    state.statement_chain(statement_id)
+  else:
+    let target_id = state.expression(body_node)
+    let type_id = state.ast.add_type(astTF.Type(
+      kind: astTF.tAlias,
+      alias: astTF.TypeAlias(
+        name: some(astTF.Identifier(location: name_loc)),
+        target: target_id,
         private: some(not is_exported),
       ),
     ))

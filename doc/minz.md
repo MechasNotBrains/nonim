@@ -175,12 +175,12 @@ pub fn main() !void {
 | Feature | minz source | Zig target | Status |
 |---|---|---|---|
 | Type: object | `type Vec2 = object` | `const Vec2 = struct {...};` | [x] |
-| Type: object fields | `x :int` | `x: i64,` | [ ] |
+| Type: object fields | `x :int` | `x: i64,` | [x] |
 | Type: enum | `type Dir = enum north, south` | `const Dir = enum { north, south };` | [ ] |
 | Type: enum values | `north = 0, south = 1` | `north = 0, south = 1` | [ ] |
-| Type: procedure | `proc (x :int) :int` | `fn (i64) i64` | [ ] |
-| Type: alias | `type Foo = int` | `const Foo = i64;` | [ ] |
-| Type: visibility | `type X* = object` | `pub const X = struct` | [ ] |
+| Type: procedure | `proc (x :int) :int` | `fn (i64) i64` | [x] |
+| Type: alias | `type Foo = int` | `const Foo = i64;` | [x] |
+| Type: visibility | `type X* = object` | `pub const X = struct` | [x] |
 | Type: union/packed | `type X {.packed.} = object` | `packed struct` | [ ] |
 
 ### Phase 4: Control Flow & Compound Expressions

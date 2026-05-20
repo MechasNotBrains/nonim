@@ -385,6 +385,8 @@ func statement_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
   let type_data = ast.data.types.get[statement.`type`.id]
   if type_data.kind == astTF.tObject:
     let obj = type_data.`object`
+    if obj.private.isSome and not obj.private.get:
+      Out.string(module, "pub ", output.Target.definition)
     Out.string(module, "const ", output.Target.definition)
     if obj.name.isSome:
       Out.string(module, ast.source(module, obj.name.get.location), output.Target.definition)
@@ -403,6 +405,61 @@ func statement_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
         Out.string(module, ",\n", output.Target.definition)
         current = field.next
     Out.string(module, "};\n", output.Target.definition)
+  elif type_data.kind == astTF.tProcedure:
+    let procedure = ast.data.procedures.get[type_data.procedure.id]
+    let is_private = procedure.private.get(true)
+    if not is_private:
+      Out.string(module, "pub ", output.Target.definition)
+    Out.string(module, "const ", output.Target.definition)
+    if procedure.name.isSome:
+      Out.string(module, ast.source(module, procedure.name.get.location), output.Target.definition)
+    Out.string(module, " = *const fn (", output.Target.definition)
+    if procedure.arguments.isSome:
+      var current = some(procedure.arguments.get)
+      var first = true
+      var param_types :seq[string]
+      var scan = some(procedure.arguments.get)
+      var pending_untyped = 0
+      while scan.isSome:
+        let binding = ast.data.bindings.get[scan.get]
+        if binding.dataType.isSome:
+          let resolved_type = ast.type_name(module, binding.dataType.get)
+          for untyped_index in 0 ..< pending_untyped:
+            param_types.add(resolved_type)
+          param_types.add(resolved_type)
+          pending_untyped = 0
+        else:
+          pending_untyped += 1
+        scan = binding.next
+      for untyped_index in 0 ..< pending_untyped:
+        param_types.add("i64")
+      var param_index = 0
+      while current.isSome:
+        let binding = ast.data.bindings.get[current.get]
+        if not first:
+          Out.string(module, ", ", output.Target.definition)
+        first = false
+        if binding.name.isSome:
+          Out.string(module, ast.source(module, binding.name.get.location), output.Target.definition)
+        Out.string(module, ": ", output.Target.definition)
+        Out.string(module, param_types[param_index], output.Target.definition)
+        current = binding.next
+        param_index += 1
+    Out.string(module, ") ", output.Target.definition)
+    let return_str = if procedure.returnType.isSome: ast.type_name(module, procedure.returnType.get)
+                     else: "void"
+    Out.string(module, return_str, output.Target.definition)
+    Out.string(module, ";\n", output.Target.definition)
+  elif type_data.kind == astTF.tAlias:
+    let alias = type_data.alias
+    if alias.private.isSome and not alias.private.get:
+      Out.string(module, "pub ", output.Target.definition)
+    Out.string(module, "const ", output.Target.definition)
+    if alias.name.isSome:
+      Out.string(module, ast.source(module, alias.name.get.location), output.Target.definition)
+    Out.string(module, " = ", output.Target.definition)
+    ast.expression(module, alias.target, Out)
+    Out.string(module, ";\n", output.Target.definition)
 
 
 func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=

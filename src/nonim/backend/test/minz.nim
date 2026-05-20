@@ -185,6 +185,26 @@ describe "nonim.minz | Types":
     let result = generate_zig(case_input("type_primitive"))
     result.eq case_expected("type_primitive")
 
+  it "must generate object fields with types", proc() =
+    let result = generate_zig(case_input("type_object_fields"))
+    result.eq case_expected("type_object_fields")
+
+  it "must generate object fields with visibility", proc() =
+    let result = generate_zig(case_input("type_object_field_visibility"))
+    result.eq case_expected("type_object_field_visibility")
+
+  it "must generate type alias", proc() =
+    let result = generate_zig(case_input("type_alias"))
+    result.eq case_expected("type_alias")
+
+  it "must generate procedure type", proc() =
+    let result = generate_zig(case_input("type_procedure"))
+    result.eq case_expected("type_procedure")
+
+  it "must generate pub for exported type", proc() =
+    let result = generate_zig(case_input("type_visibility"))
+    result.eq case_expected("type_visibility")
+
 describe "nonim.minz | Expressions":
   it "must generate array indexing", proc() =
     let result = generate_zig(case_input("expression_indexed"))
