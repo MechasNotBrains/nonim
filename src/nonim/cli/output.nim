@@ -8,14 +8,31 @@ import std/os
 # @deps nonim
 import ../cli
 import ../codegen/output
-from minibuild as B import build, format
+from minibuild as B import build, format, ReportMode, Dependency, Dependencies
 
 
 proc make_target *(options :Options; sources :seq[string]) :B.Target=
   var cfg = B.Config()
-  cfg.c.format.active = true
+  cfg.dir.src = ""
   cfg.dir.bin = options.dir.bin
-  result = B.target(B.Kind.Program, sources[0], options.output, sources, cfg)
+  if options.verbose: cfg.log.level = ReportMode.verbose
+  case options.backend
+  of Backend.minz, Backend.zig:
+    cfg.zig.format.active = true
+  else:
+    cfg.c.format.active = true
+  var flags :B.FlagsList
+  for flag in options.pass_c: flags.add(flag)
+  var deps :B.Dependencies
+  if options.backend in {Backend.minz, Backend.zig}:
+    for dep in options.dependencies:
+      for subdep in dep.subdeps:
+        flags.add("--dep")
+        flags.add(subdep)
+      flags.add("-M" & dep.name & "=" & dep.path)
+    for dep in options.dependencies:
+      deps.add(B.Dependency(name: dep.name, url: "", path: ""))
+  result = B.target(B.Kind.Program, sources[0], options.output.splitFile.name, sources, cfg, flags, deps)
 
 
 proc ext_src *(options :Options) :string=
@@ -59,6 +76,15 @@ proc sources_collect *(options :Options; output :Output) :seq[string]=
       result.add(options.dir.cache/name.changeFileExt(options.ext_src()))
 
 
+proc link_imports *(options :Options) =
+  let source_dir = options.input.absolutePath().parentDir()
+  for entry in walkDir(source_dir, relative=false):
+    if entry.kind != pcDir: continue
+    let dirname = entry.path.lastPathPart()
+    let link_path = options.dir.cache/dirname
+    if symlinkExists(link_path): removeFile(link_path)
+    createSymlink(entry.path, link_path)
+
 proc run *(options :Options; output :Output) =
   if options.input.len == 0:
     quit("nonim: no input file provided", 1)
@@ -67,5 +93,9 @@ proc run *(options :Options; output :Output) =
   options.write_output(output, trg)
   case options.command
   of Command.codegen: discard
-  of Command.compile: trg.build()
-  of Command.run:     trg.build(run = true)
+  of Command.compile:
+    if options.backend in {Backend.minz, Backend.zig}: options.link_imports()
+    trg.build()
+  of Command.run:
+    if options.backend in {Backend.minz, Backend.zig}: options.link_imports()
+    trg.build(run = true)
