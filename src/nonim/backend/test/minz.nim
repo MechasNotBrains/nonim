@@ -190,6 +190,10 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_group"))
     result.eq case_expected("expression_group")
 
+  it "must generate named constructor", proc() =
+    let result = generate_zig(case_input("expression_named_constructor"))
+    result.eq case_expected("expression_named_constructor")
+
 describe "nonim.minz | Passthrough":
   it "must emit raw code from emit pragma", proc() =
     let result = generate_zig(case_input("statement_passthrough"))

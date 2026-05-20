@@ -74,8 +74,11 @@ func expression_call (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var O
   let name_expr = ast.data.expressions.get[expression.call.name]
   let is_tuple = name_expr.kind == astTF.eIdentifier and
     ast.source(module, name_expr.identifier.name.location) == "."
-  let open  = if is_tuple: ".{" else: "("
-  let close = if is_tuple: "}"  else: ")"
+  let has_named_args = expression.call.arguments.isSome and
+    ast.data.bindings.get[expression.call.arguments.get].name.isSome
+  let is_constructor = has_named_args and not is_tuple
+  let open  = if is_tuple: ".{" elif is_constructor: "{" else: "("
+  let close = if is_tuple or is_constructor: "}" else: ")"
   if not is_tuple:
     ast.expression(module, expression.call.name, Out)
   Out.string(module, open, output.Target.definition)
@@ -87,6 +90,10 @@ func expression_call (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var O
       if not first:
         Out.string(module, ", ", output.Target.definition)
       first = false
+      if binding.name.isSome:
+        Out.string(module, ".", output.Target.definition)
+        Out.string(module, ast.source(module, binding.name.get.location), output.Target.definition)
+        Out.string(module, "= ", output.Target.definition)
       if binding.value.isSome:
         ast.expression(module, binding.value.get, Out)
       current = binding.next

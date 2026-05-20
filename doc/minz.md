@@ -164,7 +164,7 @@ pub fn main() !void {
 | Branch: if/elif/else | `if x: ... elif y: ... else: ...` | `if (x) {...} else if (y) {...} else {...}` | [x] |
 | Branch: case/of | `case x of 1: ... of 2: ...` | `switch (x) { 1 => ..., 2 => ... }` | [ ] |
 | Expression: block | `block: ...` | `blk: { ... }` | [ ] |
-| Named constructor | `Thing(x: 1)` | `Thing{.x= 1}` | [ ] |
+| Named constructor | `Thing(x: 1)` | `Thing{.x= 1}` | [x] |
 | Dot access | `obj.field` | `obj.field` | [x] |
 | Compound assign | `x += 1` | `x += 1;` | [x] |
 | Expression: group | `(x + y)` | `(x + y)` | [x] |

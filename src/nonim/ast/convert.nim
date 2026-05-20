@@ -396,6 +396,15 @@ proc expression_obj_constr (state :var State; node :PNode) :astTF.Id=
       prev.next = some(binding_id)
       state.ast.data.bindings.get[previous_field.get] = prev
     previous_field = some(binding_id)
+  if node[0].kind != nkEmpty:
+    let function_id = state.expression(node[0])
+    return state.ast.add_expression(astTF.Expression(
+      kind: astTF.eCall,
+      call: astTF.ExpressionCall(
+        name: function_id,
+        arguments: first_field,
+      ),
+    ))
   state.ast.add_expression(astTF.Expression(
     kind: astTF.eObject,
     `object`: astTF.ExpressionObject(
