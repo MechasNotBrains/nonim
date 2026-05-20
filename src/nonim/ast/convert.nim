@@ -935,6 +935,14 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
       expression: astTF.StatementExpression(id: call_id, depth: depth_id),
     ))
 
+  proc body_infix (state :var State; child :PNode) :astTF.Id=
+    let infix_id = state.expression_infix(child)
+    let depth_id = some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
+    state.ast.add_statement(astTF.Statement(
+      kind: astTF.sExpression,
+      expression: astTF.StatementExpression(id: infix_id, depth: depth_id),
+    ))
+
   proc body_statement (state :var State; child :PNode) =
     let statement_id = case child.kind
       of nkReturnStmt, nkBreakStmt, nkContinueStmt, nkDiscardStmt, nkDefer, nkTryStmt:
@@ -945,6 +953,8 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
         state.body_while(child)
       of nkAsgn:
         state.body_assignment(child)
+      of nkInfix:
+        state.body_infix(child)
       of nkCall, nkCommand:
         state.body_call(child)
       of nkVarSection, nkLetSection, nkConstSection:

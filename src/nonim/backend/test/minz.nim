@@ -144,6 +144,10 @@ describe "nonim.minz | Statements":
     let result = generate_zig(case_input("statement_defer"))
     result.eq case_expected("statement_defer")
 
+  it "must generate compound assignment", proc() =
+    let result = generate_zig(case_input("statement_compound_assign"))
+    result.eq case_expected("statement_compound_assign")
+
 describe "nonim.minz | Types":
   it "must generate a struct from object type", proc() =
     let result = generate_zig(case_input("type_object"))

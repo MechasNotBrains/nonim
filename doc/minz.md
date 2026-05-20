@@ -166,7 +166,7 @@ pub fn main() !void {
 | Expression: block | `block: ...` | `blk: { ... }` | [ ] |
 | Named constructor | `Thing(x: 1)` | `Thing{.x= 1}` | [ ] |
 | Dot access | `obj.field` | `obj.field` | [x] |
-| Compound assign | `x += 1` | `x += 1;` | [ ] |
+| Compound assign | `x += 1` | `x += 1;` | [x] |
 | Expression: group | `(x + y)` | `(x + y)` | [x] |
 | Statement: alias | `const A = B` | `const A = B;` | N/A (no syntax in minz) |
 
