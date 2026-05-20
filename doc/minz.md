@@ -97,6 +97,115 @@ pub fn main() !void {
 
 ---
 
+## minz — Feature Phases
+
+### Phase 0: Turing-Complete Core
+
+| Feature | minz source | Zig target | Status |
+|---|---|---|---|
+| Variable: let | `let x :int= 42` | `const x: i64 = 42;` | [x] |
+| Variable: var | `var x :int= 0` | `var x: i64 = 0;` | [x] |
+| Variable: exported | `let x* :int= 42` | `pub const x: i64 = 42;` | [x] |
+| Variable: multiple bindings | `let a, b :int= 0` | `const a: isize = 0; const b: isize = 0;` | [x] |
+| Procedure: forward decl | `proc add (x, y :int) :int` | `fn add (x: i64, y: i64) i64;` | [x] |
+| Procedure: body | `proc add (...) :int= return x + y` | `fn add (...) i64 { return x + y; }` | [x] |
+| Procedure: exported | `proc add* (...)` | `pub fn add (...)` | [x] |
+| Expression: integer literal | `42` | `42` | [x] |
+| Expression: identifier | `x` | `x` | [x] |
+| Expression: binary affix | `x + y` | `x + y` | [x] |
+| Expression: unary prefix | `-x` / `not x` | `-x` / `!x` | [x] |
+| Expression: indexed | `arr[i]` | `arr[i]` | [x] |
+| Type: array | `array[10, int]` | `[10]i64` | [x] |
+| Expression: conditional | `if x < 0: ...` | `if (x < 0) { ... }` | [x] |
+| Expression: loop | `while x > 0: ...` | `while (x > 0) { ... }` | [x] |
+| Statement: expression | `x = x + 1` | `x = x + 1;` | [x] |
+| Expression: function call | `add(1, 2)` | `add(1, 2)` | [x] |
+| Statement: keyword return | `return x` | `return x;` | [x] |
+| Statement: keyword discard | `discard expr` | `_ = expr;` | [x] |
+| Statement: keyword break | `break` | `break;` | [x] |
+| Statement: keyword continue | `continue` | `continue;` | [x] |
+| Type: primitive | `int` / `float32` | `isize` / `f32` | [x] |
+| Type: cstring | `cstring` | `[:0]const u8` | [x] |
+
+### Phase 1: Practical Programs
+
+| Feature | minz source | Zig target | Status |
+|---|---|---|---|
+| Procedure: private | no `*` | no `pub` | [x] |
+| Type: ptr | `ptr int` | `*i64` | [x] |
+| Literal: float | `3.14` | `3.14` | [x] |
+| Literal: string | `"hello"` | `"hello"` | [x] |
+| Literal: char | `'a'` | `'a'` | [x] |
+| Literal: bool | `true` / `false` | `true` / `false` | [x] |
+| Literal: nil | `nil` | `null` | [x] |
+| Statement: passthrough | `{.emit: "....".}` | `....` | [x] |
+| Statement: comment | `# comment` / `## doc` | `// comment` / `/// doc` | [x] |
+| Statement: module doc | `##! overview` | `//! overview` | [x] |
+| Format: whitespace | normalization | normalization | [x] |
+| Import: simple | `import @std` | `const std = @import("std");` | [x] |
+| Import: local file | `import name` | `const name = @import("./name.zig");` | [x] |
+| Import: from symbols | `from ./zig/core.zig import Game` | `pub const Game = @import("./zig/core.zig").Game;` | [x] |
+| Import: from alias | `from @jera import Engine as Jera` | `pub const Jera = @import("jera").Engine;` | [x] |
+| Import: module prefix | `import @name` → module, `import name` → local file | converter resolves `@` prefix | [x] |
+| Include: recursive | `include module` | contents inlined (preprocessor) | [x] |
+| Include: global | `include @file.zig` | contents inlined (postprocess) | [x] |
+| Include: local | `include path/file.zig` | contents inlined (postprocess) | [x] |
+| Keyword: defer | `defer: arena.deinit()` | `defer arena.deinit();` | [x] |
+| Keyword: try prefix | `try: Jera.create(...)` | `try Jera.create(...)` | [x] |
+| Error union return | `proc main *() : !void=` | `pub fn main () !void {` | [x] |
+| Error union explicit | `proc main *() : anyerror!void=` | `pub fn main () anyerror!void {` | [x] |
+| `@` prefix builtins | `@This()` | `@This()` | [x] |
+| Anonymous struct literal | `.(field: val)` | `.{.field= val}` | [x] |
+
+### Phase 2: Branches & Zig-Specific
+
+| Feature | minz source | Zig target | Status |
+|---|---|---|---|
+| Branch: if/elif/else | `if x: ... elif y: ... else: ...` | `if (x) {...} else if (y) {...} else {...}` | [x] |
+| Branch: case/of | `case x of 1: ... of 2: ...` | `switch (x) { 1 => ..., 2 => ... }` | [ ] |
+| Expression: block | `block: ...` | `blk: { ... }` | [ ] |
+| Named constructor | `Thing(x: 1)` | `Thing{.x= 1}` | [ ] |
+| Dot access | `obj.field` | `obj.field` | [x] |
+| Compound assign | `x += 1` | `x += 1;` | [ ] |
+| Expression: group | `(x + y)` | `(x + y)` | [x] |
+| Statement: alias | `const A = B` | `const A = B;` | N/A (no syntax in minz) |
+
+### Phase 3: Type System
+
+| Feature | minz source | Zig target | Status |
+|---|---|---|---|
+| Type: object | `type Vec2 = object` | `const Vec2 = struct {...};` | [x] |
+| Type: object fields | `x :int` | `x: i64,` | [ ] |
+| Type: enum | `type Dir = enum north, south` | `const Dir = enum { north, south };` | [ ] |
+| Type: enum values | `north = 0, south = 1` | `north = 0, south = 1` | [ ] |
+| Type: procedure | `proc (x :int) :int` | `fn (i64) i64` | [ ] |
+| Type: alias | `type Foo = int` | `const Foo = i64;` | [ ] |
+| Type: visibility | `type X* = object` | `pub const X = struct` | [ ] |
+| Type: union/packed | `type X {.packed.} = object` | `packed struct` | [ ] |
+
+### Phase 4: Control Flow & Compound Expressions
+
+| Feature | minz source | Zig target | Status |
+|---|---|---|---|
+| Expression: array literal | `[1, 2, 3]` | `.{1, 2, 3}` | [ ] |
+| Expression: object literal | `Vec2(x: 1, y: 2)` | `.{.x=1, .y=2}` | [ ] |
+| Expression: range | `0..10` | `0..10` | [ ] |
+| Loop: for | `for i in 0..<10:` | `for (0..10) \|i\|` | [ ] |
+| If expression | `let x = if c: a else: b` | `const x = if (c) a else b` | [ ] |
+
+### Phase 5: Generics & Advanced
+
+| Feature | minz source | Zig target | Status |
+|---|---|---|---|
+| Type: distinct | `type Foo = distinct int` | `const Foo = enum { _ };` | [ ] |
+| Generics: procedure | `proc foo[T](x :T)` | `fn foo(comptime T: type, x: T)` | [ ] |
+| Generics: object | `type Vec[T] = object` | `fn Vec(comptime T: type) type` | [ ] |
+| Generics: instantiation | `Vec[int]` | `Vec(i64)` | [ ] |
+| Pragma: on statement | `proc x() {.cdecl.}` | `export` / `inline` | [ ] |
+| Pragma: on binding | `x {.volatile.}` | `@volatileCast(x)` | [ ] |
+
+---
+
 ## NOTE: ObjectConstructors
 Thing(name: 42) and .(name: 42) already go through the same codepath (expression_obj_constr).
 Nim parses both as nkObjConstr. The difference is that node[0]: nkIdent "Thing" vs nkEmpty for the .() form.
