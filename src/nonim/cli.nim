@@ -6,6 +6,7 @@
 # @deps std
 import std/os
 import std/parseopt
+from std/strutils import find, split
 
 
 type Backend *{.pure.}= enum
@@ -25,13 +26,15 @@ type Dir * = object
   code  *:string= ""
 
 type Options * = object
-  backend  *:Backend
-  command  *:Command
-  input    *:string
-  output   *:string
-  dir      *:Dir
-  verbose  *:bool
-  quiet    *:bool
+  backend      *:Backend
+  command      *:Command
+  input        *:string
+  output       *:string
+  dir          *:Dir
+  verbose      *:bool
+  quiet        *:bool
+  pass_c       *:seq[string]
+  dependencies *:seq[tuple[name: string, subdeps: seq[string], path: string]]
 
 
 proc options_parse *(args :seq[string]= commandLineParams(); default_backend :Backend= Backend.cleanc) :Options=
@@ -67,6 +70,24 @@ proc options_parse *(args :seq[string]= commandLineParams(); default_backend :Ba
         of "cleanc": result.backend = Backend.cleanc
         of "zig":    result.backend = Backend.zig
         else: discard
+      of "passC":      result.pass_c.add(parser.val)
+      of "dependency":
+        let name_sep = parser.val.find(':')
+        if name_sep > 0:
+          let dep_name = parser.val[0 ..< name_sep]
+          let rest = parser.val[name_sep+1 .. ^1]
+          let bracket_open = rest.find('[')
+          let bracket_close = rest.find(']')
+          if bracket_open >= 0 and bracket_close > bracket_open:
+            let subdep_str = rest[bracket_open+1 ..< bracket_close]
+            var subdeps :seq[string]
+            if subdep_str.len > 0:
+              for part in subdep_str.split(','): subdeps.add(part)
+            let path_start = bracket_close + 2
+            let dep_path = rest[path_start .. ^1]
+            result.dependencies.add((name: dep_name, subdeps: subdeps, path: dep_path))
+          else:
+            result.dependencies.add((name: dep_name, subdeps: @[], path: rest))
       else: discard
     of cmdArgument:
       case positional_index
