@@ -5,10 +5,15 @@
 #_______________________________________________________________|
 # @deps std
 import std/os
+from std/sets import HashSet, initHashSet, containsOrIncl, contains
+from std/strutils import startsWith, splitLines, strip
 # @deps nonim
 import ../cli
 import ../codegen/output
+import ../backend/includes
 from minibuild as B import build, format, ReportMode, Dependency, Dependencies
+
+type GenerateProc * = proc (options :Options) :Output {.nimcall.}
 
 
 proc make_target *(options :Options; sources :seq[string]) :B.Target=
@@ -84,9 +89,63 @@ proc link_imports *(options :Options) =
     if symlinkExists(link_path): removeFile(link_path)
     createSymlink(entry.path, link_path)
 
-proc run *(options :Options; output :Output) =
+proc source_ext *(backend :Backend) :string=
+  ## Source extension a folder-codegen pass collects for each backend.
+  ## `.nim` is intentionally excluded: it is not a minz/minc input.
+  case backend
+  of Backend.minc: ".cm"
+  of Backend.minz: ".zm"
+  else:            ""
+
+
+proc scan_includes (file :string; merged :var HashSet[system.string]) =
+  ## Records every file pulled in via `include` (transitively) so the folder
+  ## driver can skip emitting standalone output for merged sources.
+  if not fileExists(file): return
+  let base = file.parentDir()
+  for raw in readFile(file).splitLines():
+    let line = raw.strip()
+    if not line.startsWith("include "): continue
+    var path = line[8 .. ^1].strip()
+    if path.startsWith("@"): path = path[1 .. ^1]
+    if path.len == 0: continue
+    let resolved = includes.resolveFile(path, base, includes.sourceExtensions)
+    if resolved.len > 0 and not merged.containsOrIncl(resolved):
+      scan_includes(resolved, merged)
+
+
+proc run_folder (options :Options; generate :GenerateProc) =
+  let extension  = options.backend.source_ext()
+  let out_ext    = options.ext_src()
+  let input_root = options.input.absolutePath()
+  let out_root   = if options.output.len > 0 and options.output.absolutePath() != input_root: options.output
+                   else: options.input/options.dir.bin
+  var files :seq[system.string]
+  for path in walkDirRec(options.input):
+    if path.splitFile.ext == extension: files.add path.absolutePath()
+  var merged = initHashSet[system.string]()
+  for file in files: scan_includes(file, merged)
+  for file in files:
+    if file in merged: continue
+    var per_file = options
+    per_file.input = file
+    let relative = file.relativePath(input_root)
+    let out_file = out_root/relative.changeFileExt(out_ext)
+    createDir(out_file.parentDir())
+    let output = generate(per_file)
+    if output.modules.len == 0 or output.modules[0].definitions.len == 0: continue
+    writeFile(out_file, output.modules[0].definitions)
+    let trg = per_file.make_target(@[out_file])
+    trg.format(out_file)
+
+
+proc run *(options :Options; generate :GenerateProc) =
   if options.input.len == 0:
     quit("nonim: no input file provided", 1)
+  if options.backend in {Backend.minz, Backend.minc} and dirExists(options.input):
+    options.run_folder(generate)
+    return
+  let output = generate(options)
   let sources = options.sources_collect(output)
   let trg = options.make_target(sources)
   options.write_output(output, trg)

@@ -29,5 +29,5 @@ proc generate *(options :Options) :Output=
 
 
 proc run *(options :Options) =
-  cli_output.run(options, generate(options))
+  cli_output.run(options, generate)
 
