@@ -167,6 +167,16 @@ proc exported (node :PNode) :bool=
   if node.kind == nkSym: return sfExported in node.sym.flags
   return false
 
+proc is_type_block (node :PNode) :bool=
+  ## Detects the `block @keyword: <body>` form that minz uses to write a type
+  ## expression as a value (Nim rejects `const a = struct = ...`).
+  if node.kind != nkBlockStmt: return false
+  if node.safeLen < 2 or node[0].kind != nkEmpty: return false
+  let body = node[1]
+  if body.kind != nkStmtList or body.safeLen == 0: return false
+  let head = body[0]
+  return head.kind == nkPrefix and head.safeLen > 1 and head[0].name() == "@"
+
 
 #_______________________________________
 # @section Expressions
@@ -490,8 +500,71 @@ proc expression_try (state :var State; node :PNode) :astTF.Id=
   ))
 
 
+proc expression_type_block (state :var State; node :PNode) :astTF.Id=
+  ## `block @keyword: <decls>` is the minz spelling for a type expression used as a
+  ## value. `@keyword` becomes the type's keyword (struct/enum/...) and the indented
+  ## body becomes its members. Unlike `type X = object`, the body is a declaration
+  ## list (a namespace), not a record field list.
+  let body_list  = node[1]
+  let head       = body_list[0]
+  let keyword_loc = state.name_add(head[1].name())
+  var first_member = none(astTF.Id)
+  var previous_member = none(astTF.Id)
+  if head.safeLen > 2:
+    for section in head[2]:
+      if section.kind notin {nkVarSection, nkLetSection, nkConstSection}: continue
+      let is_mutable = section.kind == nkVarSection
+      let is_runtime = section.kind == nkLetSection
+      for definition in section:
+        if definition.kind notin {nkIdentDefs, nkConstDef}: continue
+        let type_node  = definition[^2]
+        let value_node = definition[^1]
+        let name_count = definition.safeLen - 2
+        var data_type = none(astTF.Id)
+        if type_node.kind != nkEmpty:
+          data_type = some(state.expression_type(type_node))
+        var value = none(astTF.Id)
+        if value_node.kind != nkEmpty:
+          value = some(state.expression(value_node))
+        for name_index in 0 ..< name_count:
+          let name_node = definition[name_index]
+          let name_str  = name_node.name()
+          if name_str.len == 0: continue
+          let member_loc = state.name_add(name_str)
+          let member_binding = astTF.Binding(
+            name     : some(astTF.Identifier(location: member_loc)),
+            private  : some(not name_node.exported()),
+            mutable  : some(is_mutable),
+            runtime  : some(is_runtime),
+            dataType : data_type,
+            value    : value,
+          )
+          let member_id = state.ast.add_binding(member_binding)
+          if first_member.isNone:
+            first_member = some(member_id)
+          if previous_member.isSome:
+            var prev = state.ast.binding(previous_member.get)
+            prev.next = some(member_id)
+            state.ast.data.bindings.get[previous_member.get] = prev
+          previous_member = some(member_id)
+  let type_id = state.ast.add_type(astTF.Type(
+    kind: astTF.tObject,
+    `object`: astTF.TypeObject(
+      keyword : some(astTF.Identifier(location: keyword_loc)),
+      fields  : first_member,
+    ),
+  ))
+  state.ast.add_expression(astTF.Expression(
+    kind   : astTF.eType,
+    `type` : astTF.ExpressionType(id: type_id),
+  ))
+
+
 proc expression (state :var State; node :PNode) :astTF.Id=
   case node.kind
+  of nkBlockStmt:
+    if node.is_type_block(): return state.expression_type_block(node)
+    return state.expression_identifier("")
   of SomeLit:                      state.expression_literal(node)
   of nkSym:
     let name = node.sym.name.s

@@ -23,6 +23,7 @@ const Tab = "  "
 func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
+func type_name (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string
 
 func expression_identifier (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
@@ -154,6 +155,39 @@ func expression_object (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var
     current = field.next
   Out.string(module, "}", output.Target.definition)
 
+func expression_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
+  let type_data = ast.data.types.get[expr.`type`.id]
+  if type_data.kind != astTF.tObject:
+    Out.string(module, ast.type_name(module, expr.`type`.id), output.Target.definition)
+    return
+  let obj = type_data.`object`
+  let keyword = if obj.keyword.isSome: ast.source(module, obj.keyword.get.location) else: "struct"
+  Out.string(module, keyword & " {\n", output.Target.definition)
+  var current = obj.fields
+  while current.isSome:
+    let member = ast.data.bindings.get[current.get]
+    Out.string(module, Tab, output.Target.definition)
+    let is_field = member.dataType.isSome and member.value.isNone
+    if is_field:
+      if member.name.isSome:
+        Out.string(module, ast.source(module, member.name.get.location), output.Target.definition)
+      Out.string(module, ": " & ast.type_name(module, member.dataType.get) & ",\n", output.Target.definition)
+    else:
+      if member.private.isSome and not member.private.get:
+        Out.string(module, "pub ", output.Target.definition)
+      Out.string(module, (if member.mutable.get(false): "var " else: "const "), output.Target.definition)
+      if member.name.isSome:
+        Out.string(module, ast.source(module, member.name.get.location), output.Target.definition)
+      if member.dataType.isSome:
+        Out.string(module, ": " & ast.type_name(module, member.dataType.get), output.Target.definition)
+      if member.value.isSome:
+        Out.string(module, " = ", output.Target.definition)
+        ast.expression(module, member.value.get, Out)
+      Out.string(module, ";\n", output.Target.definition)
+    current = member.next
+  Out.string(module, "}", output.Target.definition)
+
 func expression_group (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
   Out.string(module, "(", output.Target.definition)
@@ -171,6 +205,7 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Outpu
   of astTF.eKeyword:    ast.expression_keyword(module, id, Out)
   of astTF.eObject:     ast.expression_object(module, id, Out)
   of astTF.eGroup:      ast.expression_group(module, id, Out)
+  of astTF.eType:       ast.expression_type(module, id, Out)
   else: assert false, "codegen.zig: unsupported expression kind: " & $expression.kind
 
 func expression_loop (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
@@ -237,7 +272,6 @@ func expression_conditional (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; dep
 #_______________________________________
 # @section Type Mapping
 #_____________________________
-func type_name (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string
 
 func type_name_identifier (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
   let expression = ast.data.expressions.get[id]

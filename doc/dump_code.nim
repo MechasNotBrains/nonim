@@ -2,12 +2,12 @@
 #  mmath  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0 :
 #:________________________________________________________
 const float * = @This()
-const `_This` = @This();
+const This = @This();
 # @deps std
 import std
 # @deps mmath
 const mmath = block @struct:
-  const float = _This
+  const float = This
 
 
 #______________________________________

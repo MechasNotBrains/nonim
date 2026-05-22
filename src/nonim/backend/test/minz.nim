@@ -222,6 +222,10 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_as_cast"))
     result.eq case_expected("expression_as_cast")
 
+  it "must generate a type expression from block @struct", proc() =
+    let result = generate_zig(case_input("expression_type_block"))
+    result.eq case_expected("expression_type_block")
+
   it "must generate @ prefix for Zig builtins", proc() =
     let result = generate_zig(case_input("expression_at_prefix"))
     result.eq case_expected("expression_at_prefix")
