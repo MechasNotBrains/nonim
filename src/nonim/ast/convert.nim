@@ -988,7 +988,7 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
     let is_mutable = child.kind == nkVarSection
     let is_runtime = child.kind in {nkVarSection, nkLetSection}
     for definition in child:
-      if definition.kind != nkIdentDefs: continue
+      if definition.kind notin {nkIdentDefs, nkConstDef}: continue
       let name_node = definition[0]
       let type_node = definition[^2]
       let value_node = definition[^1]

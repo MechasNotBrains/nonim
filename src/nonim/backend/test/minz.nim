@@ -93,6 +93,10 @@ describe "nonim.minz | Procedures":
     let result = generate_zig(case_input("procedure_inline"))
     result.eq case_expected("procedure_inline")
 
+  it "must generate a const binding inside a procedure body", proc() =
+    let result = generate_zig(case_input("procedure_body_const"))
+    result.eq case_expected("procedure_body_const")
+
   it "must carry the extern pragma onto the fn", proc() =
     let result = generate_zig(case_input("procedure_extern"))
     result.eq case_expected("procedure_extern")
