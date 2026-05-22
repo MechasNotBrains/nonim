@@ -422,6 +422,15 @@ proc expression_obj_constr (state :var State; node :PNode) :astTF.Id=
 proc expression_prefix (state :var State; node :PNode) :astTF.Id=
   let operator_node = node[0]
   let right_node = node[1]
+  # `@as(T, val)` parses as nkPrefix(@, nkPrefix(as, nkTupleConstr)) because `as`
+  # is a Nim keyword. Lower the `as(...)` part to a call so it renders `as(T, val)`,
+  # which the surrounding `@` affix wraps into the Zig builtin `@as(T, val)`.
+  if operator_node.name() == "as" and right_node.kind in {nkTupleConstr, nkPar}:
+    var call_node = newNodeI(nkCall, node.info)
+    call_node.add operator_node
+    for argument_index in 0 ..< right_node.safeLen:
+      call_node.add right_node[argument_index]
+    return state.expression_call(call_node)
   let operator_loc = state.name_add(operator_node.name())
   let right_id = state.expression(right_node)
   state.ast.add_expression(astTF.Expression(
