@@ -48,6 +48,20 @@ describe "nonim.codegen.zig | Expression.Affix":
     test_case.ast.expression(test_case.module, test_case.id, Out)
     Out.modules[test_case.module].definitions.eq Expected
 
+  it "must generate prefix not as !", proc() =
+    const Expected = expected("expression_affix_prefix_not.zig")
+    var test_case = expression_affix.prefix("not")
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Out)
+    Out.modules[test_case.module].definitions.eq Expected
+
+  it "must leave an infix not untouched", proc() =
+    const Expected = expected("expression_affix_infix_not.zig")
+    var test_case = expression_affix.binary("not")
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Out)
+    Out.modules[test_case.module].definitions.eq Expected
+
 describe "nonim.codegen.zig | Expression.Call":
   it "must generate a call with arguments", proc() =
     const Expected = expected("expression_call_with_arguments.zig")

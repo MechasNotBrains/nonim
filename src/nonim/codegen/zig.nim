@@ -60,7 +60,10 @@ func translate_operator (operator :string) :string=
 func expression_affix (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
   let is_prefix = expression.affix.left.isNone
-  let op = translate_operator(ast.source(module, expression.affix.operator))
+  let raw_operator = ast.source(module, expression.affix.operator)
+  # Prefix `not` is Zig's `!`; an infix `not` (eg. `a not b`) is left untouched.
+  let op = if is_prefix and raw_operator == "not": "!"
+           else: translate_operator(raw_operator)
   let spaced = op != "."
   if expression.affix.left.isSome:
     ast.expression(module, expression.affix.left.get, Out)

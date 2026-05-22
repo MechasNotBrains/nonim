@@ -1,39 +1,65 @@
-#:________________________________________________________
-#  mmath  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0 :
-#:________________________________________________________
-const float * = @This()
-const This = @This();
+# 3D math debug visualizer
+const debug * = @This()
 # @deps std
 import @std
-# @deps mmath
-const mmath = block @struct:
-  const float = This
+# @deps debug
+from @minirender import Ui
 
 
 #______________________________________
-# @section Constants
+# @section Math Types
 #____________________________
-from ./base import Epsilon
+const vec4 = Vec4.create
+from @minirender import Vec4
+from @minirender import BiVec
+from @minirender import Rotor
+from @minirender import Mat4
 
 
 #______________________________________
-# @section Value Checks
+# @section Renderer
 #____________________________
-proc zero *(N :anytype) :bool {.inline.}= return @abs(N) < mmath.float.Epsilon
-proc eq   *(N :anytype, val :anytype) :bool {.inline.}= return @abs(N-val) < mmath.float.Epsilon
+from @minirender import Color
+from @minirender import Renderer
+const create * = debug.Renderer.create;
 
 
-const trunc * = mmath.float.truncate
+#______________________________________
+# @section Entry Point
 #____________________________
-## @descr Removes all decimals from floating point number {@arg val} after {@arg N} decimals.
-## @warning
-##  The given {@arg T} float type MUST be able to hold all decimals of {@arg val},
-##  or there will be imprecision errors.
-##  These errors can break determinism, and make the value be rounded up.
-##  eg: (f32, 0.100099999999, 4) will become `0.1001`, and not `0.1000` as it would be expected.
-proc truncate *(T :typedesc, val :T, N :usize) :T {.inline.}=
-  let factor     = @as(T, @floatFromInt(std.math.pow(@TypeOf(N), 10, N)))
-  let scaled     = @abs(val) * factor
-  let correction = @max(scaled, 1.0) * std.math.floatEps(T) * 4
-  return std.math.copysign(@trunc(scaled + correction) / factor, val)
+proc main *() : !void=
+  let render = try: debug.create(std.heap.page_allocator)
+  defer: render.destroy()
+
+  var ui = debug.Ui( .(
+    .(name: "angle",    kind: .float, default_val: std.math.pi / 2.0,  min:  0.0, max: std.math.tau ),
+    .(name: "velocity", kind: .vec3,  default_val: .( 2.0, 0.0, 0.5 ), min: -5.0, max: 5.0 ),
+    .(name: "rotor",    kind: .bivec, default_val: .( 1.0, 0.0, 0.0 ), min: -1.0, max: 1.0 ),
+  )).init();
+
+  while not render.close():
+    render.sync()
+    render.clear(0.12, 0.1, 0.1)
+    ui.update(render)
+
+    render.begin()
+    let vp      = render.camera.viewProjection(960.0 / 540.0)
+    render.wvp  = vp.wvp
+    render.view = vp.view
+    render.grid(5.0, 1.0)
+    render.axes(1.0)
+
+    let velocity       = ui.getVec3("velocity")
+    let rotation_plane = ui.getBivec("rotor")
+    let rotation_angle = ui.getFloat("angle")
+
+    let rot = Rotor.fromAnglePlane(rotation_angle, rotation_plane.normalize())
+    render.rotor(rot, velocity, "velocity", Color.gray)
+    render.rotor_basis(rot, velocity, Color.cyan_025, Color.magenta_025, Color.yellow_025)
+
+    render.hud()
+    render.end()
+
+    ui.draw(render)
+    render.present()
 

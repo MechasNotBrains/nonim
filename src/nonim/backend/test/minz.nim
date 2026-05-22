@@ -226,6 +226,22 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_operator"))
     result.eq case_expected("expression_operator")
 
+  it "must translate prefix not to !", proc() =
+    let result = generate_zig(case_input("expression_prefix_not"))
+    result.eq case_expected("expression_prefix_not")
+
+  it "must generate a leading-dot enum literal", proc() =
+    let result = generate_zig(case_input("expression_enum_literal"))
+    result.eq case_expected("expression_enum_literal")
+
+  it "must generate an anonymous tuple from positional .()", proc() =
+    let result = generate_zig(case_input("expression_anon_tuple"))
+    result.eq case_expected("expression_anon_tuple")
+
+  it "must generate nested anonymous constructors", proc() =
+    let result = generate_zig(case_input("expression_anon_tuple_nested"))
+    result.eq case_expected("expression_anon_tuple_nested")
+
   it "must generate @as cast as a builtin call", proc() =
     let result = generate_zig(case_input("expression_as_cast"))
     result.eq case_expected("expression_as_cast")
