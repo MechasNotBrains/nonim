@@ -123,8 +123,15 @@ proc translate_type_zig (state :var State; nim_type :string) :string=
     of "void":     "void"
     else:          nim_type
 
+proc translate_type_untyped (state :var State; nim_type :string) :string=
+  ## Untyped backends pass type names through verbatim, except for Nim reserved
+  ## keywords that have no valid identifier form and must map to the target's
+  ## spelling (eg. `typedesc` → Zig `type`).
+  if state.target == Language.Zig and nim_type == "typedesc": return "type"
+  return nim_type
+
 proc translate_type (state :var State; nim_type :string) :string=
-  if not state.typed: return nim_type
+  if not state.typed: return state.translate_type_untyped(nim_type)
   result = case state.target
     of Language.C   : state.translate_type_c(nim_type)
     of Language.Zig : state.translate_type_zig(nim_type)

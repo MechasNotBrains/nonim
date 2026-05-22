@@ -205,6 +205,10 @@ describe "nonim.minz | Types":
     let result = generate_zig(case_input("type_visibility"))
     result.eq case_expected("type_visibility")
 
+  it "must translate typedesc to type", proc() =
+    let result = generate_zig(case_input("type_typedesc"))
+    result.eq case_expected("type_typedesc")
+
 describe "nonim.minz | Expressions":
   it "must generate array indexing", proc() =
     let result = generate_zig(case_input("expression_indexed"))
