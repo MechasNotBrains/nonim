@@ -167,6 +167,17 @@ proc exported (node :PNode) :bool=
   if node.kind == nkSym: return sfExported in node.sym.flags
   return false
 
+proc alias_pragma_value (node :PNode) :PNode=
+  ## For an object field name node, returns the value `V` of an `{.alias: V.}`
+  ## pragma if present, else nil. The field then becomes a `const name = V;`.
+  if node.kind != nkPragmaExpr or node.safeLen < 2: return nil
+  let pragma = node[1]
+  if pragma.kind != nkPragma: return nil
+  for entry in pragma:
+    if entry.kind == nkExprColonExpr and entry.safeLen >= 2 and entry[0].name() == "alias":
+      return entry[1]
+  return nil
+
 proc is_type_block (node :PNode) :bool=
   ## Detects the `block @keyword: <body>` form that minz uses to write a type
   ## expression as a value (Nim rejects `const a = struct = ...`).
@@ -183,6 +194,7 @@ proc is_type_block (node :PNode) :bool=
 #_____________________________
 proc expression (state :var State; node :PNode) :astTF.Id
 proc expression_array_type (state :var State; node :PNode) :astTF.Id
+proc expression_dot (state :var State; node :PNode) :astTF.Id
 proc expression_infix (state :var State; node :PNode) :astTF.Id
 proc expression_prefix (state :var State; node :PNode) :astTF.Id
 
@@ -244,7 +256,7 @@ proc type_node_to_type_id (state :var State; node :PNode) :astTF.Id=
   ))
 
 proc type_bracket (state :var State; node :PNode) :astTF.Id=
-  if node[0].kind == nkSym and node[0].sym.name.s == "array":
+  if node[0].name() == "array":
     state.expression_array_type(node)
   else:
     state.type_identifier(node)
@@ -270,6 +282,7 @@ proc expression_type (state :var State; node :PNode) :astTF.Id=
   case node.kind
   of nkPtrTy           : state.type_pointer(node)
   of nkBracketExpr     : state.type_bracket(node)
+  of nkDotExpr         : state.expression_dot(node)
   of nkPrefix, nkInfix : state.type_error(node)
   else                 : state.type_identifier(node)
 
@@ -637,7 +650,7 @@ proc expression (state :var State; node :PNode) :astTF.Id=
   of nkBracket:                    state.expression_array(node)
   of nkTryStmt:                    state.expression_try(node)
   of nkBracketExpr:
-    if node[0].kind == nkSym and node[0].sym.name.s == "array":
+    if node[0].name() == "array":
       state.expression_array_type(node)
     else:
       state.expression_indexed(node)
@@ -806,7 +819,7 @@ proc statement_import (state :var State; node :PNode) =
         of nkIdent:  child.ident.s
         of nkSym:    child.sym.name.s
         of nkInfix:  child[1].include_path() & "/" & child[2].include_path()
-        of nkPrefix: child[1].include_path()
+        of nkPrefix: child.include_path()
         of nkStrLit..nkTripleStrLit: child.strVal
         else:        ""
       module_name = if state.target == Language.Zig: resolve_import_path(raw_name, is_module)
@@ -838,6 +851,46 @@ proc statement_import (state :var State; node :PNode) =
       state.statement_chain(statement_id)
 
 
+proc variables_from_vartuple (state :var State; definition :PNode; is_mutable, is_runtime :bool; depth :Option[uint64]) :seq[astTF.Id]=
+  ## Tuple unpacking `(a, b, c) = (1, 2, 3)` becomes one variable statement per name,
+  ## each paired with the matching element of the right-hand side. When the RHS is not
+  ## a literal tuple (eg. `(a, b) = pair`), each name reads an indexed access instead.
+  ## Returns the generated sVariable statement ids for the caller to chain.
+  let value_node = definition[^1]
+  let name_count = definition.safeLen - 2
+  let rhs_is_tuple = value_node.kind in {nkTupleConstr, nkPar}
+  for name_index in 0 ..< name_count:
+    let name_node = definition[name_index]
+    let name_str  = name_node.name()
+    if name_str.len == 0: continue
+    var value = none(astTF.Id)
+    if rhs_is_tuple and name_index < value_node.safeLen:
+      value = some(state.expression(value_node[name_index]))
+    elif value_node.kind != nkEmpty:
+      let object_id = state.expression(value_node)
+      let index_loc = state.name_add($name_index)
+      let index_id  = state.ast.add_expression(astTF.Expression(
+        kind    : astTF.eLiteral,
+        literal : astTF.ExpressionLiteral(kind: astTF.LiteralKind.integer, value: index_loc),
+      ))
+      value = some(state.ast.add_expression(astTF.Expression(
+        kind    : astTF.eIndexed,
+        indexed : astTF.ExpressionIndexed(`object`: object_id, index: index_id),
+      )))
+    let binding_id = state.ast.add_binding(astTF.Binding(
+      name    : some(astTF.Identifier(location: state.name_add(name_str))),
+      private : some(not name_node.exported()),
+      mutable : some(is_mutable),
+      runtime : some(is_runtime),
+      value   : value,
+    ))
+    var depth_id = none(astTF.Id)
+    if depth.isSome: depth_id = some(state.ast.add_depth(astTF.Depth(indent: depth)))
+    result.add state.ast.add_statement(astTF.Statement(
+      kind     : astTF.sVariable,
+      variable : astTF.StatementVariable(id: binding_id, depth: depth_id),
+    ))
+
 proc statement_variable (state :var State; node :PNode) =
   if node.kind notin {nkVarSection, nkLetSection, nkConstSection}: return
   let is_mutable = node.kind == nkVarSection
@@ -846,6 +899,10 @@ proc statement_variable (state :var State; node :PNode) =
   for definition in node:
     if definition.kind == nkCommentStmt:
       state.statement_comment(definition)
+      continue
+    if definition.kind == nkVarTuple:
+      for statement_id in state.variables_from_vartuple(definition, is_mutable, is_runtime, none(uint64)):
+        state.statement_chain(statement_id)
       continue
     if definition.kind notin {nkIdentDefs, nkConstDef}: continue
     let type_node = definition[^2]
@@ -1013,6 +1070,10 @@ proc statement_body (state :var State; node :PNode; depth :uint64= 1) :astTF.Id=
     let is_mutable = child.kind == nkVarSection
     let is_runtime = child.kind in {nkVarSection, nkLetSection}
     for definition in child:
+      if definition.kind == nkVarTuple:
+        for statement_id in state.variables_from_vartuple(definition, is_mutable, is_runtime, some(depth)):
+          state.body_chain(statement_id)
+        continue
       if definition.kind notin {nkIdentDefs, nkConstDef}: continue
       let name_node = definition[0]
       let type_node = definition[^2]
@@ -1322,16 +1383,25 @@ proc statement_type (state :var State; node :PNode) =
           field_type = some(state.expression_type(type_node))
         for name_index in 0 ..< type_index:
           let field_name_node = field_def[name_index]
-          let field_name_str = field_name_node.name()
+          # A field may carry an `{.alias: X.}` pragma. It is not a data field but a
+          # struct-level declaration `const name = X;`, so the name node is wrapped in
+          # an nkPragmaExpr and the binding carries the alias value instead of a type.
+          let alias_value = field_name_node.alias_pragma_value()
+          let real_name_node = if field_name_node.kind == nkPragmaExpr: field_name_node[0]
+                               else: field_name_node
+          let field_name_str = real_name_node.name()
           if field_name_str.len == 0: continue
           let field_name_loc = state.name_add(field_name_str)
-          let field_is_exported = field_name_node.exported()
+          let field_is_exported = real_name_node.exported()
           let is_last_in_group = name_index == type_index - 1
-          let field_binding = astTF.Binding(
+          var field_binding = astTF.Binding(
             name: some(astTF.Identifier(location: field_name_loc)),
             private: some(not field_is_exported),
-            dataType: if is_last_in_group: field_type else: none(astTF.Id),
           )
+          if alias_value != nil:
+            field_binding.value = some(state.expression(alias_value))
+          else:
+            field_binding.dataType = if is_last_in_group: field_type else: none(astTF.Id)
           let field_id = state.ast.add_binding(field_binding)
           if first_field.isNone:
             first_field = some(field_id)

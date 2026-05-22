@@ -460,13 +460,23 @@ func statement_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
       while current.isSome:
         let field = ast.data.bindings.get[current.get]
         Out.string(module, Tab, output.Target.definition)
-        if field.name.isSome:
-          Out.string(module, ast.source(module, field.name.get.location), output.Target.definition)
-        Out.string(module, ": ", output.Target.definition)
-        if field.dataType.isSome:
-          let type_name = ast.type_name(module, field.dataType.get)
-          Out.string(module, type_name, output.Target.definition)
-        Out.string(module, ",\n", output.Target.definition)
+        if field.value.isSome and field.dataType.isNone:
+          # An aliased field is a struct-level declaration, not a data field.
+          if field.private.isSome and not field.private.get:
+            Out.string(module, "pub ", output.Target.definition)
+          Out.string(module, "const ", output.Target.definition)
+          if field.name.isSome:
+            Out.string(module, ast.source(module, field.name.get.location), output.Target.definition)
+          Out.string(module, " = ", output.Target.definition)
+          ast.expression(module, field.value.get, Out)
+          Out.string(module, ";\n", output.Target.definition)
+        else:
+          if field.name.isSome:
+            Out.string(module, ast.source(module, field.name.get.location), output.Target.definition)
+          Out.string(module, ": ", output.Target.definition)
+          if field.dataType.isSome:
+            Out.string(module, ast.type_name(module, field.dataType.get), output.Target.definition)
+          Out.string(module, ",\n", output.Target.definition)
         current = field.next
     Out.string(module, "};\n", output.Target.definition)
   elif type_data.kind == astTF.tProcedure:

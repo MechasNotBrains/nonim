@@ -97,6 +97,14 @@ describe "nonim.minz | Procedures":
     let result = generate_zig(case_input("procedure_body_const"))
     result.eq case_expected("procedure_body_const")
 
+  it "must unpack a tuple into one variable per value", proc() =
+    let result = generate_zig(case_input("variable_tuple_unpack"))
+    result.eq case_expected("variable_tuple_unpack")
+
+  it "must unpack a tuple into variables inside a procedure body", proc() =
+    let result = generate_zig(case_input("procedure_body_tuple_unpack"))
+    result.eq case_expected("procedure_body_tuple_unpack")
+
   it "must carry the extern pragma onto the fn", proc() =
     let result = generate_zig(case_input("procedure_extern"))
     result.eq case_expected("procedure_extern")
@@ -213,6 +221,18 @@ describe "nonim.minz | Types":
     let result = generate_zig(case_input("type_procedure"))
     result.eq case_expected("type_procedure")
 
+  it "must keep a dotted (qualified) type", proc() =
+    let result = generate_zig(case_input("type_dotted"))
+    result.eq case_expected("type_dotted")
+
+  it "must generate an array-typed object field", proc() =
+    let result = generate_zig(case_input("type_object_array_field"))
+    result.eq case_expected("type_object_array_field")
+
+  it "must emit an alias-pragma object field as a const declaration", proc() =
+    let result = generate_zig(case_input("type_object_alias_field"))
+    result.eq case_expected("type_object_alias_field")
+
   it "must generate pub for exported type", proc() =
     let result = generate_zig(case_input("type_visibility"))
     result.eq case_expected("type_visibility")
@@ -316,6 +336,14 @@ describe "nonim.minz | Imports":
   it "must strip the .zig extension from a bare local import name", proc() =
     let result = generate_zig(case_input("import_bare"))
     result.eq case_expected("import_bare")
+
+  it "must keep a ../ relative import path", proc() =
+    let result = generate_zig(case_input("import_relative_parent"))
+    result.eq case_expected("import_relative_parent")
+
+  it "must keep a ./ relative import path", proc() =
+    let result = generate_zig(case_input("import_relative_current"))
+    result.eq case_expected("import_relative_current")
 
   it "must generate from-import with @-prefixed module path", proc() =
     let result = generate_zig(case_input("import_from_module"))

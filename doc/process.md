@@ -1,5 +1,13 @@
 # Feature Process
 
+> **PRIORITY (revisit once minz is fully usable):** Object fields are currently
+> modeled as plain `Binding`s, which cannot properly represent struct-level
+> *declarations* (eg. an `{.alias: X.}` field that should become `const name = X;`
+> inside the struct body). For now this is handled ad-hoc in codegen by rendering a
+> value-carrying field binding as a `const` declaration. This needs a proper design
+> (a dedicated representation for in-struct declarations vs fields), to be done
+> together with the rest of this process when we come back to it.
+
 Every new feature must be implemented across ALL 5 backends simultaneously.
 No backend progresses without the others having parity.
 
