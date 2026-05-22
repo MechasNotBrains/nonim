@@ -25,6 +25,8 @@ export astTF.ExpressionKind
 export astTF.ExpressionType
 export astTF.ExpressionKeyword
 export astTF.ExpressionObject
+export astTF.ExpressionArray
+export astTF.ArrayElement
 export astTF.Expression
 export astTF.Binding
 export astTF.Procedure

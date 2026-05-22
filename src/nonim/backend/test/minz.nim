@@ -234,6 +234,10 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_prefix_not"))
     result.eq case_expected("expression_prefix_not")
 
+  it "must generate an array literal", proc() =
+    let result = generate_zig(case_input("expression_array_literal"))
+    result.eq case_expected("expression_array_literal")
+
   it "must generate a leading-dot enum literal", proc() =
     let result = generate_zig(case_input("expression_enum_literal"))
     result.eq case_expected("expression_enum_literal")

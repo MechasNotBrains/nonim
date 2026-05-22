@@ -158,6 +158,19 @@ func expression_object (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var
     current = field.next
   Out.string(module, "}", output.Target.definition)
 
+func expression_array (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
+  Out.string(module, ".{", output.Target.definition)
+  var current = some(expr.array.elements)
+  var first = true
+  while current.isSome:
+    let element = ast.data.array_elements.get[current.get]
+    if not first: Out.string(module, ", ", output.Target.definition)
+    ast.expression(module, element.element, Out)
+    first = false
+    current = element.next
+  Out.string(module, "}", output.Target.definition)
+
 func expression_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expr = ast.data.expressions.get[id]
   let type_data = ast.data.types.get[expr.`type`.id]
@@ -207,6 +220,7 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Outpu
   of astTF.eIndexed:    ast.expression_indexed(module, id, Out)
   of astTF.eKeyword:    ast.expression_keyword(module, id, Out)
   of astTF.eObject:     ast.expression_object(module, id, Out)
+  of astTF.eArray:      ast.expression_array(module, id, Out)
   of astTF.eGroup:      ast.expression_group(module, id, Out)
   of astTF.eType:       ast.expression_type(module, id, Out)
   else: assert false, "codegen.zig: unsupported expression kind: " & $expression.kind

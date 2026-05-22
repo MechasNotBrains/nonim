@@ -41,6 +41,14 @@ func add_pragma *(
   atf.data.pragmas.get.add P
   return astTF.Id(atf.data.pragmas.get.len-1)
 #__________________
+func add_array_element *(
+    atf : var astTF.astTF;
+    E   : astTF.ArrayElement;
+  ) :astTF.Id {.discardable.}=
+  if atf.data.array_elements.isNone: atf.data.array_elements = some(astTF.DataList[astTF.ArrayElement](@[]))
+  atf.data.array_elements.get.add E
+  return astTF.Id(atf.data.array_elements.get.len-1)
+#__________________
 func add_expression *(
     atf : var astTF.astTF;
     E   : astTF.Expression;

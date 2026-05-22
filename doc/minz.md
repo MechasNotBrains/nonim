@@ -187,7 +187,7 @@ pub fn main() !void {
 
 | Feature | minz source | Zig target | Status |
 |---|---|---|---|
-| Expression: array literal | `[1, 2, 3]` | `.{1, 2, 3}` | [ ] |
+| Expression: array literal | `[1, 2, 3]` | `.{1, 2, 3}` | [x] |
 | Expression: object literal | `Vec2(x: 1, y: 2)` | `.{.x=1, .y=2}` | [ ] |
 | Expression: range | `0..10` | `0..10` | [ ] |
 | Loop: for | `for i in 0..<10:` | `for (0..10) \|i\|` | [ ] |

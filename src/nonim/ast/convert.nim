@@ -309,21 +309,12 @@ proc expression_infix (state :var State; node :PNode) :astTF.Id=
     ),
   ))
 
-proc expression_dot_leading (state :var State; node :PNode) :astTF.Id=
-  ## Leading-dot forms parse with an empty head node:
-  ##   `.name` (nkCommand)      -> enum literal, rendered as a prefix `.` affix.
-  ##   `.(a, b, c)` (nkCall)    -> anonymous tuple/struct literal `.{a, b, c}`,
-  ##                               an eObject whose fields carry values but no names.
-  if node.kind == nkCommand and node.safeLen >= 2:
-    let value_id = state.expression(node[1])
-    let dot_loc  = state.name_add(".")
-    return state.ast.add_expression(astTF.Expression(
-      kind  : astTF.eAffix,
-      affix : astTF.ExpressionAffix(right: some(value_id), operator: dot_loc),
-    ))
+proc expression_object_positional (state :var State; node :PNode; first :int) :astTF.Id=
+  ## Builds a Zig anonymous literal `.{v0, v1, ...}` (an eObject whose field
+  ## bindings carry values but no names) from node children `[first ..< len]`.
   var first_field = none(astTF.Id)
   var previous_field = none(astTF.Id)
-  for index in 1 ..< node.safeLen:
+  for index in first ..< node.safeLen:
     let value_id = state.expression(node[index])
     let binding_id = state.ast.add_binding(astTF.Binding(value: some(value_id)))
     if first_field.isNone:
@@ -337,6 +328,39 @@ proc expression_dot_leading (state :var State; node :PNode) :astTF.Id=
     kind     : astTF.eObject,
     `object` : astTF.ExpressionObject(fields: first_field.get),
   ))
+
+proc expression_array (state :var State; node :PNode) :astTF.Id=
+  ## `[a, b, c]` -> array literal (distinct from tuples/objects): an eArray with a
+  ## chain of positional ArrayElements.
+  var first_element = none(astTF.Id)
+  var previous_element = none(astTF.Id)
+  for index in 0 ..< node.safeLen:
+    let value_id = state.expression(node[index])
+    let element_id = state.ast.add_array_element(astTF.ArrayElement(element: value_id))
+    if first_element.isNone:
+      first_element = some(element_id)
+    if previous_element.isSome:
+      var prev = state.ast.data.array_elements.get[previous_element.get]
+      prev.next = some(element_id)
+      state.ast.data.array_elements.get[previous_element.get] = prev
+    previous_element = some(element_id)
+  state.ast.add_expression(astTF.Expression(
+    kind  : astTF.eArray,
+    array : astTF.ExpressionArray(elements: first_element.get),
+  ))
+
+proc expression_dot_leading (state :var State; node :PNode) :astTF.Id=
+  ## Leading-dot forms parse with an empty head node:
+  ##   `.name` (nkCommand)      -> enum literal, rendered as a prefix `.` affix.
+  ##   `.(a, b, c)` (nkCall)    -> anonymous tuple/struct literal `.{a, b, c}`.
+  if node.kind == nkCommand and node.safeLen >= 2:
+    let value_id = state.expression(node[1])
+    let dot_loc  = state.name_add(".")
+    return state.ast.add_expression(astTF.Expression(
+      kind  : astTF.eAffix,
+      affix : astTF.ExpressionAffix(right: some(value_id), operator: dot_loc),
+    ))
+  state.expression_object_positional(node, 1)
 
 proc expression_call (state :var State; node :PNode) :astTF.Id=
   let function_node = node[0]
@@ -610,6 +634,7 @@ proc expression (state :var State; node :PNode) :astTF.Id=
   of nkCall, nkCommand:            state.expression_call(node)
   of nkTupleConstr, nkPar:         state.expression_parenthesis(node)
   of nkObjConstr:                  state.expression_obj_constr(node)
+  of nkBracket:                    state.expression_array(node)
   of nkTryStmt:                    state.expression_try(node)
   of nkBracketExpr:
     if node[0].kind == nkSym and node[0].sym.name.s == "array":

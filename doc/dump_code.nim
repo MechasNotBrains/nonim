@@ -37,6 +37,8 @@ proc main *() : !void=
     .(name: "rotor",    kind: .bivec, default_val: .( 1.0, 0.0, 0.0 ), min: -1.0, max: 1.0 ),
   )).init();
 
+  const origin = vec4(0,0,0)
+
   while not render.close():
     render.sync()
     render.clear(0.12, 0.1, 0.1)
@@ -56,6 +58,8 @@ proc main *() : !void=
     let rot = Rotor.fromAnglePlane(rotation_angle, rotation_plane.normalize())
     render.rotor(rot, velocity, "velocity", Color.gray)
     render.rotor_basis(rot, velocity, Color.cyan_025, Color.magenta_025, Color.yellow_025)
+
+    render.sphere(origin, 1, Color.red)
 
     render.hud()
     render.end()
