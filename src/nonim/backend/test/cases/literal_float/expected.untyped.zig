@@ -1,3 +1,3 @@
-fn pi () float64 {
+pub fn pi () float64 {
   return 3.14159;
 }

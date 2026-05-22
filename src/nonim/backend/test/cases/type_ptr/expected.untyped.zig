@@ -1,1 +1,1 @@
-const nothing: *int = null;
+pub const nothing: *int = null;

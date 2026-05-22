@@ -1,2 +1,2 @@
-const x: int = 42;
-const y: int = 10;
+pub const x: int = 42;
+pub const y: int = 10;

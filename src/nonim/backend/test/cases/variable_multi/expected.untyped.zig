@@ -1,2 +1,2 @@
-const a: int = 0;
-const b: int = 0;
+pub const a: int = 0;
+pub const b: int = 0;

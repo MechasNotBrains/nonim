@@ -1,1 +1,1 @@
-fn add (x: int, y: int) int;
+pub fn add (x: int, y: int) int;

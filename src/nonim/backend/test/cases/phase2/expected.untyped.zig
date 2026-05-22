@@ -1,6 +1,6 @@
 const std = @import("std");
-const Target = std.Target;
-fn classify (value: int) int {
+pub const Target = std.Target;
+pub fn classify (value: int) int {
   switch (value) {
     0 => {
       return 0;
@@ -13,7 +13,7 @@ fn classify (value: int) int {
     },
   }
 }
-fn process (x: int, y: int) int {
+pub fn process (x: int, y: int) int {
   var total: int = 0;
   const area: int = (x * y);
   total += classify(area);
@@ -32,7 +32,7 @@ fn process (x: int, y: int) int {
   }
   return total;
 }
-fn run () int {
+pub fn run () int {
   const cfg = Target{.width= 10, .height= 20};
   return process(cfg.width, cfg.height);
 }

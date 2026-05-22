@@ -229,9 +229,13 @@ describe "nonim.minz | Types":
     let result = generate_zig(case_input("type_object_array_field"))
     result.eq case_expected("type_object_array_field")
 
-  it "must emit an alias-pragma object field as a const declaration", proc() =
+  it "must emit an alias-pragma object field as a public const declaration", proc() =
     let result = generate_zig(case_input("type_object_alias_field"))
     result.eq case_expected("type_object_alias_field")
+
+  it "must make an alias private with a private pragma", proc() =
+    let result = generate_zig(case_input("type_object_alias_field_private"))
+    result.eq case_expected("type_object_alias_field_private")
 
   it "must generate pub for exported type", proc() =
     let result = generate_zig(case_input("type_visibility"))
@@ -301,6 +305,35 @@ describe "nonim.minz | Expressions":
   it "must generate named constructor", proc() =
     let result = generate_zig(case_input("expression_named_constructor"))
     result.eq case_expected("expression_named_constructor")
+
+describe "nonim.minz | Visibility":
+  it "must make a procedure private with a private pragma", proc() =
+    let result = generate_zig(case_input("procedure_private"))
+    result.eq case_expected("procedure_private")
+
+  it "must make a const private with a private pragma", proc() =
+    let result = generate_zig(case_input("variable_private"))
+    result.eq case_expected("variable_private")
+
+  it "must make a var private with a private pragma", proc() =
+    let result = generate_zig(case_input("variable_var_private"))
+    result.eq case_expected("variable_var_private")
+
+  it "must make an object type private with a private pragma", proc() =
+    let result = generate_zig(case_input("type_object_private"))
+    result.eq case_expected("type_object_private")
+
+  it "must make a type alias private with a private pragma", proc() =
+    let result = generate_zig(case_input("type_alias_private"))
+    result.eq case_expected("type_alias_private")
+
+  it "must make a struct-block member private with a private pragma", proc() =
+    let result = generate_zig(case_input("expression_type_block_private"))
+    result.eq case_expected("expression_type_block_private")
+
+  it "must respect per-element private pragmas in a tuple unpack", proc() =
+    let result = generate_zig(case_input("variable_tuple_unpack_private"))
+    result.eq case_expected("variable_tuple_unpack_private")
 
 describe "nonim.minz | Passthrough":
   it "must emit raw code from emit pragma", proc() =

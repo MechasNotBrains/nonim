@@ -1,3 +1,3 @@
-fn nothing () void {
+pub fn nothing () void {
   _ = null;
 }

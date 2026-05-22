@@ -1,1 +1,1 @@
-const factor = @as(T, val);
+pub const factor = @as(T, val);

@@ -1,1 +1,1 @@
-const x = .{.{.name= 1}, .{.name= 2}};
+pub const x = .{.{.name= 1}, .{.name= 2}};

@@ -1,4 +1,4 @@
-const Vec4 = struct {
+pub const Vec4 = struct {
   data: [4]f32,
-  const create = vector.create;
+  pub const create = vector.create;
 };

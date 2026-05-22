@@ -44,11 +44,12 @@ proc name_add (state :var State; name :string) :astTF.Location=
 
 proc name (node :PNode) :string=
   case node.kind
-  of nkSym:      node.sym.name.s
-  of nkIdent:    node.ident.s
-  of nkPostfix:  node[1].name()
-  of nkAccQuoted: node.strValue
-  else:          ""
+  of nkSym:        node.sym.name.s
+  of nkIdent:      node.ident.s
+  of nkPostfix:    node[1].name()
+  of nkPragmaExpr: node[0].name()
+  of nkAccQuoted:  node.strValue
+  else:            ""
 
 proc translate_type_c (state :var State; nim_type :string) :string=
   result = case nim_type
@@ -163,9 +164,11 @@ proc type_from_sym (state :var State; node :PNode) :Option[astTF.Id]=
   return none(astTF.Id)
 
 proc exported (node :PNode) :bool=
-  if node.kind == nkPostfix: return true
-  if node.kind == nkSym: return sfExported in node.sym.flags
-  return false
+  case node.kind
+  of nkPostfix:    true
+  of nkPragmaExpr: node[0].exported()
+  of nkSym:        sfExported in node.sym.flags
+  else:            false
 
 proc alias_pragma_value (node :PNode) :PNode=
   ## For an object field name node, returns the value `V` of an `{.alias: V.}`
@@ -177,6 +180,27 @@ proc alias_pragma_value (node :PNode) :PNode=
     if entry.kind == nkExprColonExpr and entry.safeLen >= 2 and entry[0].name() == "alias":
       return entry[1]
   return nil
+
+proc pragma_has (pragma_node :PNode; key :string) :bool=
+  ## True when a raw nkPragma node contains a `{.key.}` entry.
+  if pragma_node == nil or pragma_node.kind != nkPragma: return false
+  for entry in pragma_node:
+    let entry_key = if entry.kind == nkExprColonExpr and entry.safeLen > 0: entry[0] else: entry
+    if entry_key.name() == key: return true
+  return false
+
+proc has_private_pragma (node :PNode) :bool=
+  ## True when a declaration name node (nkPragmaExpr) carries a `{.private.}` marker.
+  if node.kind != nkPragmaExpr or node.safeLen < 2: return false
+  return node[1].pragma_has("private")
+
+proc declaration_private (state :State; name_node :PNode; pragma_node :PNode = nil) :bool=
+  ## Visibility rule. minz (untyped Zig) makes everything public by default and
+  ## ignores the `*` export postfix; only a `{.private.}` pragma marks a declaration
+  ## private. Every other backend keeps Nim's `*`-export convention.
+  if state.target == Language.Zig and not state.typed:
+    return name_node.has_private_pragma() or pragma_node.pragma_has("private")
+  return not name_node.exported()
 
 proc is_type_block (node :PNode) :bool=
   ## Detects the `block @keyword: <body>` form that minz uses to write a type
@@ -601,7 +625,7 @@ proc expression_type_block (state :var State; node :PNode) :astTF.Id=
           let member_loc = state.name_add(name_str)
           let member_binding = astTF.Binding(
             name     : some(astTF.Identifier(location: member_loc)),
-            private  : some(not name_node.exported()),
+            private  : some(state.declaration_private(name_node)),
             mutable  : some(is_mutable),
             runtime  : some(is_runtime),
             dataType : data_type,
@@ -879,7 +903,7 @@ proc variables_from_vartuple (state :var State; definition :PNode; is_mutable, i
       )))
     let binding_id = state.ast.add_binding(astTF.Binding(
       name    : some(astTF.Identifier(location: state.name_add(name_str))),
-      private : some(not name_node.exported()),
+      private : some(state.declaration_private(name_node)),
       mutable : some(is_mutable),
       runtime : some(is_runtime),
       value   : value,
@@ -922,7 +946,7 @@ proc statement_variable (state :var State; node :PNode) =
       let name_str = name_node.name()
       if name_str.len == 0: continue
 
-      let is_exported = name_node.exported()
+      let is_private = state.declaration_private(name_node)
       let name_loc = state.name_add(name_str)
       let identifier = astTF.Identifier(location: name_loc)
 
@@ -932,7 +956,7 @@ proc statement_variable (state :var State; node :PNode) =
 
       let binding = astTF.Binding(
         name: some(identifier),
-        private: some(not is_exported),
+        private: some(is_private),
         mutable: some(is_mutable),
         runtime: some(is_runtime),
         dataType: binding_type,
@@ -1277,7 +1301,7 @@ proc statement_procedure (state :var State; node :PNode) =
   let name_str = name_node.name()
   if name_str.len == 0: return
 
-  let is_exported = name_node.exported()
+  let is_private = state.declaration_private(name_node, node[4])
   let is_func = node.kind == nkFuncDef
 
   let name_loc = state.name_add(name_str)
@@ -1345,7 +1369,7 @@ proc statement_procedure (state :var State; node :PNode) =
 
   let proc_data = astTF.Procedure(
     name       : some(name_ident),
-    private    : some(not is_exported),
+    private    : some(is_private),
     impure     : some(not is_func),
     arguments  : first_argument,
     returnType : return_type,
@@ -1367,7 +1391,7 @@ proc statement_type (state :var State; node :PNode) =
   let body_node = node[2]
   let name_str = name_node.name()
   if name_str.len == 0: return
-  let is_exported = name_node.exported()
+  let is_private = state.declaration_private(name_node)
   let name_loc = state.name_add(name_str)
   if body_node.kind == nkObjectTy:
     let rec_list = body_node[2]
@@ -1387,20 +1411,18 @@ proc statement_type (state :var State; node :PNode) =
           # struct-level declaration `const name = X;`, so the name node is wrapped in
           # an nkPragmaExpr and the binding carries the alias value instead of a type.
           let alias_value = field_name_node.alias_pragma_value()
-          let real_name_node = if field_name_node.kind == nkPragmaExpr: field_name_node[0]
-                               else: field_name_node
-          let field_name_str = real_name_node.name()
+          let field_name_str = field_name_node.name()
           if field_name_str.len == 0: continue
           let field_name_loc = state.name_add(field_name_str)
-          let field_is_exported = real_name_node.exported()
           let is_last_in_group = name_index == type_index - 1
           var field_binding = astTF.Binding(
             name: some(astTF.Identifier(location: field_name_loc)),
-            private: some(not field_is_exported),
           )
           if alias_value != nil:
             field_binding.value = some(state.expression(alias_value))
+            field_binding.private = some(state.declaration_private(field_name_node))
           else:
+            field_binding.private = some(state.declaration_private(field_name_node))
             field_binding.dataType = if is_last_in_group: field_type else: none(astTF.Id)
           let field_id = state.ast.add_binding(field_binding)
           if first_field.isNone:
@@ -1415,7 +1437,7 @@ proc statement_type (state :var State; node :PNode) =
       `object`: astTF.TypeObject(
         name: some(astTF.Identifier(location: name_loc)),
         fields: first_field,
-        private: some(not is_exported),
+        private: some(is_private),
       ),
     ))
     let statement_id = state.ast.add_statement(astTF.Statement(
@@ -1461,7 +1483,7 @@ proc statement_type (state :var State; node :PNode) =
         return_type = some(state.expression_type(return_node))
     let proc_data = astTF.Procedure(
       name: some(astTF.Identifier(location: name_loc)),
-      private: some(not is_exported),
+      private: some(is_private),
       arguments: first_argument,
       returnType: return_type,
     )
@@ -1482,7 +1504,7 @@ proc statement_type (state :var State; node :PNode) =
       alias: astTF.TypeAlias(
         name: some(astTF.Identifier(location: name_loc)),
         target: target_id,
-        private: some(not is_exported),
+        private: some(is_private),
       ),
     ))
     let statement_id = state.ast.add_statement(astTF.Statement(

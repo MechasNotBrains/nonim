@@ -1,10 +1,10 @@
-const max: isize = 10;
-var count: isize = 0;
-const step: isize = 1;
-fn increment (value: isize, amount: isize) isize {
+pub const max: isize = 10;
+pub var count: isize = 0;
+pub const step: isize = 1;
+pub fn increment (value: isize, amount: isize) isize {
   return value + amount;
 }
-fn accumulate (limit: isize) isize {
+pub fn accumulate (limit: isize) isize {
   var total: isize = 0;
   var current: isize = 0;
   while (current < limit) {
@@ -20,7 +20,7 @@ fn accumulate (limit: isize) isize {
   }
   return total;
 }
-fn run () isize {
+pub fn run () isize {
   const output: isize = accumulate(max);
   _ = count;
   return output;

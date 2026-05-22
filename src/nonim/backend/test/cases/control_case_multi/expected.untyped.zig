@@ -1,4 +1,4 @@
-fn foo (x: int) int {
+pub fn foo (x: int) int {
   switch (x) {
     1, 2 => {
       return 10;

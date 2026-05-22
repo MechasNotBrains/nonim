@@ -1,4 +1,4 @@
-fn find_first (n: int) int {
+pub fn find_first (n: int) int {
   var current: int = 0;
   while (true) {
     if (current == n) {

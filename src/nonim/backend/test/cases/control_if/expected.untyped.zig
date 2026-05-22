@@ -1,4 +1,4 @@
-fn abs_val (x: int) int {
+pub fn abs_val (x: int) int {
   if (x < 0) {
     return -x;
   } else {

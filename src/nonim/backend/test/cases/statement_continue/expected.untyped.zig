@@ -1,4 +1,4 @@
-fn skip_negatives (n: int) void {
+pub fn skip_negatives (n: int) void {
   var current: int = 0;
   while (current < n) {
     current = current + 1;

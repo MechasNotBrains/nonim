@@ -1,1 +1,1 @@
-const Foo = int;
+pub const Foo = int;

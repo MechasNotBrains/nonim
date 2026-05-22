@@ -1,3 +1,3 @@
-const mmath = struct {
-  const float = This;
+pub const mmath = struct {
+  pub const float = This;
 };

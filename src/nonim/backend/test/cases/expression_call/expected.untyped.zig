@@ -1,6 +1,6 @@
-fn add (x: int, y: int) int {
+pub fn add (x: int, y: int) int {
   return x + y;
 }
-fn main () int {
+pub fn main () int {
   return add(1, 2);
 }

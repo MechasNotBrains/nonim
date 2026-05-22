@@ -1,4 +1,4 @@
-const X = 0;
-const Y = 1;
-const Z = 2;
-const W = 3;
+pub const X = 0;
+pub const Y = 1;
+pub const Z = 2;
+pub const W = 3;

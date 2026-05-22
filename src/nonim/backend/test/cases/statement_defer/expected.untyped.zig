@@ -1,4 +1,4 @@
-fn cleanup (f: int) int {
+pub fn cleanup (f: int) int {
   defer close(f);
   return process(f);
 }

@@ -1,1 +1,1 @@
-const greeting: cstring = "hello";
+pub const greeting: cstring = "hello";
