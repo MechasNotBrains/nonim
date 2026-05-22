@@ -2,7 +2,7 @@
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
 from std/options import some, none, isSome, isNone, get, Option
-from std/strutils import split
+from std/strutils import split, endsWith
 import ../ast as astTF
 import ./output
 import ./base
@@ -500,7 +500,8 @@ func statement_import (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var 
     ast.statement_import_from(module, path, S.symbols.get, Out)
     return
   let parts = path.split("/")
-  let name = parts[parts.len - 1]
+  var name = parts[parts.len - 1]
+  if name.endsWith(".zig"): name = name[0 ..< name.len - ".zig".len]
   Out.string(module, "const " & name & " = @import(\"" & path & "\");\n", output.Target.definition)
 
 func statement_passthrough (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=

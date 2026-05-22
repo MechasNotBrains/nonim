@@ -277,6 +277,10 @@ describe "nonim.minz | Imports":
     let result = generate_zig(case_input("import_module"))
     result.eq case_expected("import_module")
 
+  it "must strip the .zig extension from a bare local import name", proc() =
+    let result = generate_zig(case_input("import_bare"))
+    result.eq case_expected("import_bare")
+
   it "must generate from-import with @-prefixed module path", proc() =
     let result = generate_zig(case_input("import_from_module"))
     result.eq case_expected("import_from_module")
