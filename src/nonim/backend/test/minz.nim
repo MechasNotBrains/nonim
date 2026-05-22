@@ -89,6 +89,14 @@ describe "nonim.minz | Procedures":
     let result = generate_zig(case_input("procedure_exported"))
     result.eq case_expected("procedure_exported")
 
+  it "must carry the inline pragma onto the fn", proc() =
+    let result = generate_zig(case_input("procedure_inline"))
+    result.eq case_expected("procedure_inline")
+
+  it "must carry the extern pragma onto the fn", proc() =
+    let result = generate_zig(case_input("procedure_extern"))
+    result.eq case_expected("procedure_extern")
+
   it "must generate error union return type", proc() =
     let result = generate_zig(case_input("procedure_error_union"))
     result.eq case_expected("procedure_error_union")

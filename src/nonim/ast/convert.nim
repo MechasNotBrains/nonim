@@ -1206,6 +1206,21 @@ proc statement_procedure (state :var State; node :PNode) =
     if return_node.kind != nkEmpty:
       return_type = some(state.expression_type(return_node))
 
+  var first_pragma = none(astTF.Id)
+  var previous_pragma = none(astTF.Id)
+  let pragma_node = node[4]
+  if pragma_node.kind == nkPragma:
+    for pragma_child in pragma_node:
+      let key_id = state.expression(pragma_child)
+      let pragma_id = state.ast.add_pragma(astTF.Pragma(key: key_id))
+      if first_pragma.isNone:
+        first_pragma = some(pragma_id)
+      if previous_pragma.isSome:
+        var prev = state.ast.pragm(previous_pragma.get)
+        prev.next = some(pragma_id)
+        state.ast.data.pragmas.get[previous_pragma.get] = prev
+      previous_pragma = some(pragma_id)
+
   var body_id = none(astTF.Id)
   let body_node = node[6]
   if body_node.kind != nkEmpty:
@@ -1217,6 +1232,7 @@ proc statement_procedure (state :var State; node :PNode) =
     impure     : some(not is_func),
     arguments  : first_argument,
     returnType : return_type,
+    pragmas    : first_pragma,
     body       : body_id,
   )
   let procedure_id = state.ast.add_procedure(proc_data)

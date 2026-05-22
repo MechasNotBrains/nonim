@@ -4,7 +4,7 @@
 const float * = @This()
 const This = @This();
 # @deps std
-import std
+import @std
 # @deps mmath
 const mmath = block @struct:
   const float = This

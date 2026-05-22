@@ -354,6 +354,19 @@ func statement_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :v
   if not is_private:
     Out.string(module, "pub ", output.Target.definition)
 
+  if procedure.pragmas.isSome:
+    var current = some(procedure.pragmas.get)
+    while current.isSome:
+      let pragma = ast.data.pragmas.get[current.get]
+      let key_expr = ast.data.expressions.get[pragma.key]
+      if key_expr.kind == astTF.eIdentifier:
+        let key_text = ast.source(module, key_expr.identifier.name.location)
+        if key_text == "inline":
+          Out.string(module, "inline ", output.Target.definition)
+        elif key_text == "extern":
+          Out.string(module, "extern ", output.Target.definition)
+      current = pragma.next
+
   Out.string(module, "fn ", output.Target.definition)
 
   if procedure.name.isSome:
