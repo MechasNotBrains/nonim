@@ -48,6 +48,7 @@ proc name (node :PNode) :string=
   of nkIdent:      node.ident.s
   of nkPostfix:    node[1].name()
   of nkPragmaExpr: node[0].name()
+  of nkDotExpr:    node[0].name() & "." & node[1].name()
   of nkAccQuoted:  node.strValue
   else:            ""
 
@@ -218,6 +219,7 @@ proc is_type_block (node :PNode) :bool=
 #_____________________________
 proc expression (state :var State; node :PNode) :astTF.Id
 proc expression_array_type (state :var State; node :PNode) :astTF.Id
+proc expression_call (state :var State; node :PNode) :astTF.Id
 proc expression_dot (state :var State; node :PNode) :astTF.Id
 proc expression_infix (state :var State; node :PNode) :astTF.Id
 proc expression_prefix (state :var State; node :PNode) :astTF.Id
@@ -271,12 +273,42 @@ proc type_identifier (state :var State; node :PNode) :astTF.Id=
     identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
   ))
 
-proc type_node_to_type_id (state :var State; node :PNode) :astTF.Id=
+proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astTF.Id=
+  ## Single recursive Type builder for any type-position node. Nested element
+  ## (array) and target (pointer) types recurse here too, so `array[N, ptr T]`,
+  ## `array[N, array[M, T]]`, `var ptr T`, and qualified names all resolve.
+  case node.kind
+  of nkVarTy:
+    # `var ptr T` -> mutable pointee; a bare `var T` just unwraps.
+    let inner = if node.safeLen > 0: node[0] else: node
+    return state.type_node_to_type_id(inner, mutable = inner.kind == nkPtrTy or mutable)
+  of nkPtrTy:
+    let target_id = state.type_node_to_type_id(node[0], mutable)
+    return state.ast.add_type(astTF.Type(
+      kind: astTF.tPtr,
+      `ptr`: astTF.TypePtr(target: target_id),
+    ))
+  of nkBracketExpr:
+    if node[0].name() == "array":
+      let element_id = state.type_node_to_type_id(node[2])
+      var length_id = none(astTF.Id)
+      if node[1].kind in SomeLit: length_id = some(state.expression_literal(node[1]))
+      return state.ast.add_type(astTF.Type(
+        kind: astTF.tArray,
+        array: astTF.TypeArray(element: element_id, length: length_id),
+      ))
+  else: discard
   let name = state.translate_type(node.name())
   let name_loc = state.name_add(name)
   state.ast.add_type(astTF.Type(
     kind: astTF.tPrimitive,
-    primitive: astTF.TypePrimitive(name: astTF.Identifier(location: name_loc)),
+    primitive: astTF.TypePrimitive(name: astTF.Identifier(location: name_loc), mutable: some(mutable)),
+  ))
+
+proc expression_of_type (state :var State; type_id :astTF.Id) :astTF.Id=
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eType,
+    `type`: astTF.ExpressionType(id: type_id),
   ))
 
 proc type_bracket (state :var State; node :PNode) :astTF.Id=
@@ -284,17 +316,6 @@ proc type_bracket (state :var State; node :PNode) :astTF.Id=
     state.expression_array_type(node)
   else:
     state.type_identifier(node)
-
-proc type_pointer (state :var State; node :PNode) :astTF.Id=
-  let target_id = state.type_node_to_type_id(node[0])
-  let type_id = state.ast.add_type(astTF.Type(
-    kind: astTF.tPtr,
-    `ptr`: astTF.TypePtr(target: target_id),
-  ))
-  state.ast.add_expression(astTF.Expression(
-    kind: astTF.eType,
-    `type`: astTF.ExpressionType(id: type_id),
-  ))
 
 proc type_error (state :var State; node :PNode) :astTF.Id=
   case node.kind
@@ -304,11 +325,12 @@ proc type_error (state :var State; node :PNode) :astTF.Id=
 
 proc expression_type (state :var State; node :PNode) :astTF.Id=
   case node.kind
-  of nkPtrTy           : state.type_pointer(node)
-  of nkBracketExpr     : state.type_bracket(node)
-  of nkDotExpr         : state.expression_dot(node)
-  of nkPrefix, nkInfix : state.type_error(node)
-  else                 : state.type_identifier(node)
+  of nkPtrTy, nkVarTy      : state.expression_of_type(state.type_node_to_type_id(node))
+  of nkBracketExpr          : state.type_bracket(node)
+  of nkDotExpr              : state.expression_dot(node)
+  of nkPrefix, nkInfix      : state.type_error(node)
+  of nkCall, nkCommand      : state.expression_call(node)
+  else                      : state.type_identifier(node)
 
 proc expression_identifier (state :var State; name :string) :astTF.Id=
   let name_loc = state.name_add(name)
@@ -543,6 +565,17 @@ proc expression_prefix (state :var State; node :PNode) :astTF.Id=
     ),
   ))
 
+proc expression_deref (state :var State; node :PNode) :astTF.Id=
+  let object_id = state.expression(node[0])
+  let operator_loc = state.name_add(".*")
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eAffix,
+    affix: astTF.ExpressionAffix(
+      left: some(object_id),
+      operator: operator_loc,
+    ),
+  ))
+
 proc expression_indexed (state :var State; node :PNode) :astTF.Id=
   let object_node = node[0]
   let index_node = node[1]
@@ -557,25 +590,7 @@ proc expression_indexed (state :var State; node :PNode) :astTF.Id=
   ))
 
 proc expression_array_type (state :var State; node :PNode) :astTF.Id=
-  let length_node = node[1]
-  let element_node = node[2]
-  let element_name = state.translate_type(element_node.name())
-  let element_loc = state.name_add(element_name)
-  let element_type_id = state.ast.add_type(astTF.Type(
-    kind: astTF.tPrimitive,
-    primitive: astTF.TypePrimitive(name: astTF.Identifier(location: element_loc)),
-  ))
-  var length_id = none(astTF.Id)
-  if length_node.kind in SomeLit:
-    length_id = some(state.expression_literal(length_node))
-  let array_type_id = state.ast.add_type(astTF.Type(
-    kind: astTF.tArray,
-    array: astTF.TypeArray(element: element_type_id, length: length_id),
-  ))
-  state.ast.add_expression(astTF.Expression(
-    kind: astTF.eType,
-    `type`: astTF.ExpressionType(id: array_type_id),
-  ))
+  state.expression_of_type(state.type_node_to_type_id(node))
 
 
 proc expression_try (state :var State; node :PNode) :astTF.Id=
@@ -676,6 +691,8 @@ proc expression (state :var State; node :PNode) :astTF.Id=
   of nkBracketExpr:
     if node[0].name() == "array":
       state.expression_array_type(node)
+    elif node.safeLen == 1:
+      state.expression_deref(node)
     else:
       state.expression_indexed(node)
   of nkHiddenStdConv, nkHiddenSubConv:

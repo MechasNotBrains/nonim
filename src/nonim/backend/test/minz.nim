@@ -117,6 +117,10 @@ describe "nonim.minz | Procedures":
     let result = generate_zig(case_input("procedure_error_union_explicit"))
     result.eq case_expected("procedure_error_union_explicit")
 
+  it "must generate builtin call as return type", proc() =
+    let result = generate_zig(case_input("procedure_return_builtin"))
+    result.eq case_expected("procedure_return_builtin")
+
   it "must generate a function call expression", proc() =
     let result = generate_zig(case_input("expression_call"))
     result.eq case_expected("expression_call")
@@ -197,9 +201,13 @@ describe "nonim.minz | Types":
     let result = generate_zig(case_input("type_object"))
     result.eq case_expected("type_object")
 
-  it "must generate a pointer type", proc() =
+  it "must generate an immutable pointer type from ptr T", proc() =
     let result = generate_zig(case_input("type_ptr"))
     result.eq case_expected("type_ptr")
+
+  it "must generate a mutable pointer type from var ptr T", proc() =
+    let result = generate_zig(case_input("type_ptr_mutable"))
+    result.eq case_expected("type_ptr_mutable")
 
   it "must translate primitive types correctly", proc() =
     let result = generate_zig(case_input("type_primitive"))
@@ -246,6 +254,10 @@ describe "nonim.minz | Types":
     result.eq case_expected("type_typedesc")
 
 describe "nonim.minz | Expressions":
+  it "must generate pointer dereference", proc() =
+    let result = generate_zig(case_input("expression_deref"))
+    result.eq case_expected("expression_deref")
+
   it "must generate array indexing", proc() =
     let result = generate_zig(case_input("expression_indexed"))
     result.eq case_expected("expression_indexed")

@@ -64,7 +64,8 @@ func expression_affix (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var 
   # Prefix `not` is Zig's `!`; an infix `not` (eg. `a not b`) is left untouched.
   let op = if is_prefix and raw_operator == "not": "!"
            else: translate_operator(raw_operator)
-  let spaced = op != "."
+  let is_postfix = expression.affix.right.isNone
+  let spaced = op != "." and not is_postfix
   if expression.affix.left.isSome:
     ast.expression(module, expression.affix.left.get, Out)
     if spaced: Out.string(module, " ", output.Target.definition)
@@ -294,24 +295,28 @@ func type_name_identifier (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :stri
   let expression = ast.data.expressions.get[id]
   result = ast.source(module, expression.identifier.name.location)
 
-func type_name_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
-  let expression = ast.data.expressions.get[id]
-  let type_data  = ast.data.types.get[expression.`type`.id]
+func type_render (ast :astTF.Ast; module :astTF.Id; type_id :astTF.Id) :string=
+  ## Recursively renders a Type, so nested element/target types resolve:
+  ## `[N]T`, `[N][M]T`, `*const T`, `*T`, qualified names, etc.
+  let type_data = ast.data.types.get[type_id]
   case type_data.kind
   of astTF.tPrimitive:
-    result = ast.source(module, type_data.primitive.name.location)
+    ast.source(module, type_data.primitive.name.location)
   of astTF.tArray:
-    let elem_type = ast.data.types.get[type_data.array.element]
-    let elem_name = ast.source(module, elem_type.primitive.name.location)
-    if type_data.array.length.isSome:
-      let length_expr = ast.data.expressions.get[type_data.array.length.get]
-      result = "[" & ast.source(module, length_expr.literal.value) & "]" & elem_name
-    else:
-      result = "[]" & elem_name
+    let length = if type_data.array.length.isSome:
+                   "[" & ast.source(module, ast.data.expressions.get[type_data.array.length.get].literal.value) & "]"
+                 else: "[]"
+    length & ast.type_render(module, type_data.array.element)
   of astTF.tPtr:
-    let target_type = ast.data.types.get[type_data.`ptr`.target]
-    result = "*" & ast.source(module, target_type.primitive.name.location)
-  else: result = "void"
+    let target = ast.data.types.get[type_data.`ptr`.target]
+    # Pointee mutability lives on the target: immutable -> `*const T`, mutable -> `*T`.
+    let mutable = target.kind == astTF.tPrimitive and target.primitive.mutable.get(false)
+    (if mutable: "*" else: "*const ") & ast.type_render(module, type_data.`ptr`.target)
+  else: "void"
+
+func type_name_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
+  let expression = ast.data.expressions.get[id]
+  result = ast.type_render(module, expression.`type`.id)
 
 func type_name_affix (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
   let expression = ast.data.expressions.get[id]
@@ -319,12 +324,35 @@ func type_name_affix (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
   result.add ast.source(module, expression.affix.operator)
   if expression.affix.right.isSome: result.add ast.type_name(module, expression.affix.right.get)
 
+func type_name_call (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
+  let expression = ast.data.expressions.get[id]
+  result.add ast.type_name(module, expression.call.name)
+  result.add "("
+  if expression.call.arguments.isSome:
+    var current = some(expression.call.arguments.get)
+    var first = true
+    while current.isSome:
+      let binding = ast.data.bindings.get[current.get]
+      if not first:
+        result.add ", "
+      first = false
+      if binding.value.isSome:
+        result.add ast.type_name(module, binding.value.get)
+      current = binding.next
+  result.add ")"
+
+func type_name_literal (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
+  let expression = ast.data.expressions.get[id]
+  ast.source(module, expression.literal.value)
+
 func type_name (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
   let expression = ast.data.expressions.get[id]
   case expression.kind
   of astTF.eIdentifier : ast.type_name_identifier(module, id)
   of astTF.eType       : ast.type_name_type(module, id)
   of astTF.eAffix      : ast.type_name_affix(module, id)
+  of astTF.eCall       : ast.type_name_call(module, id)
+  of astTF.eLiteral    : ast.type_name_literal(module, id)
   else                 : "void"
 
 
