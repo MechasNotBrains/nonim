@@ -24,6 +24,7 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Outpu
 func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func type_name (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string
+func type_render (ast :astTF.Ast; module :astTF.Id; type_id :astTF.Id) :string
 
 func expression_identifier (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
@@ -178,7 +179,7 @@ func expression_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var O
   let expr = ast.data.expressions.get[id]
   let type_data = ast.data.types.get[expr.`type`.id]
   if type_data.kind != astTF.tObject:
-    Out.string(module, ast.type_name(module, expr.`type`.id), output.Target.definition)
+    Out.string(module, ast.type_render(module, expr.`type`.id), output.Target.definition)
     return
   let obj = type_data.`object`
   let keyword = if obj.keyword.isSome: ast.source(module, obj.keyword.get.location) else: "struct"

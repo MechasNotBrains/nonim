@@ -266,6 +266,10 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_operator"))
     result.eq case_expected("expression_operator")
 
+  it "must translate ?? to orelse", proc() =
+    let result = generate_zig(case_input("expression_orelse"))
+    result.eq case_expected("expression_orelse")
+
   it "must translate prefix not to !", proc() =
     let result = generate_zig(case_input("expression_prefix_not"))
     result.eq case_expected("expression_prefix_not")
@@ -293,6 +297,10 @@ describe "nonim.minz | Expressions":
   it "must generate a type expression from block @struct", proc() =
     let result = generate_zig(case_input("expression_type_block"))
     result.eq case_expected("expression_type_block")
+
+  it "must generate from-import inside block @struct", proc() =
+    let result = generate_zig(case_input("expression_type_block_import"))
+    result.eq case_expected("expression_type_block_import")
 
   it "must generate @ prefix for Zig builtins", proc() =
     let result = generate_zig(case_input("expression_at_prefix"))
