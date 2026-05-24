@@ -1552,6 +1552,33 @@ proc statement_passthrough (state :var State; node :PNode) =
   state.statement_chain(statement_id)
 
 
+proc statement_block (state :var State; node :PNode) :void=
+  let label_node    = node[0]
+  let body_node     = node[1]
+  let depth         :uint64= 0
+  let block_body_id = case body_node.kind
+    of nkEmpty      : none(astTF.Id)
+    else            : some(state.statement_body(body_node, depth+1))
+  var block_expr    = astTF.Expression(kind: astTF.eBlock)
+  block_expr.`block`.body = block_body_id
+  let block_id      = state.ast.add_expression(block_expr)
+  let label_name    = if label_node.kind != nkEmpty: label_node.name() else: "_"
+  let keyword_loc   = state.name_add("block")
+  let label_loc     = state.name_add(label_name)
+  let keyword_id    = state.ast.add_expression(astTF.Expression(
+    kind            : astTF.eKeyword,
+    keyword         : astTF.ExpressionKeyword(
+      keyword       : astTF.Identifier(location: keyword_loc),
+      label         : some(astTF.Identifier(location: label_loc)),
+      value         : some(block_id),),))
+  let depth_id      = some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
+  let statement_id  = state.ast.add_statement(astTF.Statement(
+    kind            : astTF.sExpression,
+    expression      : astTF.StatementExpression(id: keyword_id, depth: depth_id),
+  ))
+  state.statement_chain(statement_id)
+
+
 proc statement_top_level (state :var State; node :PNode) =
   if node == nil: return
   case node.kind
@@ -1571,6 +1598,8 @@ proc statement_top_level (state :var State; node :PNode) =
         state.statement_type(child)
   of nkPragma:
     state.statement_passthrough(node)
+  of nkBlockStmt:
+    state.statement_block(node)
   of nkStmtList:
     for child in node:
       state.statement_top_level(child)

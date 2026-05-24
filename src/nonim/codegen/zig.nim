@@ -137,7 +137,9 @@ func expression_keyword_block (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; d
   if expr.keyword.label.isSome:
     let label = ast.source(module, expr.keyword.label.get.location)
     if label != "_":
-      Out.string(module, label & ": ", output.Target.definition)
+      Out.string(module, label, output.Target.definition)
+      if label != "test": Out.string(module, ":", output.Target.definition)
+      Out.string(module, " ", output.Target.definition)
   if expr.keyword.value.isSome:
     ast.expression_block(module, expr.keyword.value.get, depth, Out)
 
