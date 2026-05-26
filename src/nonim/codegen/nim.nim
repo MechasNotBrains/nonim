@@ -162,6 +162,7 @@ func type_object_body *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :
 func type_object *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; isBlock :bool = false) :void
 func type_enum *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; isBlock :bool = false) :void
 func type_alias *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; isBlock :bool = false) :void
+func type_procedure *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; isBlock :bool = false) :void
 #___________________
 func call *(
     ast     : astTF.Ast;
@@ -172,6 +173,16 @@ func call *(
   ) :void=
   let E = ast.expression(id).call
   ast.expression(module, E.name, target, Out)
+  if E.generics.isSome:
+    Out.string(module, "[", target)
+    var generic_current = some(E.generics.get)
+    while generic_current.isSome:
+      let generic_binding = ast.binding(generic_current.get)
+      if generic_binding.dataType.isSome:
+        ast.expression(module, generic_binding.dataType.get, target, Out)
+      generic_current = generic_binding.next
+      if generic_current.isSome: Out.string(module, ", ", target)
+    Out.string(module, "]", target)
   Out.string(module, "(", target)
   if E.arguments.isSome:
     var current = some(E.arguments.get)
@@ -365,11 +376,48 @@ func type_procedure *(
     id      : astTF.Id;
     target  : output.Target;
     Out     : var Output;
+    isBlock : bool = false;
   ) :void=
+  if isBlock: Out.string(module, indentation, target)
   let T = ast.typ(id).procedure
+  let P = ast.procedure(T.id)
+  if isBlock and P.name.isSome:
+    ast.identifier(module, P.name.get, target, Out)
+    Out.string(module, " ", target)
+    if not P.private.get(false): Out.string(module, "*", target)
+    if T.pragmas.isSome:
+      Out.string(module, "{.", target)
+      ast.pragma_list(module, T.pragmas.get, target, Out)
+      Out.string(module, ".}", target)
+    if not (T.pragmas.isSome or P.private.get(false)):
+      Out.string(module, " ", target)
+    Out.string(module, "= ", target)
   if T.mutable.get(false):  Out.string(module, "var ", target)
   if T.optional.get(false): Out.string(module, "Option[", target)
-  ast.procedure(module, T.id, target, Out)
+  if P.callable.isSome:
+    let callable = P.callable.get
+    Out.string(module, ast.source(module, callable.location, callable.synthetic.get(false)), target)
+  elif P.impure.get(false): Out.string(module, "proc", target)
+  else:                     Out.string(module, "func", target)
+  Out.string(module, " ", target)
+  if P.generics.isSome:
+    Out.string(module, "[", target)
+    var generic_current = some(P.generics.get)
+    while generic_current.isSome:
+      let generic_binding = ast.binding(generic_current.get)
+      if generic_binding.name.isSome: ast.identifier(module, generic_binding.name.get, target, Out)
+      generic_current = generic_binding.next
+      if generic_current.isSome: Out.string(module, ", ", target)
+    Out.string(module, "]", target)
+  Out.string(module, "(", target)
+  if P.arguments.isSome: ast.binding(module, P.arguments.get, target, Out)
+  Out.string(module, ")", target)
+  if P.returnType.isSome:
+    Out.string(module, " :", target)
+    ast.expression(module, P.returnType.get, target, Out)
+  if P.pragmas.isSome:
+    Out.string(module, " ", target)
+    ast.pragma(module, P.pragmas.get, target, Out)
   if T.optional.get(false): Out.string(module, "]", target)
 #___________________
 func `type` *(
@@ -686,6 +734,7 @@ func statement_type *(
   of astTF.tAlias       : ast.type_alias(module, T.id, target, Out, isBlock)
   of astTF.tEnumeration : ast.type_enum(module, T.id, target, Out, isBlock)
   of astTF.tObject      : ast.type_object(module, T.id, target, Out, isBlock)
+  of astTF.tProcedure   : ast.type_procedure(module, T.id, target, Out, isBlock)
   else                  : raise newException(Defect, "unreachable")
 
 func expression_keyword *(
