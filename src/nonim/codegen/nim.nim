@@ -541,6 +541,11 @@ func type_alias *(
   Out.string(module, " ", target)
   if not A.private.get(false):
     Out.string(module, "*", target)
+  if A.pragmas.isSome:
+    Out.string(module, "{.", target)
+    ast.pragma_list(module, A.pragmas.get, target, Out)
+    Out.string(module, ".}", target)
+  if not (A.pragmas.isSome or A.private.get(false)):
     Out.string(module, " ", target)
   Out.string(module, "= ", target)
   ast.expression(module, A.target, target, Out)
@@ -970,4 +975,3 @@ func nim *(
     let moduleBody = ast.data.modules[idx].body
     if moduleBody.isSome:
       ast.statement_list(astTF.Id(idx), moduleBody.get, target, result, mode)
-
