@@ -163,6 +163,26 @@ func type_object *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :outpu
 func type_enum *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; isBlock :bool = false) :void
 func type_alias *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; isBlock :bool = false) :void
 func type_procedure *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; isBlock :bool = false) :void
+func generics *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
+#___________________
+func generics *(
+    ast     : astTF.Ast;
+    module  : astTF.Id;
+    id      : astTF.Id;
+    target  : output.Target;
+    Out     : var Output;
+  ) :void=
+  Out.string(module, "[", target)
+  var current = some(id)
+  while current.isSome:
+    let generic_binding = ast.binding(current.get)
+    if generic_binding.name.isSome: ast.identifier(module, generic_binding.name.get, target, Out)
+    if generic_binding.dataType.isSome:
+      if generic_binding.name.isSome: Out.string(module, ": ", target)
+      ast.expression(module, generic_binding.dataType.get, target, Out)
+    current = generic_binding.next
+    if current.isSome: Out.string(module, ", ", target)
+  Out.string(module, "]", target)
 #___________________
 func call *(
     ast     : astTF.Ast;
@@ -174,15 +194,7 @@ func call *(
   let E = ast.expression(id).call
   ast.expression(module, E.name, target, Out)
   if E.generics.isSome:
-    Out.string(module, "[", target)
-    var generic_current = some(E.generics.get)
-    while generic_current.isSome:
-      let generic_binding = ast.binding(generic_current.get)
-      if generic_binding.dataType.isSome:
-        ast.expression(module, generic_binding.dataType.get, target, Out)
-      generic_current = generic_binding.next
-      if generic_current.isSome: Out.string(module, ", ", target)
-    Out.string(module, "]", target)
+    ast.generics(module, E.generics.get, target, Out)
   Out.string(module, "(", target)
   if E.arguments.isSome:
     var current = some(E.arguments.get)
@@ -400,15 +412,7 @@ func type_procedure *(
   elif P.impure.get(false): Out.string(module, "proc", target)
   else:                     Out.string(module, "func", target)
   Out.string(module, " ", target)
-  if P.generics.isSome:
-    Out.string(module, "[", target)
-    var generic_current = some(P.generics.get)
-    while generic_current.isSome:
-      let generic_binding = ast.binding(generic_current.get)
-      if generic_binding.name.isSome: ast.identifier(module, generic_binding.name.get, target, Out)
-      generic_current = generic_binding.next
-      if generic_current.isSome: Out.string(module, ", ", target)
-    Out.string(module, "]", target)
+  if P.generics.isSome: ast.generics(module, P.generics.get, target, Out)
   Out.string(module, "(", target)
   if P.arguments.isSome: ast.binding(module, P.arguments.get, target, Out)
   Out.string(module, ")", target)
@@ -511,15 +515,7 @@ func procedure *(
     ast.identifier(module, P.name.get, target, Out)
     Out.string(module, " ", target)
   if not P.private.get(false): Out.string(module, "*", target)
-  if P.generics.isSome:
-    Out.string(module, "[", target)
-    var generic_current = some(P.generics.get)
-    while generic_current.isSome:
-      let generic_binding = ast.binding(generic_current.get)
-      if generic_binding.name.isSome: ast.identifier(module, generic_binding.name.get, target, Out)
-      generic_current = generic_binding.next
-      if generic_current.isSome: Out.string(module, ", ", target)
-    Out.string(module, "]", target)
+  if P.generics.isSome: ast.generics(module, P.generics.get, target, Out)
   Out.string(module, "(", target)
   if P.arguments.isSome: ast.binding(module, P.arguments.get, target, Out)
   Out.string(module, ")", target)
@@ -589,11 +585,6 @@ func type_alias *(
   Out.string(module, " ", target)
   if not A.private.get(false):
     Out.string(module, "*", target)
-  if A.pragmas.isSome:
-    Out.string(module, "{.", target)
-    ast.pragma_list(module, A.pragmas.get, target, Out)
-    Out.string(module, ".}", target)
-  if not (A.pragmas.isSome or A.private.get(false)):
     Out.string(module, " ", target)
   Out.string(module, "= ", target)
   ast.expression(module, A.target, target, Out)
@@ -698,15 +689,7 @@ func type_object *(
   else: Out.string(module, "UNNAMED_TYPE_ALIAS", target)
   Out.string(module, " ", target)
   if not O.private.get(false): Out.string(module, "*", target)
-  if O.generics.isSome:
-    Out.string(module, "[", target)
-    var generic_current = some(O.generics.get)
-    while generic_current.isSome:
-      let generic_binding = ast.binding(generic_current.get)
-      if generic_binding.name.isSome: ast.identifier(module, generic_binding.name.get, target, Out)
-      generic_current = generic_binding.next
-      if generic_current.isSome: Out.string(module, ", ", target)
-    Out.string(module, "]", target)
+  if O.generics.isSome: ast.generics(module, O.generics.get, target, Out)
   if O.pragmas.isSome:
     Out.string(module, "{.", target)
     if O.keyword.isSome:
