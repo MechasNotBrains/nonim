@@ -16,3 +16,15 @@ proc simple *() :TestData=
     passthrough: astTF.StatementPassthrough(location: text_loc),
   ))
   result.ast.data.modules[result.module].body = some(result.id)
+
+
+proc with_quotes *() :TestData=
+  const input_text = "printf(\"hello world\");"
+  const input_source = input_text & "567890Z"
+  result = create(input_source)
+  let text_loc = astTF.Location(start: 0, `end`: input_text.len)
+  result.id = result.ast.add_statement(astTF.Statement(
+    kind: astTF.sPassthrough,
+    passthrough: astTF.StatementPassthrough(location: text_loc),
+  ))
+  result.ast.data.modules[result.module].body = some(result.id)

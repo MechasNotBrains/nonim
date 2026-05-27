@@ -43,6 +43,69 @@ proc with_arguments *() :TestData=
   ))
 
 
+proc with_generics *() :TestData=
+  const input_source = "newSeqint42"
+  result = create(input_source)
+  let func_id = result.ast.add_expression(astTF.Expression(
+    kind: astTF.eIdentifier,
+    identifier: astTF.ExpressionIdentifier(
+      name: astTF.Identifier(location: astTF.Location(start: 0, `end`: 6)),
+    ),
+  ))
+  let generic_type_id = result.ast.add_type(astTF.Type(
+    kind: astTF.tPrimitive,
+    primitive: astTF.TypePrimitive(name: astTF.Identifier(location: astTF.Location(start: 6, `end`: 9))),
+  ))
+  let generic_type_expr = result.ast.add_expression_type(generic_type_id)
+  let generic_binding = result.ast.add_binding(astTF.Binding(dataType: some(generic_type_expr)))
+  let arg_id = result.ast.add_expression(astTF.Expression(
+    kind: astTF.eLiteral,
+    literal: astTF.ExpressionLiteral(
+      kind: astTF.LiteralKind.integer,
+      value: astTF.Location(start: 9, `end`: 11),
+    ),
+  ))
+  let arg_binding = result.ast.add_binding(astTF.Binding(value: some(arg_id)))
+  result.id = result.ast.add_expression(astTF.Expression(
+    kind: astTF.eCall,
+    call: astTF.ExpressionCall(
+      name: func_id,
+      generics: some(generic_binding),
+      arguments: some(arg_binding),
+    ),
+  ))
+
+
+proc with_multi_generics *() :TestData=
+  const input_source = "mapintstring"
+  result = create(input_source)
+  let func_id = result.ast.add_expression(astTF.Expression(
+    kind: astTF.eIdentifier,
+    identifier: astTF.ExpressionIdentifier(
+      name: astTF.Identifier(location: astTF.Location(start: 0, `end`: 3)),
+    ),
+  ))
+  let generic_type1 = result.ast.add_type(astTF.Type(
+    kind: astTF.tPrimitive,
+    primitive: astTF.TypePrimitive(name: astTF.Identifier(location: astTF.Location(start: 3, `end`: 6))),
+  ))
+  let generic_type2 = result.ast.add_type(astTF.Type(
+    kind: astTF.tPrimitive,
+    primitive: astTF.TypePrimitive(name: astTF.Identifier(location: astTF.Location(start: 6, `end`: 12))),
+  ))
+  let generic_expr1 = result.ast.add_expression_type(generic_type1)
+  let generic_expr2 = result.ast.add_expression_type(generic_type2)
+  let generic_bind2 = result.ast.add_binding(astTF.Binding(dataType: some(generic_expr2)))
+  let generic_bind1 = result.ast.add_binding(astTF.Binding(dataType: some(generic_expr1), next: some(generic_bind2)))
+  result.id = result.ast.add_expression(astTF.Expression(
+    kind: astTF.eCall,
+    call: astTF.ExpressionCall(
+      name: func_id,
+      generics: some(generic_bind1),
+    ),
+  ))
+
+
 proc without_arguments *() :TestData=
   const input_source = "foo"
   result = create(input_source)

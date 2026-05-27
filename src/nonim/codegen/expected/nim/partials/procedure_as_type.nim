@@ -1,0 +1,1 @@
+proc (a :int) :int

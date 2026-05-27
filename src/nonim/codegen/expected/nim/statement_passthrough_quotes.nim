@@ -1,0 +1,1 @@
+{.emit: """printf("hello world");""".}
