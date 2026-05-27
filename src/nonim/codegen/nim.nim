@@ -154,6 +154,7 @@ func literal *(
 # @section Expressions
 #_____________________________
 func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
+func expression_keyword *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
 func binding_single *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; separator :string; target :output.Target; Out :var Output) :Option[astTF.Id]
 func binding *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
 func `type` *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
@@ -263,6 +264,7 @@ func expression *(
   of astTF.eCall       : ast.call(module, id, target, Out)
   of astTF.eType       : ast.`type`(module, E.`type`.id, target, Out)
   of astTF.eIndexed    : ast.expression_indexed(module, id, target, Out)
+  of astTF.eKeyword    : ast.expression_keyword(module, id, target, Out)
   else                 : raise newException(Defect, "unreachable: " & $E.kind)
 
 

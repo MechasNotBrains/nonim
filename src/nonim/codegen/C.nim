@@ -21,6 +21,7 @@ const Tab = "  "
 # @section Expressions
 #_____________________________
 func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
+func expression_keyword (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 
@@ -127,6 +128,7 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Outpu
   of astTF.eAffix:      ast.expression_affix(module, id, Out)
   of astTF.eCall:       ast.expression_call(module, id, Out)
   of astTF.eIndexed:    ast.expression_indexed(module, id, Out)
+  of astTF.eKeyword:    ast.expression_keyword(module, id, Out)
   else: assert false, "codegen.C: unsupported expression kind: " & $expression.kind
 
 
