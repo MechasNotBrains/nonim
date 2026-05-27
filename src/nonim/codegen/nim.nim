@@ -157,7 +157,7 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output
 func binding_single *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; separator :string; target :output.Target; Out :var Output) :Option[astTF.Id]
 func binding *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
 func `type` *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
-func procedure *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
+func procedure *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output, unnamed :bool = false) :void
 func type_object_body *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; base_indent :string) :void
 func type_object *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; isBlock :bool = false) :void
 func type_enum *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; isBlock :bool = false) :void
@@ -406,7 +406,7 @@ func type_procedure *(
     Out.string(module, "= ", target)
   if T.mutable.get(false):  Out.string(module, "var ", target)
   if T.optional.get(false): Out.string(module, "Option[", target)
-  ast.procedure(module, T.id, target, Out)
+  ast.procedure(module, T.id, target, Out, unnamed = true)
   if T.optional.get(false): Out.string(module, "]", target)
 #___________________
 func `type` *(
@@ -488,6 +488,7 @@ func procedure *(
     id      : astTF.Id;
     target  : output.Target;
     Out     : var Output;
+    unnamed : bool = false;
   ) :void=
   let P = ast.procedure(id)
   if P.callable.isSome:
@@ -496,10 +497,10 @@ func procedure *(
   elif P.impure.get(false): Out.string(module, "proc", target)
   else:          Out.string(module, "func", target)
   Out.string(module, " ", target)
-  if P.name.isSome:
+  if not unnamed and P.name.isSome:
     ast.identifier(module, P.name.get, target, Out)
     Out.string(module, " ", target)
-  if not P.private.get(false): Out.string(module, "*", target)
+  if not unnamed and not P.private.get(false): Out.string(module, "*", target)
   if P.generics.isSome: ast.generics(module, P.generics.get, target, Out)
   Out.string(module, "(", target)
   if P.arguments.isSome: ast.binding(module, P.arguments.get, target, Out)
