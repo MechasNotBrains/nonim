@@ -491,11 +491,12 @@ func procedure *(
     as_type : bool = false;
   ) :void=
   let P = ast.procedure(id)
+  let isFunc = P.impure.isSome and not P.impure.get()
   if P.callable.isSome:
     let callable = P.callable.get
     Out.string(module, ast.source(module, callable.location, callable.synthetic.get(false)), target)
-  elif P.impure.get(false): Out.string(module, "proc", target)
-  else:          Out.string(module, "func", target)
+  elif isFunc : Out.string(module, "func", target)
+  else        : Out.string(module, "proc", target)
   Out.string(module, " ", target)
   if not as_type and P.name.isSome:
     ast.identifier(module, P.name.get, target, Out)
