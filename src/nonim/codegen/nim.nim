@@ -158,7 +158,7 @@ func expression_keyword *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target
 func binding_single *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; separator :string; target :output.Target; Out :var Output) :Option[astTF.Id]
 func binding *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
 func `type` *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output) :void
-func procedure *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output, as_type :bool = false) :void
+func procedure *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output, anonymous :bool = false) :void
 func type_object_body *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; base_indent :string) :void
 func type_object *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; isBlock :bool = false) :void
 func type_enum *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; isBlock :bool = false) :void
@@ -408,7 +408,7 @@ func type_procedure *(
     Out.string(module, "= ", target)
   if T.mutable.get(false):  Out.string(module, "var ", target)
   if T.optional.get(false): Out.string(module, "Option[", target)
-  ast.procedure(module, T.id, target, Out, as_type = true)
+  ast.procedure(module, T.id, target, Out, anonymous = true)
   if T.optional.get(false): Out.string(module, "]", target)
 #___________________
 func `type` *(
@@ -485,12 +485,12 @@ func binding *(
 # @section Procedures
 #_____________________________
 func procedure *(
-    ast     : astTF.Ast;
-    module  : astTF.Id;
-    id      : astTF.Id;
-    target  : output.Target;
-    Out     : var Output;
-    as_type : bool = false;
+    ast       : astTF.Ast;
+    module    : astTF.Id;
+    id        : astTF.Id;
+    target    : output.Target;
+    Out       : var Output;
+    anonymous : bool = false;
   ) :void=
   let P = ast.procedure(id)
   let isFunc = not P.impure.get(false)
@@ -500,10 +500,10 @@ func procedure *(
   elif isFunc : Out.string(module, "func", target)
   else        : Out.string(module, "proc", target)
   Out.string(module, " ", target)
-  if not as_type and P.name.isSome:
+  if not anonymous and P.name.isSome:
     ast.identifier(module, P.name.get, target, Out)
     Out.string(module, " ", target)
-  if not as_type and not P.private.get(false): Out.string(module, "*", target)
+  if not anonymous and not P.private.get(false): Out.string(module, "*", target)
   if P.generics.isSome: ast.generics(module, P.generics.get, target, Out)
   Out.string(module, "(", target)
   if P.arguments.isSome: ast.binding(module, P.arguments.get, target, Out)
