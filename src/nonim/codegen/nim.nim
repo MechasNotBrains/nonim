@@ -5,7 +5,7 @@
 import "$nim"/compiler/lexer
 # @deps std
 from std/options import some, isSome, isNone, get
-from std/strutils import split, parseBiggestUInt
+from std/strutils import split, parseBiggestUInt, replace
 # @deps nonim
 import ./output except Module
 import ./base
@@ -777,7 +777,8 @@ func statement_passthrough *(
   ) :void=
   let S = ast.statement(id).passthrough
   let text = ast.source(module, S.location, false)
-  Out.string(module, "{.emit: \"" & text & "\".}", target)
+  let escaped = text.replace("\"", "\\\"")
+  Out.string(module, "{.emit: \"" & escaped & "\".}", target)
 #___________________
 func statement_comment *(
     ast     : astTF.Ast;
