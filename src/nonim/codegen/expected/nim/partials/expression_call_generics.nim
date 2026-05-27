@@ -1,0 +1,1 @@
+newSeq[int](42)

@@ -124,6 +124,24 @@ proc callable_method *() :TestData=
   ))
 
 
+proc as_type *() :TestData=
+  const input_arg = "a"
+  const input_type = "int"
+  const input_source = input_arg & input_type & "567890Z"
+  result = create(input_source)
+  let arg_loc = astTF.Location(start: 0, `end`: input_arg.len)
+  let type_loc = astTF.Location(start: arg_loc.`end`, `end`: arg_loc.`end` + input_type.len)
+  let type_id = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: type_loc))))
+  let type_expr = result.ast.add_expression_type(type_id)
+  let args_id = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: arg_loc)), dataType: some(type_expr), private: some(true)))
+  result.id = result.ast.add_procedure(astTF.Procedure(
+    name: some(astTF.Identifier(location: astTF.Location(start: 0, `end`: 1))),
+    arguments: some(args_id),
+    returnType: some(type_expr),
+    impure: some(true),
+  ))
+
+
 proc generic *() :TestData=
   const input_name = "clamp"
   const input_param = "T"

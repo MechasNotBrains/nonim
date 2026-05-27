@@ -10,6 +10,7 @@ import ./test/expression_literal
 import ./test/expression_affix
 import ./test/expression_group
 import ./test/expression_call
+import ./test/expression_keyword
 import ./test/pragma
 import ./test/binding
 import ./test/procedure
@@ -147,6 +148,39 @@ describe "nonim.codegen.nim | Expression.call Cases":
   it "must generate a call expression without arguments", proc()=
     const Expected = partial("expression_call_no_args.nim")
     var test_case = expression_call.without_arguments()
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
+  it "must generate a call expression with generic argument", proc()=
+    const Expected = partial("expression_call_generics.nim")
+    var test_case = expression_call.with_generics()
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
+  it "must generate a call expression with multiple generic arguments", proc()=
+    const Expected = partial("expression_call_multi_generics.nim")
+    var test_case = expression_call.with_multi_generics()
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
+
+#_______________________________________
+# @section Keyword Expressions
+#_____________________________
+describe "nonim.codegen.nim | Expression.keyword Cases":
+  it "must generate a keyword expression with a value", proc()=
+    const Expected = partial("expression_keyword_with_value.nim")
+    var test_case = expression_keyword.with_value()
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
+  it "must generate a keyword expression without a value", proc()=
+    const Expected = partial("expression_keyword_without_value.nim")
+    var test_case = expression_keyword.without_value()
     var Out = Output.create()
     test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
     Out.modules[test_case.module].definitions.eq_str(Expected)
@@ -306,6 +340,13 @@ describe "nonim.codegen.nim | Procedure Cases":
     var test_case = procedure.callable_method()
     var Out = Output.create()
     test_case.ast.procedure(test_case.module, test_case.id, Target.definition, Out)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
+  it "must generate a procedure as type without name or export marker", proc()=
+    const Expected = partial("procedure_as_type.nim")
+    var test_case = procedure.as_type()
+    var Out = Output.create()
+    test_case.ast.procedure(test_case.module, test_case.id, Target.definition, Out, as_type = true)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate a generic procedure", proc()=
@@ -473,6 +514,12 @@ describe "nonim.codegen.nim | Statement.passthrough Cases":
   it "must generate a passthrough statement", proc()=
     const Expected = expected("statement_passthrough.nim")
     let test_case = statement_passthrough.simple()
+    let result = test_case.ast.nim()
+    result.modules[0].definitions.eq_str(Expected)
+
+  it "must generate a passthrough statement with quotes using triple quotes", proc()=
+    const Expected = expected("statement_passthrough_quotes.nim")
+    let test_case = statement_passthrough.with_quotes()
     let result = test_case.ast.nim()
     result.modules[0].definitions.eq_str(Expected)
 
