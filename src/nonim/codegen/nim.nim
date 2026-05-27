@@ -406,22 +406,7 @@ func type_procedure *(
     Out.string(module, "= ", target)
   if T.mutable.get(false):  Out.string(module, "var ", target)
   if T.optional.get(false): Out.string(module, "Option[", target)
-  if P.callable.isSome:
-    let callable = P.callable.get
-    Out.string(module, ast.source(module, callable.location, callable.synthetic.get(false)), target)
-  elif P.impure.get(false): Out.string(module, "proc", target)
-  else:                     Out.string(module, "func", target)
-  Out.string(module, " ", target)
-  if P.generics.isSome: ast.generics(module, P.generics.get, target, Out)
-  Out.string(module, "(", target)
-  if P.arguments.isSome: ast.binding(module, P.arguments.get, target, Out)
-  Out.string(module, ")", target)
-  if P.returnType.isSome:
-    Out.string(module, " :", target)
-    ast.expression(module, P.returnType.get, target, Out)
-  if P.pragmas.isSome:
-    Out.string(module, " ", target)
-    ast.pragma(module, P.pragmas.get, target, Out)
+  ast.procedure(module, T.id, target, Out)
   if T.optional.get(false): Out.string(module, "]", target)
 #___________________
 func `type` *(
@@ -760,8 +745,7 @@ func statement_passthrough *(
   ) :void=
   let S = ast.statement(id).passthrough
   let text = ast.source(module, S.location, false)
-  let escaped = text.replace("\"", "\\\"")
-  Out.string(module, "{.emit: \"" & escaped & "\".}", target)
+  Out.string(module, "{.emit: \"\"\"" & text & "\"\"\".}", target)
 #___________________
 func statement_comment *(
     ast     : astTF.Ast;
