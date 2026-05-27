@@ -493,7 +493,7 @@ func procedure *(
     as_type : bool = false;
   ) :void=
   let P = ast.procedure(id)
-  let isFunc = P.impure.isSome and not P.impure.get()
+  let isFunc = not P.impure.get(false)
   if P.callable.isSome:
     let callable = P.callable.get
     Out.string(module, ast.source(module, callable.location, callable.synthetic.get(false)), target)
