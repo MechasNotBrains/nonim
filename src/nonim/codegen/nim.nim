@@ -996,3 +996,4 @@ func nim *(
     let moduleBody = ast.data.modules[idx].body
     if moduleBody.isSome:
       ast.statement_list(astTF.Id(idx), moduleBody.get, target, result, mode)
+
