@@ -346,7 +346,7 @@ describe "nonim.codegen.nim | Procedure Cases":
     const Expected = partial("procedure_as_type.nim")
     var test_case = procedure.as_type()
     var Out = Output.create()
-    test_case.ast.procedure(test_case.module, test_case.id, Target.definition, Out, as_type = true)
+    test_case.ast.procedure(test_case.module, test_case.id, Target.definition, Out, anonymous = true)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
   it "must generate a generic procedure", proc()=

@@ -1,0 +1,1 @@
+import ./test as t

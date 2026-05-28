@@ -155,6 +155,14 @@ describe "nonim.minz | Control Flow":
     let result = generate_zig(case_input("control_while"))
     result.eq case_expected("control_while")
 
+  it "must generate for-in loop with const slice", proc() =
+    let result = generate_zig(case_input("control_for"))
+    result.eq case_expected("control_for")
+
+  it "must generate for-in loop with mutable slice", proc() =
+    let result = generate_zig(case_input("control_for_mutable"))
+    result.eq case_expected("control_for_mutable")
+
   it "must generate break inside loop", proc() =
     let result = generate_zig(case_input("statement_break"))
     result.eq case_expected("statement_break")
@@ -398,6 +406,10 @@ describe "nonim.minz | Imports":
     let result = generate_zig(case_input("import_relative_current"))
     result.eq case_expected("import_relative_current")
 
+  it "must generate import with as alias", proc() =
+    let result = generate_zig(case_input("import_as"))
+    result.eq case_expected("import_as")
+
   it "must generate from-import with @-prefixed module path", proc() =
     let result = generate_zig(case_input("import_from_module"))
     result.eq case_expected("import_from_module")
@@ -415,6 +427,22 @@ describe "nonim.minz | Test Blocks":
   it "must generate a test block from @test with string name", proc() =
     let result = generate_zig(case_input("statement_test_string"))
     result.eq case_expected("statement_test_string")
+
+  it "must generate @it as try it() with struct-wrapped lambda", proc() =
+    let result = generate_zig(case_input("statement_it"))
+    result.eq case_expected("statement_it")
+
+  it "must generate @describe as var + test + begin/end + body", proc() =
+    let result = generate_zig(case_input("statement_describe"))
+    result.eq case_expected("statement_describe")
+
+  it "must generate multiple @it cases inside a single @describe", proc() =
+    let result = generate_zig(case_input("statement_describe_multi_it"))
+    result.eq case_expected("statement_describe_multi_it")
+
+  it "must generate two @describe blocks in sequence", proc() =
+    let result = generate_zig(case_input("statement_describe_two"))
+    result.eq case_expected("statement_describe_two")
 
 describe "nonim.minz | Includes":
   it "must inline a global include from a .zig file", proc() =

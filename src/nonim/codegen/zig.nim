@@ -236,14 +236,31 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Outpu
   of astTF.eGroup:      ast.expression_group(module, id, Out)
   of astTF.eType:       ast.expression_type(module, id, Out)
   of astTF.eProcedure:  ast.expression_procedure(module, id, Out)
+  of astTF.eBlock:
+    let block_expr = ast.data.expressions.get[id]
+    Out.string(module, "{\n", output.Target.definition)
+    if block_expr.`block`.body.isSome:
+      ast.statement_list(module, block_expr.`block`.body.get, Out)
+    Out.string(module, "}", output.Target.definition)
   else: assert false, "codegen.zig: unsupported expression kind: " & $expression.kind
 
 func expression_loop (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
   let expr = ast.data.expressions.get[id]
-  Out.string(module, "while (", output.Target.definition)
-  if expr.loop.condition.isSome:
-    ast.expression(module, expr.loop.condition.get, Out)
-  Out.string(module, ") {\n", output.Target.definition)
+  if expr.loop.sentry.isSome:
+    Out.string(module, "for (", output.Target.definition)
+    if expr.loop.condition.isSome:
+      ast.expression(module, expr.loop.condition.get, Out)
+    Out.string(module, ") |", output.Target.definition)
+    let sentry_stmt = ast.data.statements.get[expr.loop.sentry.get]
+    let sentry_binding = ast.data.bindings.get[sentry_stmt.variable.id]
+    if sentry_binding.name.isSome:
+      Out.string(module, ast.source(module, sentry_binding.name.get.location), output.Target.definition)
+    Out.string(module, "| {\n", output.Target.definition)
+  else:
+    Out.string(module, "while (", output.Target.definition)
+    if expr.loop.condition.isSome:
+      ast.expression(module, expr.loop.condition.get, Out)
+    Out.string(module, ") {\n", output.Target.definition)
   if expr.loop.body.isSome:
     ast.statement_list(module, expr.loop.body.get, Out)
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
@@ -315,10 +332,12 @@ func type_render (ast :astTF.Ast; module :astTF.Id; type_id :astTF.Id) :string=
   of astTF.tPrimitive:
     ast.source(module, type_data.primitive.name.location)
   of astTF.tArray:
+    let is_mutable = type_data.array.mutable.get(false)
     let length = if type_data.array.length.isSome:
                    "[" & ast.source(module, ast.data.expressions.get[type_data.array.length.get].literal.value) & "]"
                  else: "[]"
-    length & ast.type_render(module, type_data.array.element)
+    let const_prefix = if not is_mutable and type_data.array.length.isNone: "const " else: ""
+    length & const_prefix & ast.type_render(module, type_data.array.element)
   of astTF.tPtr:
     let target = ast.data.types.get[type_data.`ptr`.target]
     # Pointee mutability lives on the target: immutable -> `*const T`, mutable -> `*T`.
@@ -380,7 +399,7 @@ func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
   let depth      = ast.node_depth(statement.variable.depth)
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
 
-  if not is_private and depth == 0:
+  if not is_private:
     Out.string(module, "pub ", output.Target.definition)
 
   case is_mutable
@@ -629,9 +648,13 @@ func statement_import (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var 
   if S.symbols.isSome:
     ast.statement_import_from(module, path, S.symbols.get, Out)
     return
-  let parts = path.split("/")
-  var name = parts[parts.len - 1]
-  if name.endsWith(".zig"): name = name[0 ..< name.len - ".zig".len]
+  var name :string
+  if S.alias.isSome:
+    name = ast.source(module, S.alias.get.location)
+  else:
+    let parts = path.split("/")
+    name = parts[parts.len - 1]
+    if name.endsWith(".zig"): name = name[0 ..< name.len - ".zig".len]
   Out.string(module, "const " & name & " = @import(\"" & path & "\");\n", output.Target.definition)
 
 func statement_passthrough (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
