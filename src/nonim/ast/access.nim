@@ -34,6 +34,7 @@ func expression_next *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=
     of astTF.eLoop:        E.loop.next
     of astTF.eType:        E.`type`.next
     of astTF.eKeyword:     E.keyword.next
+    of astTF.eProcedure:   E.procedure.next
 
 proc expression_next_set *(atf :var astTF.astTF; id :astTF.Id; next :Option[astTF.Id]) =
   var E = atf.data.expressions.get[id]
@@ -52,6 +53,7 @@ proc expression_next_set *(atf :var astTF.astTF; id :astTF.Id; next :Option[astT
   of astTF.eLoop:        E.loop.next = next
   of astTF.eType:        E.`type`.next = next
   of astTF.eKeyword:     E.keyword.next = next
+  of astTF.eProcedure:   E.procedure.next = next
   atf.data.expressions.get[id] = E
 
 func statement_next *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=

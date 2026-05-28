@@ -25,6 +25,8 @@ func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
 func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func type_name (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string
 func type_render (ast :astTF.Ast; module :astTF.Id; type_id :astTF.Id) :string
+func procedure_render (ast :astTF.Ast; module :astTF.Id; procedure :astTF.Procedure; Out :var Output) :void
+func expression_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 
 func expression_identifier (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
@@ -233,6 +235,7 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Outpu
   of astTF.eArray:      ast.expression_array(module, id, Out)
   of astTF.eGroup:      ast.expression_group(module, id, Out)
   of astTF.eType:       ast.expression_type(module, id, Out)
+  of astTF.eProcedure:  ast.expression_procedure(module, id, Out)
   else: assert false, "codegen.zig: unsupported expression kind: " & $expression.kind
 
 func expression_loop (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
@@ -399,33 +402,12 @@ func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
   Out.string(module, ";\n", output.Target.definition)
 
 
-func statement_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
-  let statement = ast.data.statements.get[id]
-  let procedure = ast.data.procedures.get[statement.procedure.id]
-
-  let is_private = procedure.private.get(true)
-
-  if not is_private:
-    Out.string(module, "pub ", output.Target.definition)
-
-  if procedure.pragmas.isSome:
-    var current = some(procedure.pragmas.get)
-    while current.isSome:
-      let pragma = ast.data.pragmas.get[current.get]
-      let key_expr = ast.data.expressions.get[pragma.key]
-      if key_expr.kind == astTF.eIdentifier:
-        let key_text = ast.source(module, key_expr.identifier.name.location)
-        if key_text == "inline":
-          Out.string(module, "inline ", output.Target.definition)
-        elif key_text == "extern":
-          Out.string(module, "extern ", output.Target.definition)
-      current = pragma.next
-
+func procedure_render (ast :astTF.Ast; module :astTF.Id; procedure :astTF.Procedure; Out :var Output) :void=
   Out.string(module, "fn ", output.Target.definition)
 
-  if procedure.name.isSome:
-    let name = ast.source(module, procedure.name.get.location)
-    Out.string(module, name, output.Target.definition)
+  let name = if procedure.name.isSome: ast.source(module, procedure.name.get.location)
+             else: "f"
+  Out.string(module, name, output.Target.definition)
 
   Out.string(module, " (", output.Target.definition)
 
@@ -475,7 +457,44 @@ func statement_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :v
   if procedure.body.isSome:
     Out.string(module, " {\n", output.Target.definition)
     ast.statement_list(module, procedure.body.get, Out)
-    Out.string(module, "}\n", output.Target.definition)
+    Out.string(module, "}", output.Target.definition)
+
+
+func expression_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
+  let procedure = ast.data.procedures.get[expr.procedure.id]
+  let name = if procedure.name.isSome: ast.source(module, procedure.name.get.location)
+             else: "f"
+  Out.string(module, "struct { ", output.Target.definition)
+  ast.procedure_render(module, procedure, Out)
+  Out.string(module, " }." & name, output.Target.definition)
+
+
+func statement_procedure (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let statement = ast.data.statements.get[id]
+  let procedure = ast.data.procedures.get[statement.procedure.id]
+
+  let is_private = procedure.private.get(true)
+
+  if not is_private:
+    Out.string(module, "pub ", output.Target.definition)
+
+  if procedure.pragmas.isSome:
+    var current = some(procedure.pragmas.get)
+    while current.isSome:
+      let pragma = ast.data.pragmas.get[current.get]
+      let key_expr = ast.data.expressions.get[pragma.key]
+      if key_expr.kind == astTF.eIdentifier:
+        let key_text = ast.source(module, key_expr.identifier.name.location)
+        if key_text == "inline":
+          Out.string(module, "inline ", output.Target.definition)
+        elif key_text == "extern":
+          Out.string(module, "extern ", output.Target.definition)
+      current = pragma.next
+
+  ast.procedure_render(module, procedure, Out)
+  if procedure.body.isSome:
+    Out.string(module, "\n", output.Target.definition)
   else:
     Out.string(module, ";\n", output.Target.definition)
 

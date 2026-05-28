@@ -402,6 +402,11 @@ describe "nonim.minz | Imports":
     let result = generate_zig(case_input("import_from_module"))
     result.eq case_expected("import_from_module")
 
+describe "nonim.minz | Lambdas":
+  it "must generate a lambda expression as struct-wrapped function", proc() =
+    let result = generate_zig(case_input("expression_lambda"))
+    result.eq case_expected("expression_lambda")
+
 describe "nonim.minz | Test Blocks":
   it "must generate a test block from @test with identifier", proc() =
     let result = generate_zig(case_input("statement_test"))
