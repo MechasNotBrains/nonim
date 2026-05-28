@@ -402,6 +402,15 @@ describe "nonim.minz | Imports":
     let result = generate_zig(case_input("import_from_module"))
     result.eq case_expected("import_from_module")
 
+describe "nonim.minz | Test Blocks":
+  it "must generate a test block from @test with identifier", proc() =
+    let result = generate_zig(case_input("statement_test"))
+    result.eq case_expected("statement_test")
+
+  it "must generate a test block from @test with string name", proc() =
+    let result = generate_zig(case_input("statement_test_string"))
+    result.eq case_expected("statement_test_string")
+
 describe "nonim.minz | Includes":
   it "must inline a global include from a .zig file", proc() =
     let result = generate_zig_file("include_global")

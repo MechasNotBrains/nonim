@@ -135,12 +135,18 @@ func expression_block (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :in
 
 func expression_keyword_block (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
   let expr = ast.data.expressions.get[id]
-  if expr.keyword.label.isSome:
+  let keyword_text = ast.source(module, expr.keyword.keyword.location)
+  if keyword_text == "test":
+    Out.string(module, "test", output.Target.definition)
+    if expr.keyword.label.isSome:
+      Out.string(module, " ", output.Target.definition)
+      Out.string(module, ast.source(module, expr.keyword.label.get.location), output.Target.definition)
+    Out.string(module, " ", output.Target.definition)
+  elif expr.keyword.label.isSome:
     let label = ast.source(module, expr.keyword.label.get.location)
     if label != "_":
       Out.string(module, label, output.Target.definition)
-      if label != "test": Out.string(module, ":", output.Target.definition)
-      Out.string(module, " ", output.Target.definition)
+      Out.string(module, ": ", output.Target.definition)
   if expr.keyword.value.isSome:
     ast.expression_block(module, expr.keyword.value.get, depth, Out)
 
@@ -577,7 +583,7 @@ func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :
   of astTF.eConditional: ast.expression_conditional(module, statement.expression.id, depth, Out)
   of astTF.eKeyword:
     let keyword_text = ast.source(module, expr.keyword.keyword.location)
-    if keyword_text == "block":
+    if keyword_text == "block" or keyword_text == "test":
       ast.expression_keyword_block(module, statement.expression.id, depth, Out)
     else:
       ast.expression_keyword(module, statement.expression.id, Out)

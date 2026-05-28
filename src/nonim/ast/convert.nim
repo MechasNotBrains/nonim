@@ -1662,8 +1662,44 @@ proc statement_block (state :var State; node :PNode) :void=
   state.statement_chain(statement_id)
 
 
+proc is_at_test (node :PNode) :bool=
+  node.kind == nkCommand and node.safeLen >= 3 and
+    node[0].kind == nkPrefix and node[0].safeLen > 1 and
+    node[0][0].name() == "@" and node[0][1].name() == "test" and
+    node[node.safeLen - 1].kind == nkStmtList
+
+proc statement_test (state :var State; node :PNode) :void=
+  let name_node     = node[1]
+  let body_node     = node[node.safeLen - 1]
+  let depth         :uint64= 0
+  let block_body_id = case body_node.kind
+    of nkEmpty      : none(astTF.Id)
+    else            : some(state.statement_body(body_node, depth+1))
+  var block_expr    = astTF.Expression(kind: astTF.eBlock)
+  block_expr.`block`.body = block_body_id
+  let block_id      = state.ast.add_expression(block_expr)
+  let test_name     = if name_node.kind in {nkStrLit..nkTripleStrLit}: "\"" & name_node.strVal & "\""
+                      else: name_node.name()
+  let keyword_loc   = state.name_add("test")
+  let label_loc     = state.name_add(test_name)
+  let keyword_id    = state.ast.add_expression(astTF.Expression(
+    kind            : astTF.eKeyword,
+    keyword         : astTF.ExpressionKeyword(
+      keyword       : astTF.Identifier(location: keyword_loc),
+      label         : some(astTF.Identifier(location: label_loc)),
+      value         : some(block_id),),))
+  let depth_id      = some(state.ast.add_depth(astTF.Depth(indent: some(depth))))
+  let statement_id  = state.ast.add_statement(astTF.Statement(
+    kind            : astTF.sExpression,
+    expression      : astTF.StatementExpression(id: keyword_id, depth: depth_id),
+  ))
+  state.statement_chain(statement_id)
+
 proc statement_top_level (state :var State; node :PNode) =
   if node == nil: return
+  if node.is_at_test():
+    state.statement_test(node)
+    return
   case node.kind
   of nkProcDef, nkFuncDef:
     state.statement_procedure(node)
