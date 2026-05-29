@@ -9,14 +9,34 @@ import "$nim"/compiler/[options, lineinfos, msgs]
 #_____________________________
 type NimcError * = object of CatchableError
 
+type ParseError * = object
+  message  *:string
+  kind     *:TMsgKind
+  arg      *:string
+  line     *:int
+  column   *:int
+  file     *:string
+
+
+#_______________________________________
+# @section Collection
+#_____________________________
+var collected *{.threadvar.}:seq[ParseError]
+
+proc errors_clear *() =
+  collected.setLen(0)
+
 
 #_______________________________________
 # @section Callbacks
 #_____________________________
-var errorStr :string
 proc errorAST *(conf :ConfigRef; info :TLineInfo; msg :TMsgKind; arg :string)=
-  if msg == errGenerated and arg == "expected 'except'": return
-  if msg == errGenerated and arg == "expression expected, but found '.'": return
-  if errorStr.len == 0 and msg <= errMax:
-    errorStr = formatMsg(conf, info, msg, arg)
-    debugEcho errorStr
+  if msg <= errMax:
+    collected.add(ParseError(
+      message: formatMsg(conf, info, msg, arg),
+      kind:    msg,
+      arg:     arg,
+      line:    info.line.int,
+      column:  info.col.int,
+      file:    toFilename(conf, info),
+    ))

@@ -3,6 +3,7 @@
 #:_________________________________________________________
 # @deps nonim
 import ../ast as astTF
+import ../nimc/errors
 
 type Target *{.pure.}= enum both, declaration, definition
 
@@ -12,7 +13,8 @@ type Module * = object
   definitions   *:string= ""
 
 type Output * = object
-  modules  *:seq[output.Module]= @[]
+  modules      *:seq[output.Module]= @[]
+  parse_errors *:seq[ParseError]= @[]
 
 func create *(_:typedesc[Output]) :Output= Output(modules: @[Module()])
 func string *(

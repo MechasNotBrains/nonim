@@ -14,6 +14,7 @@ proc compile *(
     file : string = "";
   ) :ast.PNode=
   ## @descr Gets the AST of {@arg code}. The given {@arg file} path is used for error messages.
+  errors.errors_clear()
   var cache  = idents.newIdentCache()
   var config = options.newConfigRef()
   result = parser.parseString(

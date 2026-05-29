@@ -356,6 +356,82 @@ proc tuple_unnamed *() :TestData=
   result.id = result.ast.add_type(astTF.Type(kind: astTF.tObject, `object`: astTF.TypeObject(keyword: some(astTF.Identifier(location: keyw_loc)), fields: some(field1))))
 
 
+proc object_field_defaults *() :TestData=
+  const input_name = "Config"
+  const input_field1 = "title"
+  const input_type1 = "cstring"
+  const input_default1 = "hello"
+  const input_field2 = "count"
+  const input_type2 = "int"
+  const input_default2 = "42"
+  const input_field3 = "arena"
+  const input_type3 = "Allocator"
+  const input_source = input_name & input_field1 & input_type1 & input_default1 & input_field2 & input_type2 & input_default2 & input_field3 & input_type3 & "567890Z"
+  result = create(input_source)
+  let name_loc = astTF.Location(start: 0, `end`: input_name.len)
+  var offset = name_loc.`end`
+  let field1_loc = astTF.Location(start: offset, `end`: offset + input_field1.len); offset += input_field1.len
+  let type1_loc = astTF.Location(start: offset, `end`: offset + input_type1.len); offset += input_type1.len
+  let default1_loc = astTF.Location(start: offset, `end`: offset + input_default1.len); offset += input_default1.len
+  let field2_loc = astTF.Location(start: offset, `end`: offset + input_field2.len); offset += input_field2.len
+  let type2_loc = astTF.Location(start: offset, `end`: offset + input_type2.len); offset += input_type2.len
+  let default2_loc = astTF.Location(start: offset, `end`: offset + input_default2.len); offset += input_default2.len
+  let field3_loc = astTF.Location(start: offset, `end`: offset + input_field3.len); offset += input_field3.len
+  let type3_loc = astTF.Location(start: offset, `end`: offset + input_type3.len); offset += input_type3.len
+  let type1_id = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: type1_loc))))
+  let type1_expr = result.ast.add_expression_type(type1_id)
+  let type2_id = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: type2_loc))))
+  let type2_expr = result.ast.add_expression_type(type2_id)
+  let type3_id = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: type3_loc))))
+  let type3_expr = result.ast.add_expression_type(type3_id)
+  let default1_expr = result.ast.add_expression(astTF.Expression(kind: astTF.eLiteral, literal: astTF.ExpressionLiteral(kind: astTF.LiteralKind.string, value: default1_loc)))
+  let default2_expr = result.ast.add_expression(astTF.Expression(kind: astTF.eLiteral, literal: astTF.ExpressionLiteral(kind: astTF.LiteralKind.integer, value: default2_loc)))
+  let field3_id = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field3_loc)), dataType: some(type3_expr)))
+  let field2_id = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field2_loc)), dataType: some(type2_expr), value: some(default2_expr), next: some(field3_id)))
+  let field1_id = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field1_loc)), dataType: some(type1_expr), value: some(default1_expr), next: some(field2_id)))
+  let type_id = result.ast.add_type(astTF.Type(kind: astTF.tObject, `object`: astTF.TypeObject(
+    name: some(astTF.Identifier(location: name_loc)),
+    fields: some(field1_id),
+  )))
+  result.id = result.ast.add_statement(astTF.Statement(kind: astTF.sType, `type`: astTF.StatementType(id: type_id)))
+  result.ast.data.modules[result.module].body = some(result.id)
+
+
+proc object_empty *() :TestData=
+  result = create("")
+  let empty_binding = result.ast.add_binding(astTF.Binding())
+  result.id = result.ast.add_expression(astTF.Expression(
+    kind: astTF.eObject,
+    `object`: astTF.ExpressionObject(fields: empty_binding),
+  ))
+
+
+proc procedure_generic *() :TestData=
+  const input_name = "Callback"
+  const input_param = "T"
+  const input_arg = "item"
+  const input_source = input_name & input_param & input_arg & "567890Z"
+  result = create(input_source)
+  let name_loc = astTF.Location(start: 0, `end`: input_name.len)
+  let param_loc = astTF.Location(start: name_loc.`end`, `end`: name_loc.`end` + input_param.len)
+  let arg_loc = astTF.Location(start: param_loc.`end`, `end`: param_loc.`end` + input_arg.len)
+  let generic_id = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: param_loc)), private: some(true)))
+  let param_type_id = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: param_loc))))
+  let param_type_expr = result.ast.add_expression_type(param_type_id)
+  let arg_id = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: arg_loc)), dataType: some(param_type_expr), private: some(true)))
+  let ret_expr = result.ast.add_expression_type(param_type_id)
+  let proc_id = result.ast.add_procedure(astTF.Procedure(
+    name: some(astTF.Identifier(location: name_loc)),
+    arguments: some(arg_id),
+    returnType: some(ret_expr),
+    generics: some(generic_id),
+    impure: some(true),
+  ))
+  let type_id = result.ast.add_type(astTF.Type(kind: astTF.tProcedure, procedure: astTF.TypeProcedure(id: proc_id)))
+  result.id = result.ast.add_statement(astTF.Statement(kind: astTF.sType, `type`: astTF.StatementType(id: type_id)))
+  result.ast.data.modules[result.module].body = some(result.id)
+
+
 proc procedure_tuple_return *() :TestData=
   const input_name = "tee"
   const input_selfn = "self"

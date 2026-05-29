@@ -395,15 +395,16 @@ func type_procedure *(
   if isBlock: Out.string(module, indentation, target)
   let T = ast.typ(id).procedure
   let P = ast.procedure(T.id)
-  if isBlock and P.name.isSome:
+  if P.name.isSome:
     ast.identifier(module, P.name.get, target, Out)
     Out.string(module, " ", target)
     if not P.private.get(false): Out.string(module, "*", target)
+    if P.generics.isSome: ast.generics(module, P.generics.get, target, Out)
     if T.pragmas.isSome:
       Out.string(module, "{.", target)
       ast.pragma_list(module, T.pragmas.get, target, Out)
       Out.string(module, ".}", target)
-    if not (T.pragmas.isSome or P.private.get(false)):
+    if not (P.generics.isSome or T.pragmas.isSome or P.private.get(false)):
       Out.string(module, " ", target)
     Out.string(module, "= ", target)
   if T.mutable.get(false):  Out.string(module, "var ", target)
@@ -504,7 +505,7 @@ func procedure *(
     ast.identifier(module, P.name.get, target, Out)
     Out.string(module, " ", target)
   if not anonymous and not P.private.get(false): Out.string(module, "*", target)
-  if P.generics.isSome: ast.generics(module, P.generics.get, target, Out)
+  if not anonymous and P.generics.isSome: ast.generics(module, P.generics.get, target, Out)
   Out.string(module, "(", target)
   if P.arguments.isSome: ast.binding(module, P.arguments.get, target, Out)
   Out.string(module, ")", target)

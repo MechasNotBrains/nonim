@@ -19,6 +19,7 @@ import ./test/statement_import
 import ./test/statement_passthrough
 import ./test/statement_comment
 import ./test/format_whitespace
+import ./test/statement_type
 
 const expected_dir = "./expected/zig/"
 template expected (path :static system.string) :system.string= staticRead(expected_dir & path)
@@ -161,3 +162,17 @@ describe "nonim.codegen.zig | Format.Whitespace":
     let test_case = format_whitespace.var_then_proc()
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.zig | Statement.Type.Object":
+  it "must generate object fields with default values", proc() =
+    const Expected = expected("statement_type_object_field_defaults.zig")
+    let test_case = statement_type.object_field_defaults()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate an empty object expression", proc() =
+    const Expected = expected("expression_object_empty.zig")
+    var test_case = statement_type.object_empty()
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Out)
+    Out.modules[test_case.module].definitions.eq Expected

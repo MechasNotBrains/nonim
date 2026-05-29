@@ -428,9 +428,11 @@ proc expression_object_positional (state :var State; node :PNode; first :int) :a
       prev.next = some(binding_id)
       state.ast.data.bindings.get[previous_field.get] = prev
     previous_field = some(binding_id)
+  let fields = if first_field.isSome: first_field.get
+               else: state.ast.add_binding(astTF.Binding())
   state.ast.add_expression(astTF.Expression(
     kind     : astTF.eObject,
-    `object` : astTF.ExpressionObject(fields: first_field.get),
+    `object` : astTF.ExpressionObject(fields: fields),
   ))
 
 proc expression_array (state :var State; node :PNode) :astTF.Id=
@@ -1704,6 +1706,9 @@ proc statement_type (state :var State; node :PNode) =
           else:
             field_binding.private = some(state.declaration_private(field_name_node))
             field_binding.dataType = if is_last_in_group: field_type else: none(astTF.Id)
+            let default_node = field_def[field_def.safeLen - 1]
+            if default_node.kind != nkEmpty:
+              field_binding.value = some(state.expression(default_node))
           let field_id = state.ast.add_binding(field_binding)
           if first_field.isNone:
             first_field = some(field_id)

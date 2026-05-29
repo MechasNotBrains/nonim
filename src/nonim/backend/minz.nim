@@ -10,6 +10,7 @@ import "$nim"/compiler/[ast]
 import ../cli
 import ../cli/output as cli_output
 import ../nimc/Untyped
+from ../nimc/errors import nil
 import ../ast/convert
 import ../codegen/zig
 import ../codegen/output
@@ -21,11 +22,11 @@ proc generate *(options :Options) :Output=
   let source    = preprocess.processIncludes(readFile(options.input), options.input)
   let root      = Untyped.compile(source, options.input)
   let converted = root.convert(Language.Zig, typed=false, options.input)
-  var output = converted.zig()
-  for index in 0 ..< output.modules.len:
-    output.modules[index].definitions = postprocess.processZigIncludes(
-      output.modules[index].definitions, options.input)
-  return output
+  result = converted.zig()
+  result.parse_errors = errors.collected
+  for index in 0 ..< result.modules.len:
+    result.modules[index].definitions = postprocess.processZigIncludes(
+      result.modules[index].definitions, options.input)
 
 
 proc run *(options :Options) =

@@ -8,7 +8,7 @@ import ../src/nonim/codegen/zig
 
 const src = staticRead("./dump_code.nim")
 let ast = Untyped.compile(src)
-let atf = ast.convert(Language.Zig, typed= false)
 echo ast.treeRepr()
+let atf = ast.convert(Language.Zig, typed= false)
 echo atf.zig().modules[0].definitions
 

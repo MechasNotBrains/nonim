@@ -466,6 +466,13 @@ describe "nonim.codegen.nim | Type Statement Cases":
     test_case.ast.`type`(test_case.module, test_case.id, Target.definition, Out)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
+  it "must generate a generic procedure type statement", proc()=
+    const Expected = expected("statement_type_procedure_generic.nim")
+    var test_case = statement_type.procedure_generic()
+    var Out = Output.create()
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
   it "must generate a proc with unnamed tuple return type", proc()=
     const Expected = expected("procedure_tuple_return.nim")
     var test_case = statement_type.procedure_tuple_return()

@@ -196,11 +196,15 @@ func expression_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var O
   while current.isSome:
     let member = ast.data.bindings.get[current.get]
     Out.string(module, Tab, output.Target.definition)
-    let is_field = member.dataType.isSome and member.value.isNone
+    let is_field = member.dataType.isSome
     if is_field:
       if member.name.isSome:
         Out.string(module, ast.source(module, member.name.get.location), output.Target.definition)
-      Out.string(module, ": " & ast.type_name(module, member.dataType.get) & ",\n", output.Target.definition)
+      Out.string(module, ": " & ast.type_name(module, member.dataType.get), output.Target.definition)
+      if member.value.isSome:
+        Out.string(module, " = ", output.Target.definition)
+        ast.expression(module, member.value.get, Out)
+      Out.string(module, ",\n", output.Target.definition)
     else:
       if member.private.isSome and not member.private.get:
         Out.string(module, "pub ", output.Target.definition)
@@ -551,6 +555,9 @@ func statement_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
           Out.string(module, ": ", output.Target.definition)
           if field.dataType.isSome:
             Out.string(module, ast.type_name(module, field.dataType.get), output.Target.definition)
+          if field.value.isSome:
+            Out.string(module, " = ", output.Target.definition)
+            ast.expression(module, field.value.get, Out)
           Out.string(module, ",\n", output.Target.definition)
         current = field.next
     Out.string(module, "};\n", output.Target.definition)

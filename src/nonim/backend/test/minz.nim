@@ -249,6 +249,10 @@ describe "nonim.minz | Types":
     let result = generate_zig(case_input("type_object_alias_field"))
     result.eq case_expected("type_object_alias_field")
 
+  it "must generate object fields with default values", proc() =
+    let result = generate_zig(case_input("type_object_field_defaults"))
+    result.eq case_expected("type_object_field_defaults")
+
   it "must make an alias private with a private pragma", proc() =
     let result = generate_zig(case_input("type_object_alias_field_private"))
     result.eq case_expected("type_object_alias_field_private")
@@ -325,6 +329,10 @@ describe "nonim.minz | Expressions":
   it "must generate nested anonymous struct from .() syntax", proc() =
     let result = generate_zig(case_input("expression_object_nested"))
     result.eq case_expected("expression_object_nested")
+
+  it "must generate an empty object from .() with no arguments", proc() =
+    let result = generate_zig(case_input("expression_empty_object"))
+    result.eq case_expected("expression_empty_object")
 
   it "must generate parenthesized group expression", proc() =
     let result = generate_zig(case_input("expression_group"))

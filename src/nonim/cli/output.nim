@@ -11,7 +11,7 @@ from std/strutils import startsWith, splitLines, strip
 import ../cli
 import ../codegen/output
 import ../backend/includes
-from minibuild as B import build, format, ReportMode, Dependency, Dependencies
+from minibuild as B import build, format, format_exec, ReportMode, Dependency, Dependencies
 
 type GenerateProc * = proc (options :Options) :Output {.nimcall.}
 
@@ -125,6 +125,7 @@ proc run_folder (options :Options; generate :GenerateProc) =
     if path.splitFile.ext == extension: files.add path.absolutePath()
   var merged = initHashSet[system.string]()
   for file in files: scan_includes(file, merged)
+  var processed_count = 0
   for file in files:
     if file in merged: continue
     var per_file = options
@@ -132,11 +133,28 @@ proc run_folder (options :Options; generate :GenerateProc) =
     let relative = file.relativePath(input_root)
     let out_file = out_root/relative.changeFileExt(out_ext)
     createDir(out_file.parentDir())
+    if options.verbose:
+      echo "generating:  " & out_file
+    elif not options.quiet:
+      stdout.write "."
+      stdout.flushFile()
     let output = generate(per_file)
+    if options.verbose:
+      for parse_error in output.parse_errors:
+        echo "  error:  " & parse_error.message
     if output.modules.len == 0 or output.modules[0].definitions.len == 0: continue
     writeFile(out_file, output.modules[0].definitions)
     let trg = per_file.make_target(@[out_file])
-    trg.format(out_file)
+    if options.verbose:
+      echo "formatting:  " & out_file
+    elif not options.quiet:
+      stdout.write "."
+      stdout.flushFile()
+    trg.format_exec(out_file)
+    processed_count += 1
+  if not options.verbose and not options.quiet and processed_count > 0:
+    stdout.write "\n"
+    stdout.flushFile()
 
 
 proc run *(options :Options; generate :GenerateProc) =
