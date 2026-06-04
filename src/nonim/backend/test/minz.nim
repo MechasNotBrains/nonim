@@ -379,6 +379,11 @@ describe "nonim.minz | Visibility":
     let result = generate_zig(case_input("variable_tuple_unpack_private"))
     result.eq case_expected("variable_tuple_unpack_private")
 
+describe "nonim.minz | Namespaces":
+  it "must generate @namespace as const = struct { ... }", proc() =
+    let result = generate_zig(case_input("statement_namespace"))
+    result.eq case_expected("statement_namespace")
+
 describe "nonim.minz | Passthrough":
   it "must emit raw code from emit pragma", proc() =
     let result = generate_zig(case_input("statement_passthrough"))
