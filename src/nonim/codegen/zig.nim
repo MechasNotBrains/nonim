@@ -2,7 +2,7 @@
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
 from std/options import some, none, isSome, isNone, get, Option
-from std/strutils import split, endsWith
+from std/strutils import split, endsWith, join
 import ../ast as astTF
 import ./output
 import ./base
@@ -344,9 +344,25 @@ func type_render (ast :astTF.Ast; module :astTF.Id; type_id :astTF.Id) :string=
     length & const_prefix & ast.type_render(module, type_data.array.element)
   of astTF.tPtr:
     let target = ast.data.types.get[type_data.`ptr`.target]
-    # Pointee mutability lives on the target: immutable -> `*const T`, mutable -> `*T`.
     let mutable = target.kind == astTF.tPrimitive and target.primitive.mutable.get(false)
     (if mutable: "*" else: "*const ") & ast.type_render(module, type_data.`ptr`.target)
+  of astTF.tProcedure:
+    let procedure = ast.data.procedures.get[type_data.procedure.id]
+    var parts: seq[string]
+    if procedure.arguments.isSome:
+      var current = some(procedure.arguments.get)
+      while current.isSome:
+        let binding = ast.data.bindings.get[current.get]
+        var param = ""
+        if binding.name.isSome:
+          param.add ast.source(module, binding.name.get.location)
+        if binding.dataType.isSome:
+          param.add ": " & ast.type_name(module, binding.dataType.get)
+        parts.add param
+        current = binding.next
+    let return_str = if procedure.returnType.isSome: ast.type_name(module, procedure.returnType.get)
+                     else: "void"
+    "fn (" & parts.join(", ") & ") " & return_str
   else: "void"
 
 func type_name_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
@@ -606,6 +622,42 @@ func statement_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
                      else: "void"
     Out.string(module, return_str, output.Target.definition)
     Out.string(module, ";\n", output.Target.definition)
+  elif type_data.kind == astTF.tEnumeration:
+    let enumeration = type_data.enumeration
+    if enumeration.private.isSome and not enumeration.private.get:
+      Out.string(module, "pub ", output.Target.definition)
+    Out.string(module, "const ", output.Target.definition)
+    if enumeration.name.isSome:
+      Out.string(module, ast.source(module, enumeration.name.get.location), output.Target.definition)
+    Out.string(module, " = enum", output.Target.definition)
+    if enumeration.backing.isSome:
+      Out.string(module, "(", output.Target.definition)
+      Out.string(module, ast.type_name(module, enumeration.backing.get), output.Target.definition)
+      Out.string(module, ")", output.Target.definition)
+    Out.string(module, " {\n", output.Target.definition)
+    if enumeration.values.isSome:
+      var current = some(enumeration.values.get)
+      while current.isSome:
+        let value = ast.data.bindings.get[current.get]
+        Out.string(module, Tab, output.Target.definition)
+        if value.value.isSome and value.dataType.isNone and value.private.isSome:
+          if not value.private.get:
+            Out.string(module, "pub ", output.Target.definition)
+          Out.string(module, "const ", output.Target.definition)
+          if value.name.isSome:
+            Out.string(module, ast.source(module, value.name.get.location), output.Target.definition)
+          Out.string(module, " = ", output.Target.definition)
+          ast.expression(module, value.value.get, Out)
+          Out.string(module, ";\n", output.Target.definition)
+        else:
+          if value.name.isSome:
+            Out.string(module, ast.source(module, value.name.get.location), output.Target.definition)
+          if value.value.isSome:
+            Out.string(module, " = ", output.Target.definition)
+            ast.expression(module, value.value.get, Out)
+          Out.string(module, ",\n", output.Target.definition)
+        current = value.next
+    Out.string(module, "};\n", output.Target.definition)
   elif type_data.kind == astTF.tAlias:
     let alias = type_data.alias
     if alias.private.isSome and not alias.private.get:

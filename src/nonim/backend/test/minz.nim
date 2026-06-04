@@ -205,6 +205,22 @@ describe "nonim.minz | Statements":
     result.eq case_expected("statement_compound_assign")
 
 describe "nonim.minz | Types":
+  it "must generate an enum type", proc() =
+    let result = generate_zig(case_input("type_enum"))
+    result.eq case_expected("type_enum")
+
+  it "must generate enum with explicit values", proc() =
+    let result = generate_zig(case_input("type_enum_values"))
+    result.eq case_expected("type_enum_values")
+
+  it "must generate enum with backing type", proc() =
+    let result = generate_zig(case_input("type_enum_backing"))
+    result.eq case_expected("type_enum_backing")
+
+  it "must generate enum with alias field", proc() =
+    let result = generate_zig(case_input("type_enum_alias"))
+    result.eq case_expected("type_enum_alias")
+
   it "must generate a struct from object type", proc() =
     let result = generate_zig(case_input("type_object"))
     result.eq case_expected("type_object")
@@ -236,6 +252,10 @@ describe "nonim.minz | Types":
   it "must generate procedure type", proc() =
     let result = generate_zig(case_input("type_procedure"))
     result.eq case_expected("type_procedure")
+
+  it "must generate optional pointer to procedure type", proc() =
+    let result = generate_zig(case_input("type_optional_ptr_proc"))
+    result.eq case_expected("type_optional_ptr_proc")
 
   it "must keep a dotted (qualified) type", proc() =
     let result = generate_zig(case_input("type_dotted"))

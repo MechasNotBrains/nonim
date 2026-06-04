@@ -207,6 +207,15 @@ proc alias_pragma_value (node :PNode) :PNode=
       return entry[1]
   return nil
 
+proc pragma_value (node :PNode; key :string) :PNode=
+  if node.kind != nkPragmaExpr or node.safeLen < 2: return nil
+  let pragma = node[1]
+  if pragma.kind != nkPragma: return nil
+  for entry in pragma:
+    if entry.kind == nkExprColonExpr and entry.safeLen >= 2 and entry[0].name() == key:
+      return entry[1]
+  return nil
+
 proc pragma_has (pragma_node :PNode; key :string) :bool=
   ## True when a raw nkPragma node contains a `{.key.}` entry.
   if pragma_node == nil or pragma_node.kind != nkPragma: return false
@@ -258,7 +267,9 @@ proc expression_call (state :var State; node :PNode) :astTF.Id
 proc expression_dot (state :var State; node :PNode) :astTF.Id
 proc expression_infix (state :var State; node :PNode) :astTF.Id
 proc expression_prefix (state :var State; node :PNode) :astTF.Id
+proc expression_type (state :var State; node :PNode) :astTF.Id
 proc expression_addr (state :var State; operand :PNode) :astTF.Id
+proc procedure_type (state :var State; node :PNode; name = none(astTF.Identifier); private = none(bool)) :astTF.Id
 
 proc expression_literal_nil (state :var State) :astTF.Id=
   let value_str = case state.target
@@ -309,6 +320,54 @@ proc type_identifier (state :var State; node :PNode) :astTF.Id=
     identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
   ))
 
+proc procedure_type (state :var State; node :PNode; name = none(astTF.Identifier); private = none(bool)) :astTF.Id=
+  let params_node = node[0]
+  var first_argument = none(astTF.Id)
+  var previous_binding = none(astTF.Id)
+  if params_node.kind == nkFormalParams and params_node.safeLen > 1:
+    for param_index in 1 ..< params_node.safeLen:
+      let param_group = params_node[param_index]
+      if param_group.kind != nkIdentDefs: continue
+      let type_index = param_group.safeLen - 2
+      let type_node = param_group[type_index]
+      var param_type = none(astTF.Id)
+      if type_node.kind != nkEmpty:
+        param_type = some(state.expression_type(type_node))
+      for param_name_index in 0 ..< type_index:
+        let param_name_node = param_group[param_name_index]
+        let param_name_str = param_name_node.name()
+        if param_name_str.len == 0: continue
+        let is_last_in_group = param_name_index == type_index - 1
+        let param_name_loc = state.name_add(param_name_str)
+        let param_binding = astTF.Binding(
+          name: some(astTF.Identifier(location: param_name_loc)),
+          dataType: if is_last_in_group: param_type else: none(astTF.Id),
+        )
+        let binding_id = state.ast.add_binding(param_binding)
+        if first_argument.isNone:
+          first_argument = some(binding_id)
+        if previous_binding.isSome:
+          var prev = state.ast.binding(previous_binding.get)
+          prev.next = some(binding_id)
+          state.ast.data.bindings.get[previous_binding.get] = prev
+        previous_binding = some(binding_id)
+  var return_type = none(astTF.Id)
+  if params_node.kind == nkFormalParams and params_node.safeLen > 0:
+    let return_node = params_node[0]
+    if return_node.kind != nkEmpty:
+      return_type = some(state.expression_type(return_node))
+  let proc_data = astTF.Procedure(
+    name: name,
+    private: private,
+    arguments: first_argument,
+    returnType: return_type,
+  )
+  let procedure_id = state.ast.add_procedure(proc_data)
+  state.ast.add_type(astTF.Type(
+    kind: astTF.tProcedure,
+    procedure: astTF.TypeProcedure(id: procedure_id),
+  ))
+
 proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astTF.Id=
   ## Single recursive Type builder for any type-position node. Nested element
   ## (array) and target (pointer) types recurse here too, so `array[N, ptr T]`,
@@ -324,6 +383,8 @@ proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astT
       kind: astTF.tPtr,
       `ptr`: astTF.TypePtr(target: target_id),
     ))
+  of nkProcTy:
+    return state.procedure_type(node)
   of nkBracketExpr:
     let bracket_name = node[0].name()
     if bracket_name == "array":
@@ -648,7 +709,8 @@ proc expression_prefix (state :var State; node :PNode) :astTF.Id=
       call_node.add right_node[argument_index]
     return state.expression_call(call_node)
   let operator_loc = state.name_add(operator_node.name())
-  let right_id = state.expression(right_node)
+  let right_id = if right_node.kind in {nkPtrTy, nkVarTy}: state.expression_type(right_node)
+                 else: state.expression(right_node)
   state.ast.add_expression(astTF.Expression(
     kind: astTF.eAffix,
     affix: astTF.ExpressionAffix(
@@ -1775,53 +1837,80 @@ proc statement_type (state :var State; node :PNode) =
       `type`: astTF.StatementType(id: type_id),
     ))
     state.statement_chain(statement_id)
-  elif body_node.kind == nkProcTy:
-    let params_node = body_node[0]
-    var first_argument = none(astTF.Id)
-    var previous_binding = none(astTF.Id)
-    if params_node.kind == nkFormalParams and params_node.safeLen > 1:
-      for param_index in 1 ..< params_node.safeLen:
-        let param_group = params_node[param_index]
-        if param_group.kind != nkIdentDefs: continue
-        let type_index = param_group.safeLen - 2
-        let type_node = param_group[type_index]
-        var param_type = none(astTF.Id)
-        if type_node.kind != nkEmpty:
-          param_type = some(state.expression_type(type_node))
-        for param_name_index in 0 ..< type_index:
-          let param_name_node = param_group[param_name_index]
-          let param_name_str = param_name_node.name()
-          if param_name_str.len == 0: continue
-          let is_last_in_group = param_name_index == type_index - 1
-          let param_name_loc = state.name_add(param_name_str)
-          let param_binding = astTF.Binding(
-            name: some(astTF.Identifier(location: param_name_loc)),
-            dataType: if is_last_in_group: param_type else: none(astTF.Id),
-          )
-          let binding_id = state.ast.add_binding(param_binding)
-          if first_argument.isNone:
-            first_argument = some(binding_id)
-          if previous_binding.isSome:
-            var prev = state.ast.binding(previous_binding.get)
-            prev.next = some(binding_id)
-            state.ast.data.bindings.get[previous_binding.get] = prev
-          previous_binding = some(binding_id)
-    var return_type = none(astTF.Id)
-    if params_node.kind == nkFormalParams and params_node.safeLen > 0:
-      let return_node = params_node[0]
-      if return_node.kind != nkEmpty:
-        return_type = some(state.expression_type(return_node))
-    let proc_data = astTF.Procedure(
-      name: some(astTF.Identifier(location: name_loc)),
-      private: some(is_private),
-      arguments: first_argument,
-      returnType: return_type,
-    )
-    let procedure_id = state.ast.add_procedure(proc_data)
+  elif body_node.kind == nkEnumTy:
+    var backing = none(astTF.Id)
+    let backing_node = name_node.pragma_value("backing")
+    if backing_node != nil:
+      let backing_name = state.translate_type(backing_node.name())
+      let backing_loc = state.name_add(backing_name)
+      let backing_type_id = state.ast.add_type(astTF.Type(
+        kind: astTF.tPrimitive,
+        primitive: astTF.TypePrimitive(name: astTF.Identifier(location: backing_loc)),
+      ))
+      backing = some(state.expression_of_type(backing_type_id))
+    var first_value = none(astTF.Id)
+    var previous_value = none(astTF.Id)
+    for field_index in 0 ..< body_node.safeLen:
+      let field_node = body_node[field_index]
+      if field_node.kind == nkEmpty: continue
+      let alias_value = field_node.alias_pragma_value()
+      if alias_value != nil:
+        let value_name = field_node.name()
+        if value_name.len == 0: continue
+        let value_loc = state.name_add(value_name)
+        let alias_id = state.expression(alias_value)
+        let binding_id = state.ast.add_binding(astTF.Binding(
+          name: some(astTF.Identifier(location: value_loc)),
+          private: some(state.declaration_private(field_node)),
+          value: some(alias_id),
+          dataType: none(astTF.Id),
+        ))
+        if first_value.isNone: first_value = some(binding_id)
+        if previous_value.isSome:
+          var prev = state.ast.binding(previous_value.get)
+          prev.next = some(binding_id)
+          state.ast.data.bindings.get[previous_value.get] = prev
+        previous_value = some(binding_id)
+        continue
+      var value_name :string
+      var value_expr = none(astTF.Id)
+      if field_node.kind == nkEnumFieldDef:
+        value_name = field_node[0].name()
+        value_expr = some(state.expression(field_node[1]))
+      else:
+        value_name = field_node.name()
+      if value_name.len == 0: continue
+      let value_loc = state.name_add(value_name)
+      let binding_id = state.ast.add_binding(astTF.Binding(
+        name: some(astTF.Identifier(location: value_loc)),
+        value: value_expr,
+      ))
+      if first_value.isNone:
+        first_value = some(binding_id)
+      if previous_value.isSome:
+        var prev = state.ast.binding(previous_value.get)
+        prev.next = some(binding_id)
+        state.ast.data.bindings.get[previous_value.get] = prev
+      previous_value = some(binding_id)
     let type_id = state.ast.add_type(astTF.Type(
-      kind: astTF.tProcedure,
-      procedure: astTF.TypeProcedure(id: procedure_id),
+      kind: astTF.tEnumeration,
+      enumeration: astTF.TypeEnum(
+        name: some(astTF.Identifier(location: name_loc)),
+        values: first_value,
+        backing: backing,
+        private: some(is_private),
+      ),
     ))
+    let statement_id = state.ast.add_statement(astTF.Statement(
+      kind: astTF.sType,
+      `type`: astTF.StatementType(id: type_id),
+    ))
+    state.statement_chain(statement_id)
+  elif body_node.kind == nkProcTy:
+    let type_id = state.procedure_type(body_node,
+      name = some(astTF.Identifier(location: name_loc)),
+      private = some(is_private),
+    )
     let statement_id = state.ast.add_statement(astTF.Statement(
       kind: astTF.sType,
       `type`: astTF.StatementType(id: type_id),
