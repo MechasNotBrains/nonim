@@ -282,6 +282,14 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_orelse"))
     result.eq case_expected("expression_orelse")
 
+  it "must generate .? optional call", proc() =
+    let result = generate_zig(case_input("expression_optional_call"))
+    result.eq case_expected("expression_optional_call")
+
+  it "must translate addr to & prefix", proc() =
+    let result = generate_zig(case_input("expression_addr"))
+    result.eq case_expected("expression_addr")
+
   it "must translate prefix not to !", proc() =
     let result = generate_zig(case_input("expression_prefix_not"))
     result.eq case_expected("expression_prefix_not")

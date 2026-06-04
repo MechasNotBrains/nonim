@@ -258,6 +258,7 @@ proc expression_call (state :var State; node :PNode) :astTF.Id
 proc expression_dot (state :var State; node :PNode) :astTF.Id
 proc expression_infix (state :var State; node :PNode) :astTF.Id
 proc expression_prefix (state :var State; node :PNode) :astTF.Id
+proc expression_addr (state :var State; operand :PNode) :astTF.Id
 
 proc expression_literal_nil (state :var State) :astTF.Id=
   let value_str = case state.target
@@ -378,6 +379,8 @@ proc expression_identifier (state :var State; name :string) :astTF.Id=
   ))
 
 proc expression_dot (state :var State; node :PNode) :astTF.Id=
+  if state.target == Language.Zig and not state.typed and node[1].name() == "addr":
+    return state.expression_addr(node[0])
   let left_id = state.expression(node[0])
   let right_id = state.expression(node[1])
   let operator_loc = state.name_add(".")
@@ -397,8 +400,40 @@ proc translate_operator (state :State; operator :string) :string=
     else: discard
   return operator
 
+proc expression_optional_call (state :var State; node :PNode) :astTF.Id=
+  let left_node = node[1]
+  let right_node = node[2]
+  let left_id = state.expression(left_node)
+  let unwrap_loc = state.name_add(".?")
+  let unwrap_id = state.ast.add_expression(astTF.Expression(
+    kind: astTF.eAffix,
+    affix: astTF.ExpressionAffix(left: some(left_id), operator: unwrap_loc),
+  ))
+  var first_argument = none(astTF.Id)
+  var previous_binding = none(astTF.Id)
+  if right_node.kind in {nkTupleConstr, nkPar}:
+    for arg_index in 0 ..< right_node.safeLen:
+      let value_id = state.expression(right_node[arg_index])
+      let binding_id = state.ast.add_binding(astTF.Binding(value: some(value_id)))
+      if first_argument.isNone: first_argument = some(binding_id)
+      if previous_binding.isSome:
+        var prev = state.ast.binding(previous_binding.get)
+        prev.next = some(binding_id)
+        state.ast.data.bindings.get[previous_binding.get] = prev
+      previous_binding = some(binding_id)
+  else:
+    let value_id = state.expression(right_node)
+    let binding_id = state.ast.add_binding(astTF.Binding(value: some(value_id)))
+    first_argument = some(binding_id)
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eCall,
+    call: astTF.ExpressionCall(name: unwrap_id, arguments: first_argument),
+  ))
+
 proc expression_infix (state :var State; node :PNode) :astTF.Id=
   let operator_node = node[0]
+  if operator_node.name() == ".?":
+    return state.expression_optional_call(node)
   let left_node = node[1]
   let right_node = node[2]
   let operator_loc = state.name_add(state.translate_operator(operator_node.name()))
@@ -468,10 +503,20 @@ proc expression_dot_leading (state :var State; node :PNode) :astTF.Id=
     ))
   state.expression_object_positional(node, 1)
 
+proc expression_addr (state :var State; operand :PNode) :astTF.Id=
+  let operand_id = state.expression(operand)
+  let operator_loc = state.name_add("&")
+  state.ast.add_expression(astTF.Expression(
+    kind: astTF.eAffix,
+    affix: astTF.ExpressionAffix(right: some(operand_id), operator: operator_loc),
+  ))
+
 proc expression_call (state :var State; node :PNode) :astTF.Id=
   let function_node = node[0]
   if function_node.kind == nkEmpty:
     return state.expression_dot_leading(node)
+  if state.target == Language.Zig and not state.typed and function_node.name() == "addr" and node.safeLen == 2:
+    return state.expression_addr(node[1])
   let function_id = state.expression(function_node)
   var first_argument = none(astTF.Id)
   var previous_binding = none(astTF.Id)
