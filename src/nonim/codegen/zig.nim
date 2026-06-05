@@ -173,7 +173,7 @@ func expression_object (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var
 func expression_array (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expr = ast.data.expressions.get[id]
   Out.string(module, ".{", output.Target.definition)
-  var current = some(expr.array.elements)
+  var current = expr.array.elements
   var first = true
   while current.isSome:
     let element = ast.data.array_elements.get[current.get]

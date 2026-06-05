@@ -548,7 +548,7 @@ proc expression_array (state :var State; node :PNode) :astTF.Id=
     previous_element = some(element_id)
   state.ast.add_expression(astTF.Expression(
     kind  : astTF.eArray,
-    array : astTF.ExpressionArray(elements: first_element.get),
+    array : astTF.ExpressionArray(elements: first_element),
   ))
 
 proc expression_dot_leading (state :var State; node :PNode) :astTF.Id=
