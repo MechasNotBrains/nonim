@@ -102,5 +102,7 @@ proc options_parse *(args :seq[string]= commandLineParams(); default_backend :Ba
       else: discard
       positional_index += 1
 
+  result.quiet = result.quiet and not result.verbose
   if result.output.len == 0 and result.input.len > 0:
     result.output = result.input.changeFileExt("")
+
