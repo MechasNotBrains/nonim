@@ -1526,40 +1526,39 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
     ))
 
   proc body_for (state :var State; child :PNode) :astTF.Id=
-    let iter_count = child.safeLen - 2
+    let iter_count    = child.safeLen - 2
     let iterable_node = child[iter_count]
-    let body_node = child[iter_count + 1]
-    let iterable_id = state.expression(iterable_node)
-    var sentry_id = none(astTF.Id)
+    let body_node     = child[iter_count + 1]
+    let iterable_id   = state.expression(iterable_node)
+    var sentry_id     = none(astTF.Id)
     for iter_index in 0 ..< iter_count:
       let iter_node = child[iter_index]
       let iter_name = iter_node.name()
       if iter_name.len == 0: continue
-      let name_loc = state.name_add(iter_name)
+      let deref      = if iter_node.kind == nkPostFix: "*" else: ""  # HACK: Major hack, to allow `*fb` mutable sentry access
+      let name_loc   = state.name_add(deref & iter_name)
       let binding_id = state.ast.add_binding(astTF.Binding(
-        name: some(astTF.Identifier(location: name_loc)),
-        private: some(true),
-      ))
-      let stmt_id = state.ast.add_statement(astTF.Statement(
-        kind: astTF.sVariable,
-        variable: astTF.StatementVariable(id: binding_id),
-      ))
+        name         : some(astTF.Identifier(location: name_loc)),
+        private      : some(true),  ))
+      let stmt_id    = state.ast.add_statement(astTF.Statement(
+        kind         : astTF.sVariable,
+        variable     : astTF.StatementVariable(id: binding_id),  ))
       if sentry_id.isNone: sentry_id = some(stmt_id)
     discard state.scope_push()
     let loop_body_id = some(state.statement_body(body_node))
     state.scope_pop()
-    let depth_id = some(state.make_depth(child))
+    let depth_id     = some(state.make_depth(child))
     let loop_expr_id = state.ast.add_expression(astTF.Expression(
-      kind: astTF.eLoop,
-      loop: astTF.ExpressionLoop(
-        sentry: sentry_id,
-        condition: some(iterable_id),
-        body: loop_body_id,
+      kind           : astTF.eLoop,
+      loop           : astTF.ExpressionLoop(
+        sentry       : sentry_id,
+        condition    : some(iterable_id),
+        body         : loop_body_id,
       ),
     ))
     state.ast.add_statement(astTF.Statement(
-      kind: astTF.sExpression,
-      expression: astTF.StatementExpression(id: loop_expr_id, depth: depth_id),
+      kind       : astTF.sExpression,
+      expression : astTF.StatementExpression(id: loop_expr_id, depth: depth_id),
     ))
 
   proc body_assignment (state :var State; child :PNode) :astTF.Id=

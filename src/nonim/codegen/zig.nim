@@ -255,7 +255,7 @@ func expression_loop (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int
     if expr.loop.condition.isSome:
       ast.expression(module, expr.loop.condition.get, Out)
     Out.string(module, ") |", output.Target.definition)
-    let sentry_stmt = ast.data.statements.get[expr.loop.sentry.get]
+    let sentry_stmt    = ast.data.statements.get[expr.loop.sentry.get]
     let sentry_binding = ast.data.bindings.get[sentry_stmt.variable.id]
     if sentry_binding.name.isSome:
       Out.string(module, ast.source(module, sentry_binding.name.get.location), output.Target.definition)

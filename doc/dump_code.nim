@@ -1,4 +1,2 @@
-type Type = object
-  graphics  :cvk.pipeline.Graphics= .()
-  stages    :array[_, cvk.pipeline.ShaderStage]= &[]
-
+proc main () :void=
+  for fb* in mutable.data.buffer.items: fb.destroy(gpu.device.logical.addr, gpu.instance.addr)
