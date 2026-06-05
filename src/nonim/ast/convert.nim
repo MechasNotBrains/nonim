@@ -14,6 +14,7 @@ import ./types as astTF
 import ./data as ast_data
 import ./access
 
+
 #_______________________________________
 # @section Types
 #_____________________________
@@ -75,12 +76,11 @@ proc scope_depth (state :State) :uint64=
   uint64(state.scope_stack.len - 1)
 
 proc make_depth (state :var State; node :PNode) :astTF.Id=
-  state.ast.add_depth(astTF.Depth(
+  result = state.ast.add_depth(astTF.Depth(
     line   : some(uint64(node.info.line)),
     column : some(uint64(node.info.col)),
     indent : some(state.scope_depth),
-    scope  : some(state.scope_current),
-  ))
+    scope  : some(state.scope_current),  ))
 
 
 #_______________________________________
@@ -92,7 +92,7 @@ proc name_add (state :var State; name :string) :astTF.Location=
   let finish = uint64(state.source.len)
   state.ast.data.modules[state.module].source = state.source
   return astTF.Location(start: start, `end`: finish)
-
+#___________________
 proc name (node :PNode) :string=
   case node.kind
   of nkSym:        node.sym.name.s
@@ -323,18 +323,18 @@ proc pragmas_binding (state :var State; name_node :PNode) :Option[astTF.Id]=
 #_____________________________
 proc expression_literal_nil (state :var State) :astTF.Id=
   let value_str = case state.target
-    of Language.C:   "NULL"
-    of Language.Zig: "null"
-    of Language.Nim: "nil"
+    of Language.C   : "NULL"
+    of Language.Zig : "null"
+    of Language.Nim : "nil"
   let value_loc = state.name_add(value_str)
-  state.ast.add_expression(astTF.Expression(
+  result = state.ast.add_expression(astTF.Expression(
     kind    : astTF.eLiteral,
     literal : astTF.ExpressionLiteral(kind: astTF.LiteralKind.nil, value: value_loc),
   ))
 
 proc expression_literal_bool (state :var State; value :string) :astTF.Id=
   let value_loc = state.name_add(value)
-  state.ast.add_expression(astTF.Expression(
+  result = state.ast.add_expression(astTF.Expression(
     kind    : astTF.eLiteral,
     literal : astTF.ExpressionLiteral(kind: astTF.LiteralKind.bool, value: value_loc),
   ))
@@ -342,22 +342,22 @@ proc expression_literal_bool (state :var State; value :string) :astTF.Id=
 proc expression_literal (state :var State; node :PNode) :astTF.Id=
   if node.kind in Nil: return state.expression_literal_nil()
   let literal_kind = case node.kind
-    of Char:  astTF.LiteralKind.char
-    of Int:   astTF.LiteralKind.integer
-    of UInt:  astTF.LiteralKind.integer
-    of Float: astTF.LiteralKind.float
-    of Str:   astTF.LiteralKind.string
-    else:     astTF.LiteralKind.generic
+    of Char  : astTF.LiteralKind.char
+    of Int   : astTF.LiteralKind.integer
+    of UInt  : astTF.LiteralKind.integer
+    of Float : astTF.LiteralKind.float
+    of Str   : astTF.LiteralKind.string
+    else     : astTF.LiteralKind.generic
   let value_loc = state.name_add(node.strValue)
-  state.ast.add_expression(astTF.Expression(
-    kind: astTF.eLiteral,
-    literal: astTF.ExpressionLiteral(kind: literal_kind, value: value_loc),
+  result = state.ast.add_expression(astTF.Expression(
+    kind    : astTF.eLiteral,
+    literal : astTF.ExpressionLiteral(kind: literal_kind, value: value_loc),
   ))
 
 proc expression_identifier (state :var State; node :PNode) :astTF.Id=
   let name     = node.name()
   let name_loc = state.name_add(name)
-  state.ast.add_expression(astTF.Expression(
+  result = state.ast.add_expression(astTF.Expression(
     kind       : astTF.eIdentifier,
     identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
   ))
@@ -365,7 +365,7 @@ proc expression_identifier (state :var State; node :PNode) :astTF.Id=
 proc type_identifier (state :var State; node :PNode) :astTF.Id=
   let name = state.translate_type(node.name())
   let name_loc = state.name_add(name)
-  state.ast.add_expression(astTF.Expression(
+  result = state.ast.add_expression(astTF.Expression(
     kind       : astTF.eIdentifier,
     identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
   ))
@@ -413,7 +413,7 @@ proc procedure_type (state :var State; node :PNode; name = none(astTF.Identifier
     returnType : return_type,
   )
   let procedure_id = state.ast.add_procedure(proc_data)
-  state.ast.add_type(astTF.Type(
+  result = state.ast.add_type(astTF.Type(
     kind      : astTF.tProcedure,
     procedure : astTF.TypeProcedure(id: procedure_id),
   ))
@@ -453,7 +453,7 @@ proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astT
   else: discard
   let name     = state.translate_type(node.name())
   let name_loc = state.name_add(name)
-  state.ast.add_type(astTF.Type(
+  result = state.ast.add_type(astTF.Type(
     kind      : astTF.tPrimitive,
     primitive : astTF.TypePrimitive(name: astTF.Identifier(location: name_loc), mutable: some(mutable)),
   ))
@@ -477,17 +477,17 @@ proc type_error (state :var State; node :PNode) :astTF.Id=
   else        : assert false, "astTF.convert.type_error: Tried to convert a non-affix into an error union expression."
 
 proc expression_type (state :var State; node :PNode) :astTF.Id=
-  case node.kind
-  of nkPtrTy, nkVarTy  : state.expression_of_type(state.type_node_to_type_id(node))
-  of nkBracketExpr     : state.type_bracket(node)
-  of nkDotExpr         : state.expression_dot(node)
-  of nkPrefix, nkInfix : state.type_error(node)
-  of nkCall, nkCommand : state.expression_call(node)
-  else                 : state.type_identifier(node)
+  result = case node.kind
+    of nkPtrTy, nkVarTy  : state.expression_of_type(state.type_node_to_type_id(node))
+    of nkBracketExpr     : state.type_bracket(node)
+    of nkDotExpr         : state.expression_dot(node)
+    of nkPrefix, nkInfix : state.type_error(node)
+    of nkCall, nkCommand : state.expression_call(node)
+    else                 : state.type_identifier(node)
 
 proc expression_identifier (state :var State; name :string) :astTF.Id=
   let name_loc = state.name_add(name)
-  state.ast.add_expression(astTF.Expression(
+  result = state.ast.add_expression(astTF.Expression(
     kind       : astTF.eIdentifier,
     identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
   ))
@@ -498,14 +498,12 @@ proc expression_dot (state :var State; node :PNode) :astTF.Id=
   let left_id      = state.expression(node[0])
   let right_id     = state.expression(node[1])
   let operator_loc = state.name_add(".")
-  state.ast.add_expression(astTF.Expression(
+  result = state.ast.add_expression(astTF.Expression(
     kind       : astTF.eAffix,
     affix      : astTF.ExpressionAffix(
       left     : some(left_id),
       right    : some(right_id),
-      operator : operator_loc,
-    ),
-  ))
+      operator : operator_loc,  ),  ))
 
 proc translate_operator (state :State; operator :string) :string=
   if state.target == Language.Zig:
@@ -580,7 +578,7 @@ proc expression_object_positional (state :var State; node :PNode; first :int) :a
     previous_field = some(binding_id)
   let fields = if first_field.isSome: first_field.get
                else: state.ast.add_binding(astTF.Binding())
-  state.ast.add_expression(astTF.Expression(
+  result = state.ast.add_expression(astTF.Expression(
     kind     : astTF.eObject,
     `object` : astTF.ExpressionObject(fields: fields),
   ))
@@ -600,7 +598,7 @@ proc expression_array (state :var State; node :PNode) :astTF.Id=
       prev.next = some(element_id)
       state.ast.data.array_elements.get[previous_element.get] = prev
     previous_element = some(element_id)
-  state.ast.add_expression(astTF.Expression(
+  result = state.ast.add_expression(astTF.Expression(
     kind  : astTF.eArray,
     array : astTF.ExpressionArray(elements: first_element),
   ))
@@ -697,7 +695,7 @@ proc expression_tuple (state :var State; node :PNode) :astTF.Id=
       prev.next = some(binding_id)
       state.ast.data.bindings.get[previous_binding.get] = prev
     previous_binding = some(binding_id)
-  state.ast.add_expression(astTF.Expression(
+  result = state.ast.add_expression(astTF.Expression(
     kind        : astTF.eCall,
     call        : astTF.ExpressionCall(
       name      : dot_id,
@@ -740,15 +738,11 @@ proc expression_obj_constr (state :var State; node :PNode) :astTF.Id=
       kind        : astTF.eCall,
       call        : astTF.ExpressionCall(
         name      : function_id,
-        arguments : first_field,
-      ),
-    ))
+        arguments : first_field,  ),  ))
   result = state.ast.add_expression(astTF.Expression(
     kind     : astTF.eObject,
     `object` : astTF.ExpressionObject(
-      fields : first_field.get,
-    ),
-  ))
+      fields : first_field.get,  ),  ))
 
 proc expression_prefix (state :var State; node :PNode) :astTF.Id=
   let operator_node = node[0]
@@ -1536,18 +1530,18 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
       var value = none(astTF.Id)
       if value_node.kind != nkEmpty:
         value = some(state.expression(value_node))
-      let depth_id   = some(state.make_depth(name_node))
-      let binding_id = state.ast.add_binding(astTF.Binding(
-        name     : some(astTF.Identifier(location: name_loc)),
-        private  : some(true),
-        mutable  : some(is_mutable),
-        runtime  : some(is_runtime),
-        dataType : data_type,
-        value    : value,
-        pragmas  : state.pragmas_binding(name_node), ))
+      let depth_id     = some(state.make_depth(name_node))
+      let binding_id   = state.ast.add_binding(astTF.Binding(
+        name           : some(astTF.Identifier(location: name_loc)),
+        private        : some(true),
+        mutable        : some(is_mutable),
+        runtime        : some(is_runtime),
+        dataType       : data_type,
+        value          : value,
+        pragmas        : state.pragmas_binding(name_node), ))
       let statement_id = state.ast.add_statement(astTF.Statement(
-        kind     : astTF.sVariable,
-        variable : astTF.StatementVariable(id: binding_id, depth: depth_id),  ))
+        kind           : astTF.sVariable,
+        variable       : astTF.StatementVariable(id: binding_id, depth: depth_id),  ))
       state.body_chain(statement_id)
 
   proc body_while (state :var State; child :PNode) :astTF.Id=
@@ -1559,16 +1553,13 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
     state.scope_pop()
     let depth_id = some(state.make_depth(child))
     let loop_expr_id = state.ast.add_expression(astTF.Expression(
-      kind: astTF.eLoop,
-      loop: astTF.ExpressionLoop(
-        condition: some(condition_id),
-        body: loop_body_id,
-      ),
-    ))
-    state.ast.add_statement(astTF.Statement(
-      kind: astTF.sExpression,
-      expression: astTF.StatementExpression(id: loop_expr_id, depth: depth_id),
-    ))
+      kind        : astTF.eLoop,
+      loop        : astTF.ExpressionLoop(
+        condition : some(condition_id),
+        body      : loop_body_id,  ),  ))
+    result = state.ast.add_statement(astTF.Statement(
+      kind       : astTF.sExpression,
+      expression : astTF.StatementExpression(id: loop_expr_id, depth: depth_id), ))
 
   proc body_for (state :var State; child :PNode) :astTF.Id=
     let iter_count    = child.safeLen - 2
@@ -1601,46 +1592,42 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
         body         : loop_body_id,
       ),
     ))
-    state.ast.add_statement(astTF.Statement(
+    result = state.ast.add_statement(astTF.Statement(
       kind       : astTF.sExpression,
       expression : astTF.StatementExpression(id: loop_expr_id, depth: depth_id),
     ))
 
   proc body_assignment (state :var State; child :PNode) :astTF.Id=
-    let left_node = child[0]
+    let left_node  = child[0]
     let right_node = child[1]
-    let left_id = state.expression(left_node)
-    let right_id = state.expression(right_node)
+    let left_id    = state.expression(left_node)
+    let right_id   = state.expression(right_node)
     let assign_loc = state.name_add("=")
-    let depth_id = some(state.make_depth(child))
-    let affix_id = state.ast.add_expression(astTF.Expression(
-      kind: astTF.eAffix,
-      affix: astTF.ExpressionAffix(
-        left: some(left_id),
-        operator: assign_loc,
-        right: some(right_id),
-      ),
-    ))
-    state.ast.add_statement(astTF.Statement(
-      kind: astTF.sExpression,
-      expression: astTF.StatementExpression(id: affix_id, depth: depth_id),
-    ))
+    let depth_id   = some(state.make_depth(child))
+    let affix_id   = state.ast.add_expression(astTF.Expression(
+      kind       : astTF.eAffix,
+      affix      : astTF.ExpressionAffix(
+        left     : some(left_id),
+        operator : assign_loc,
+        right    : some(right_id),  ),  ))
+    result = state.ast.add_statement(astTF.Statement(
+      kind       : astTF.sExpression,
+      expression : astTF.StatementExpression(id: affix_id, depth: depth_id),  ))
 
   proc body_call (state :var State; child :PNode) :astTF.Id=
-    let call_id = state.expression_call(child)
+    let call_id  = state.expression_call(child)
     let depth_id = some(state.make_depth(child))
-    state.ast.add_statement(astTF.Statement(
-      kind: astTF.sExpression,
-      expression: astTF.StatementExpression(id: call_id, depth: depth_id),
+    result = state.ast.add_statement(astTF.Statement(
+      kind       : astTF.sExpression,
+      expression : astTF.StatementExpression(id: call_id, depth: depth_id),
     ))
 
   proc body_infix (state :var State; child :PNode) :astTF.Id=
     let infix_id = state.expression_infix(child)
     let depth_id = some(state.make_depth(child))
-    state.ast.add_statement(astTF.Statement(
-      kind: astTF.sExpression,
-      expression: astTF.StatementExpression(id: infix_id, depth: depth_id),
-    ))
+    result = state.ast.add_statement(astTF.Statement(
+      kind       : astTF.sExpression,
+      expression : astTF.StatementExpression(id: infix_id, depth: depth_id),  ))
 
   proc body_block (state :var State; child :PNode) :astTF.Id=
     let label_node    = child[0]
@@ -1663,7 +1650,7 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
         label         : some(astTF.Identifier(location: label_loc)),
         value         : some(block_id),),))
     let depth_id      = some(state.make_depth(child))
-    state.ast.add_statement(astTF.Statement(
+    result = state.ast.add_statement(astTF.Statement(
       kind       : astTF.sExpression,
       expression : astTF.StatementExpression(id: keyword_id, depth: depth_id),
     ))
@@ -1721,10 +1708,9 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
         branches: first_branch,
       ),
     ))
-    state.ast.add_statement(astTF.Statement(
-      kind: astTF.sExpression,
-      expression: astTF.StatementExpression(id: cond_expr_id, depth: depth_id),
-    ))
+    result = state.ast.add_statement(astTF.Statement(
+      kind       : astTF.sExpression,
+      expression : astTF.StatementExpression(id: cond_expr_id, depth: depth_id),  ))
 
   proc body_it (state :var State; child :PNode) =
     let name_node     = child[1]
@@ -1822,7 +1808,7 @@ proc statement_type (state :var State; node :PNode) =
   if node.kind != nkTypeDef: return
   let name_node = node[0]
   let body_node = node[2]
-  let name_str = name_node.name()
+  let name_str  = name_node.name()
   if name_str.len == 0: return
   let is_private = state.declaration_private(name_node)
   let name_loc = state.name_add(name_str)
@@ -1987,12 +1973,12 @@ proc statement_passthrough (state :var State; node :PNode) =
   if value_node.kind == nkArgList and value_node.safeLen > 0:
     value_node = value_node[0]
   let text = case value_node.kind
-    of nkStrLit..nkTripleStrLit: value_node.strVal
-    else: return
-  let text_loc = state.name_add(text)
+    of nkStrLit..nkTripleStrLit : value_node.strVal
+    else                        : return
+  let text_loc  = state.name_add(text)
   let statement = astTF.Statement(
-    kind: astTF.sPassthrough,
-    passthrough: astTF.StatementPassthrough(location: text_loc),
+    kind        : astTF.sPassthrough,
+    passthrough : astTF.StatementPassthrough(location: text_loc),
   )
   let statement_id = state.ast.add_statement(statement)
   state.statement_chain(statement_id)
