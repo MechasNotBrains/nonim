@@ -978,12 +978,14 @@ proc procedure_build (state :var State; node :PNode) :astTF.Id=
         let param_name = param_name_node.name()
         if param_name.len == 0: continue
 
+
         let is_last_in_group = name_index == type_index - 1
         let param_name_loc = state.name_add(param_name)
         let param_binding = astTF.Binding(
           name     : some(astTF.Identifier(location: param_name_loc)),
           dataType : if is_last_in_group: param_type else: none(astTF.Id),
           private  : some(true),
+          pragmas  : state.pragmas_binding(param_name_node),
         )
         let binding_id = state.ast.add_binding(param_binding)
         if first_argument.isNone:
@@ -2303,7 +2305,7 @@ proc statement_namespace (state :var State; node :PNode) =
         let type_node  = definition[^2]
         let value_node = definition[^1]
         let name_count = definition.safeLen - 2
-        var data_type = none(astTF.Id)
+        var data_type  = none(astTF.Id)
         if type_node.kind != nkEmpty:
           data_type = some(state.expression_type(type_node))
         var value = none(astTF.Id)

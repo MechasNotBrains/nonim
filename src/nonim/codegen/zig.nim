@@ -463,13 +463,13 @@ func procedure_render (ast :astTF.Ast; module :astTF.Id; procedure :astTF.Proced
   Out.string(module, " (", output.Target.definition)
 
   if procedure.arguments.isSome:
-    var current = some(procedure.arguments.get)
-    var first = true
+    var current = procedure.arguments
+    var first   = true
     var param_types :seq[string]
-    var scan = some(procedure.arguments.get)
+    var scan = procedure.arguments
     var pending_untyped = 0
     while scan.isSome:
-      let binding = ast.data.bindings.get[scan.get]
+      let binding = ast.binding(scan.get)
       if binding.dataType.isSome:
         let resolved_type = ast.type_name(module, binding.dataType.get)
         for untyped_index in 0 ..< pending_untyped:
@@ -484,10 +484,21 @@ func procedure_render (ast :astTF.Ast; module :astTF.Id; procedure :astTF.Proced
 
     var param_index = 0
     while current.isSome:
-      let binding = ast.data.bindings.get[current.get]
+      let binding = ast.binding(current.get)
       if not first:
         Out.string(module, ", ", output.Target.definition)
       first = false
+
+      if binding.pragmas.isSome:
+        var current = binding.pragmas
+        while current.isSome:
+          let pragma = ast.pragm(current.get)
+          let key_expr = ast.expression(pragma.key)
+          if key_expr.kind == astTF.eIdentifier:
+            let key_text = ast.source(module, key_expr.identifier.name.location)
+            if key_text == "comptime":
+              Out.string(module, "comptime ", output.Target.definition)
+          current = pragma.next
 
       if binding.name.isSome:
         let name = ast.source(module, binding.name.get.location)
