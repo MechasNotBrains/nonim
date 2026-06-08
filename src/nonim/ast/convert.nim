@@ -392,6 +392,7 @@ proc procedure_type (state :var State; node :PNode; name = none(astTF.Identifier
         let param_binding = astTF.Binding(
           name     : some(astTF.Identifier(location: param_name_loc)),
           dataType : if is_last_in_group: param_type else: none(astTF.Id),
+          runtime  : some(true),
         )
         let binding_id = state.ast.add_binding(param_binding)
         if first_argument.isNone:
@@ -439,17 +440,17 @@ proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astT
     let bracket_name = node[0].name()
     if bracket_name == "array":
       let element_node = node[2]
-      let is_mutable = element_node.kind == nkVarTy
-      let element_id = state.type_node_to_type_id(element_node)
-      var length_id  = none(astTF.Id)
-      if node[1].kind in SomeLit: length_id = some(state.expression_literal(node[1]))
+      let is_mutable   = element_node.kind == nkVarTy
+      let element_id   = state.type_node_to_type_id(element_node)
+      var length_id    = none(astTF.Id)
+      if node[1].kind != nkIdent and node[1].name() != "_":
+        length_id = some(state.expression(node[1]))
       return state.ast.add_type(astTF.Type(
         kind      : astTF.tArray,
         array     : astTF.TypeArray(
           element : element_id,
           length  : length_id,
-          mutable : some(is_mutable)
-        )))
+          mutable : some(is_mutable)  )))
   else: discard
   let name     = state.translate_type(node.name())
   let name_loc = state.name_add(name)
@@ -526,7 +527,9 @@ proc expression_optional_call (state :var State; node :PNode) :astTF.Id=
   if right_node.kind in {nkTupleConstr, nkPar}:
     for arg_index in 0 ..< right_node.safeLen:
       let value_id   = state.expression(right_node[arg_index])
-      let binding_id = state.ast.add_binding(astTF.Binding(value: some(value_id)))
+      let binding_id = state.ast.add_binding(astTF.Binding(
+        value   : some(value_id),
+        runtime : some(true),  ))
       if first_argument.isNone: first_argument = some(binding_id)
       if previous_binding.isSome:
         var prev  = state.ast.binding(previous_binding.get)
@@ -535,7 +538,9 @@ proc expression_optional_call (state :var State; node :PNode) :astTF.Id=
       previous_binding = some(binding_id)
   else:
     let value_id   = state.expression(right_node)
-    let binding_id = state.ast.add_binding(astTF.Binding(value: some(value_id)))
+    let binding_id = state.ast.add_binding(astTF.Binding(
+      value   : some(value_id),
+      runtime : some(true),  ))
     first_argument = some(binding_id)
   result = state.ast.add_expression(astTF.Expression(
     kind        : astTF.eCall,
@@ -568,7 +573,9 @@ proc expression_object_positional (state :var State; node :PNode; first :int) :a
   var previous_field = none(astTF.Id)
   for index in first ..< node.safeLen:
     let value_id   = state.expression(node[index])
-    let binding_id = state.ast.add_binding(astTF.Binding(value: some(value_id)))
+    let binding_id = state.ast.add_binding(astTF.Binding(
+      value   : some(value_id),
+      runtime : some(true),  ))
     if first_field.isNone:
       first_field = some(binding_id)
     if previous_field.isSome:
@@ -636,7 +643,9 @@ proc expression_call (state :var State; node :PNode) :astTF.Id=
   for arg_index in 1 ..< node.safeLen:
     let arg_node = node[arg_index]
     let value_id = state.expression(arg_node)
-    let binding = astTF.Binding(value: some(value_id))
+    let binding = astTF.Binding(
+      value   : some(value_id),
+      runtime : some(true),  )
     let binding_id = state.ast.add_binding(binding)
     if first_argument.isNone:
       first_argument = some(binding_id)
@@ -664,8 +673,9 @@ proc expression_tuple (state :var State; node :PNode) :astTF.Id=
       let name_loc = state.name_add(child[0].name())
       let value_id = state.expression(child[1])
       let binding = astTF.Binding(
-        name  : some(astTF.Identifier(location: name_loc)),
-        value : some(value_id),
+        name    : some(astTF.Identifier(location: name_loc)),
+        value   : some(value_id),
+        runtime : some(true),
       )
       let binding_id = state.ast.add_binding(binding)
       if first_field.isNone:
@@ -686,7 +696,9 @@ proc expression_tuple (state :var State; node :PNode) :astTF.Id=
   var previous_binding = none(astTF.Id)
   for i in 0 ..< node.safeLen:
     let value_id   = state.expression(node[i])
-    let binding    = astTF.Binding(value: some(value_id))
+    let binding    = astTF.Binding(
+      value   : some(value_id),
+      runtime : some(true), )
     let binding_id = state.ast.add_binding(binding)
     if first_argument.isNone:
       first_argument = some(binding_id)
@@ -713,7 +725,7 @@ proc expression_parenthesis (state :var State; node :PNode) :astTF.Id=
   result = state.expression_tuple(node)
 
 proc expression_obj_constr (state :var State; node :PNode) :astTF.Id=
-  var first_field = none(astTF.Id)
+  var first_field    = none(astTF.Id)
   var previous_field = none(astTF.Id)
   for i in 1 ..< node.safeLen:
     let child = node[i]
@@ -723,7 +735,7 @@ proc expression_obj_constr (state :var State; node :PNode) :astTF.Id=
     let binding  = astTF.Binding(
       name       : some(astTF.Identifier(location: name_loc)),
       value      : some(value_id),
-    )
+      runtime    : some(true),  )
     let binding_id = state.ast.add_binding(binding)
     if first_field.isNone:
       first_field = some(binding_id)
@@ -781,11 +793,11 @@ proc expression_indexed (state :var State; node :PNode) :astTF.Id=
   let index_node  = node[1]
   let object_id   = state.expression(object_node)
   let index_id    = state.expression(index_node)
-  result = state.ast.add_expression(astTF.Expression(
-    kind       : astTF.eIndexed,
-    indexed    : astTF.ExpressionIndexed(
-      `object` : object_id,
-      index    : index_id,  ),  ))
+  result          = state.ast.add_expression(astTF.Expression(
+    kind          : astTF.eIndexed,
+    indexed       : astTF.ExpressionIndexed(
+      `object`    : object_id,
+      index       : index_id,  ),  ))
 
 proc expression_array_type (state :var State; node :PNode) :astTF.Id=
   result = state.expression_of_type(state.type_node_to_type_id(node))
@@ -821,13 +833,13 @@ proc expression_type_block (state :var State; node :PNode) :astTF.Id=
       let previous_id = state.previous_stmt.get
       var previous = state.ast.statement(previous_id)
       case previous.kind
-      of astTF.sVariable:    previous.variable.next = some(statement_id)
-      of astTF.sProcedure:   previous.procedure.next = some(statement_id)
-      of astTF.sExpression:  previous.expression.next = some(statement_id)
-      of astTF.sImport:      previous.`import`.next = some(statement_id)
-      of astTF.sComment:     previous.comment.next = some(statement_id)
-      of astTF.sPassthrough: previous.passthrough.next = some(statement_id)
-      else: discard
+      of astTF.sVariable    : previous.variable.next    = some(statement_id)
+      of astTF.sProcedure   : previous.procedure.next   = some(statement_id)
+      of astTF.sExpression  : previous.expression.next  = some(statement_id)
+      of astTF.sImport      : previous.`import`.next    = some(statement_id)
+      of astTF.sComment     : previous.comment.next     = some(statement_id)
+      of astTF.sPassthrough : previous.passthrough.next = some(statement_id)
+      else                  : discard
       state.ast.data.statements.get[previous_id] = previous
     state.previous_stmt = some(statement_id)
 
@@ -849,7 +861,10 @@ proc expression_type_block (state :var State; node :PNode) :astTF.Id=
           kind: astTF.eIdentifier,
           identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: import_loc)),
         ))
-        let arg_binding_id = state.ast.add_binding(astTF.Binding(value: some(path_id)))
+        let arg_binding_id = state.ast.add_binding(astTF.Binding(
+            value   : some(path_id),
+            runtime : some(true),
+          ))
         let import_call_id = state.ast.add_expression(astTF.Expression(
           kind : astTF.eCall,
           call : astTF.ExpressionCall(name: import_name_id, arguments: some(arg_binding_id)),
@@ -885,6 +900,7 @@ proc expression_type_block (state :var State; node :PNode) :astTF.Id=
             name    : some(astTF.Identifier(location: member_loc)),
             private : some(false),
             value   : some(dot_id),
+            runtime : some(true),
           ))
           let stmt_id = state.ast.add_statement(astTF.Statement(
             kind     : astTF.sVariable,
@@ -985,6 +1001,7 @@ proc procedure_build (state :var State; node :PNode) :astTF.Id=
           name     : some(astTF.Identifier(location: param_name_loc)),
           dataType : if is_last_in_group: param_type else: none(astTF.Id),
           private  : some(true),
+          runtime  : some(true),
           pragmas  : state.pragmas_binding(param_name_node),
         )
         let binding_id = state.ast.add_binding(param_binding)
@@ -1051,24 +1068,24 @@ proc expression (state :var State; node :PNode) :astTF.Id=
   of nkBlockStmt:
     if node.is_type_block(): return state.expression_type_block(node)
     return state.expression_identifier("")
-  of SomeLit:                      state.expression_literal(node)
+  of SomeLit: state.expression_literal(node)
   of nkSym:
     let name = node.sym.name.s
     if name == "true" or name == "false":
       state.expression_literal_bool(name)
     else:
       state.expression_identifier(node)
-  of SomeIdent, nkPostfix:         state.expression_identifier(node)
-  of nkDotExpr:                    state.expression_dot(node)
-  of nkInfix:                      state.expression_infix(node)
-  of nkPrefix:                     state.expression_prefix(node)
-  of nkCall, nkCommand:            state.expression_call(node)
-  of nkTupleConstr, nkPar:         state.expression_parenthesis(node)
-  of nkObjConstr:                  state.expression_obj_constr(node)
-  of nkBracket:                    state.expression_array(node)
-  of nkTryStmt:                    state.expression_try(node)
-  of nkLambda:                     state.expression_lambda(node)
-  of nkBracketExpr:
+  of SomeIdent, nkPostfix : state.expression_identifier(node)
+  of nkDotExpr            : state.expression_dot(node)
+  of nkInfix              : state.expression_infix(node)
+  of nkPrefix             : state.expression_prefix(node)
+  of nkCall, nkCommand    : state.expression_call(node)
+  of nkTupleConstr, nkPar : state.expression_parenthesis(node)
+  of nkObjConstr          : state.expression_obj_constr(node)
+  of nkBracket            : state.expression_array(node)
+  of nkTryStmt            : state.expression_try(node)
+  of nkLambda             : state.expression_lambda(node)
+  of nkBracketExpr        :
     if node[0].name() == "array":
       state.expression_array_type(node)
     elif node.safeLen == 1:
@@ -1577,6 +1594,7 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
       let name_loc   = state.name_add(deref & iter_name)
       let binding_id = state.ast.add_binding(astTF.Binding(
         name         : some(astTF.Identifier(location: name_loc)),
+        runtime      : some(true),
         private      : some(true),  ))
       let stmt_id    = state.ast.add_statement(astTF.Statement(
         kind         : astTF.sVariable,
@@ -1726,9 +1744,12 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
         kind          : astTF.LiteralKind.string,
         value         : name_lit_loc,),))
     let lambda_id     = state.expression_lambda(lambda_node)
-    let lambda_bind   = state.ast.add_binding(astTF.Binding(value: some(lambda_id)))
+    let lambda_bind   = state.ast.add_binding(astTF.Binding(
+      value           : some(lambda_id),
+      runtime         : some(true),  ))
     let name_bind     = state.ast.add_binding(astTF.Binding(
       value           : some(name_lit_id),
+      runtime         : some(true),
       next            : some(lambda_bind),))
     let it_loc        = state.name_add("it")
     let it_id         = state.ast.add_expression(astTF.Expression(
@@ -1805,6 +1826,67 @@ proc statement_procedure (state :var State; node :PNode) =
   ))
   state.statement_chain(statement_id)
 
+proc statement_type_object_fields (state :var State; body_node :PNode) :Option[astTF.Id]=
+  result       = none(astTF.Id)
+  let rec_list = body_node[2]
+  var previous = none(astTF.Id)
+  if rec_list.kind != nkRecList: return
+  for field_def in rec_list:
+    if field_def.kind != nkIdentDefs: continue
+    let type_index = field_def.safeLen - 2
+    let type_node  = field_def[type_index]
+    var field_type = none(astTF.Id)
+    if type_node.kind != nkEmpty:
+      field_type = some(state.expression_type(type_node))
+    for name_index in 0 ..< type_index:
+      let field_name_node = field_def[name_index]
+      # A field may carry an `{.alias: X.}` pragma. It is not a data field but a
+      # struct-level declaration `const name = X;`, so the name node is wrapped in
+      # an nkPragmaExpr and the binding carries the alias value instead of a type.
+      let alias_value    = field_name_node.alias_pragma_value()
+      let field_name_str = field_name_node.name()
+      if field_name_str.len == 0: continue
+      let field_name_loc   = state.name_add(field_name_str)
+      let is_last_in_group = name_index == type_index - 1
+      var field_binding    = astTF.Binding(
+        name    : some(astTF.Identifier(location: field_name_loc)),
+        runtime : some(true),
+      )
+      if alias_value != nil:
+        field_binding.value   = some(state.expression(alias_value))
+        field_binding.private = some(state.declaration_private(field_name_node))
+      else:
+        field_binding.private  = some(state.declaration_private(field_name_node))
+        field_binding.dataType = if is_last_in_group: field_type else: none(astTF.Id)
+        let default_node       = field_def[field_def.safeLen - 1]
+        if default_node.kind != nkEmpty:
+          field_binding.value = some(state.expression(default_node))
+      let field_id = state.ast.add_binding(field_binding)
+      if result.isNone: result = some(field_id)
+      if previous.isSome:
+        var prev  = state.ast.data.bindings.get[previous.get]
+        prev.next = some(field_id)
+        state.ast.data.bindings.get[previous.get] = prev
+      previous = some(field_id)
+
+proc statement_type_object (
+    state      : var State;
+    body_node  : PNode;
+    name_loc   : astTF.Location;
+    is_private : bool;
+  ) =
+  let first_field  = state.statement_type_object_fields(body_node)
+  let type_id      = state.ast.add_type(astTF.Type(
+    kind           : astTF.tObject,
+    `object`       : astTF.TypeObject(
+      name         : some(astTF.Identifier(location: name_loc)),
+      fields       : first_field,
+      private      : some(is_private),  ),  ))
+  let statement_id = state.ast.add_statement(astTF.Statement(
+    kind           : astTF.sType,
+    `type`         : astTF.StatementType(id: type_id),
+  ))
+  state.statement_chain(statement_id)
 
 proc statement_type (state :var State; node :PNode) =
   if node.kind != nkTypeDef: return
@@ -1813,62 +1895,9 @@ proc statement_type (state :var State; node :PNode) =
   let name_str  = name_node.name()
   if name_str.len == 0: return
   let is_private = state.declaration_private(name_node)
-  let name_loc = state.name_add(name_str)
+  let name_loc   = state.name_add(name_str)
   if body_node.kind == nkObjectTy:
-    let rec_list = body_node[2]
-    var first_field = none(astTF.Id)
-    var previous_field = none(astTF.Id)
-    if rec_list.kind == nkRecList:
-      for field_def in rec_list:
-        if field_def.kind != nkIdentDefs: continue
-        let type_index = field_def.safeLen - 2
-        let type_node = field_def[type_index]
-        var field_type = none(astTF.Id)
-        if type_node.kind != nkEmpty:
-          field_type = some(state.expression_type(type_node))
-        for name_index in 0 ..< type_index:
-          let field_name_node = field_def[name_index]
-          # A field may carry an `{.alias: X.}` pragma. It is not a data field but a
-          # struct-level declaration `const name = X;`, so the name node is wrapped in
-          # an nkPragmaExpr and the binding carries the alias value instead of a type.
-          let alias_value = field_name_node.alias_pragma_value()
-          let field_name_str = field_name_node.name()
-          if field_name_str.len == 0: continue
-          let field_name_loc = state.name_add(field_name_str)
-          let is_last_in_group = name_index == type_index - 1
-          var field_binding = astTF.Binding(
-            name: some(astTF.Identifier(location: field_name_loc)),
-          )
-          if alias_value != nil:
-            field_binding.value = some(state.expression(alias_value))
-            field_binding.private = some(state.declaration_private(field_name_node))
-          else:
-            field_binding.private = some(state.declaration_private(field_name_node))
-            field_binding.dataType = if is_last_in_group: field_type else: none(astTF.Id)
-            let default_node = field_def[field_def.safeLen - 1]
-            if default_node.kind != nkEmpty:
-              field_binding.value = some(state.expression(default_node))
-          let field_id = state.ast.add_binding(field_binding)
-          if first_field.isNone:
-            first_field = some(field_id)
-          if previous_field.isSome:
-            var prev = state.ast.binding(previous_field.get)
-            prev.next = some(field_id)
-            state.ast.data.bindings.get[previous_field.get] = prev
-          previous_field = some(field_id)
-    let type_id = state.ast.add_type(astTF.Type(
-      kind: astTF.tObject,
-      `object`: astTF.TypeObject(
-        name: some(astTF.Identifier(location: name_loc)),
-        fields: first_field,
-        private: some(is_private),
-      ),
-    ))
-    let statement_id = state.ast.add_statement(astTF.Statement(
-      kind: astTF.sType,
-      `type`: astTF.StatementType(id: type_id),
-    ))
-    state.statement_chain(statement_id)
+    state.statement_type_object(body_node, name_loc, is_private)
   elif body_node.kind == nkEnumTy:
     var backing = none(astTF.Id)
     let backing_node = name_node.pragma_value("backing")
@@ -1892,10 +1921,11 @@ proc statement_type (state :var State; node :PNode) =
         let value_loc = state.name_add(value_name)
         let alias_id = state.expression(alias_value)
         let binding_id = state.ast.add_binding(astTF.Binding(
-          name: some(astTF.Identifier(location: value_loc)),
-          private: some(state.declaration_private(field_node)),
-          value: some(alias_id),
-          dataType: none(astTF.Id),
+          name     : some(astTF.Identifier(location: value_loc)),
+          private  : some(state.declaration_private(field_node)),
+          value    : some(alias_id),
+          dataType : none(astTF.Id),
+          runtime  : some(true),
         ))
         if first_value.isNone: first_value = some(binding_id)
         if previous_value.isSome:
@@ -1914,8 +1944,9 @@ proc statement_type (state :var State; node :PNode) =
       if value_name.len == 0: continue
       let value_loc = state.name_add(value_name)
       let binding_id = state.ast.add_binding(astTF.Binding(
-        name: some(astTF.Identifier(location: value_loc)),
-        value: value_expr,
+        name    : some(astTF.Identifier(location: value_loc)),
+        value   : value_expr,
+        runtime : some(true),
       ))
       if first_value.isNone:
         first_value = some(binding_id)
@@ -1959,8 +1990,8 @@ proc statement_type (state :var State; node :PNode) =
       ),
     ))
     let statement_id = state.ast.add_statement(astTF.Statement(
-      kind: astTF.sType,
-      `type`: astTF.StatementType(id: type_id),
+      kind   : astTF.sType,
+      `type` : astTF.StatementType(id: type_id),
     ))
     state.statement_chain(statement_id)
 
@@ -2081,7 +2112,9 @@ proc statement_describe (state :var State; node :PNode) :void=
     literal           : astTF.ExpressionLiteral(
       kind            : astTF.LiteralKind.string,
       value           : desc_loc,),))
-  let desc_bind_id    = state.ast.add_binding(astTF.Binding(value: some(desc_lit_id)))
+  let desc_bind_id    = state.ast.add_binding(astTF.Binding(
+    value             : some(desc_lit_id),
+    runtime           : some(true),  ))
   let call_id         = state.ast.add_expression(astTF.Expression(
     kind              : astTF.eCall,
     call              : astTF.ExpressionCall(
@@ -2243,7 +2276,9 @@ proc statement_namespace (state :var State; node :PNode) =
           kind: astTF.eIdentifier,
           identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: import_loc)),
         ))
-        let arg_binding_id = state.ast.add_binding(astTF.Binding(value: some(path_id)))
+        let arg_binding_id = state.ast.add_binding(astTF.Binding(
+          value   : some(path_id),
+          runtime : some(true), ))
         let import_call_id = state.ast.add_expression(astTF.Expression(
           kind: astTF.eCall,
           call: astTF.ExpressionCall(name: import_name_id, arguments: some(arg_binding_id)),
@@ -2279,6 +2314,7 @@ proc statement_namespace (state :var State; node :PNode) =
           let binding_id = state.ast.add_binding(astTF.Binding(
             name    : some(astTF.Identifier(location: member_loc)),
             private : some(false),
+            runtime : some(true),
             value   : some(dot_id),
           ))
           let stmt_id = state.ast.add_statement(astTF.Statement(
@@ -2350,6 +2386,7 @@ proc statement_namespace (state :var State; node :PNode) =
   let binding_id = state.ast.add_binding(astTF.Binding(
     name    : some(astTF.Identifier(location: name_loc)),
     private : some(is_private),
+    runtime : some(true),
     value   : some(struct_id),
     pragmas : state.pragmas_binding(name_node)
   ))
