@@ -189,7 +189,7 @@ describe "nonim.codegen.zig | Statement.Alias":
     result.modules[0].definitions.eq Expected
 
 describe "nonim.codegen.zig | Type.Procedure":
-  it "must not generate pub on procedure type in statement", proc() =
+  it "must not generate pub or name on procedure type in statement", proc() =
     const Expected = expected("type_procedure_no_pub.zig")
     let test_case = type_procedure.callback_in_statement()
     let result = test_case.ast.zig()
@@ -214,6 +214,13 @@ describe "nonim.codegen.zig | Procedure.Arguments":
   it "must generate type annotation for each shared parameter", proc() =
     const Expected = expected("procedure_shared_params.zig")
     let test_case = procedure_arguments.shared_type()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.zig | Statement.Type.Object.Alias":
+  it "must generate pub on public struct alias field", proc() =
+    const Expected = expected("statement_type_object_alias_pub.zig")
+    let test_case = statement_type.object_alias_pub()
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 

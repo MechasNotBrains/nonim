@@ -292,6 +292,8 @@ func array_elements (
 #_______________________________________
 # @section Procedures
 #_____________________________
+type ProcedureContext {.pure.}= enum other, p_type, statement, expression
+#_____________________________
 func procedure_pragmas_before (
     ast    : astTF.Ast;
     module : astTF.Id;
@@ -324,6 +326,7 @@ func procedure (
     module : astTF.Id;
     id     : astTF.Id;
     Out    : var Output;
+    ctx    : ProcedureContext = other;
   ) :void=
   let P = ast.procedure(id)
   #___________________
@@ -335,9 +338,10 @@ func procedure (
   Out.string(module, " ", output.Target.definition)
   #___________________
   # Name
-  if P.name.isSome : zig.identifier(ast, module, P.name.get, Out)
-  else             : Out.string(module, "f", output.Target.definition)
-  Out.string(module, " ", output.Target.definition)
+  if   ctx == p_type : discard  # Do not give name to procedure types
+  elif P.name.isSome : zig.identifier(ast, module, P.name.get, Out)
+  else               : Out.string(module, "f", output.Target.definition)
+  if   ctx != p_type : Out.string(module, " ", output.Target.definition)
   #___________________
   # Arguments & Generics
   Out.string(module, "(", output.Target.definition)
@@ -436,7 +440,7 @@ func type_procedure (
   Out.string(module, "*", output.Target.definition)
   if typ.mutable.get(false):
     Out.string(module, "const ", output.Target.definition)
-  zig.procedure(ast, module, typ.id, Out)
+  zig.procedure(ast, module, typ.id, Out, ctx= p_type)
 #___________________
 func type_field (
     ast    : astTF.Ast;
@@ -452,17 +456,18 @@ func type_field (
   # An aliased field is a struct-level declaration, not a data field.
   let is_alias = field.value.isSome and field.dataType.isNone
   if is_alias:
-    if field.private.get(false):
-      Out.string(module, "pub ", output.Target.definition)
+    if not field.private.get(false):
+      Out.string(module, "pub", output.Target.definition)
+      Out.string(module, " ", output.Target.definition)
     let keyw = if field.mutable.get(false): "var" else: "const"
     Out.string(module, keyw, output.Target.definition)
     Out.string(module, " ", output.Target.definition)
   #___________________
   if field.name.isSome:
     zig.identifier(ast, module, field.name.get, Out)
+    Out.string(module, " ", output.Target.definition)
   #___________________
   if field.dataType.isSome:
-    Out.string(module, " ", output.Target.definition)
     Out.string(module, ":", output.Target.definition)
     zig.expression(ast, module, field.dataType.get, Out)
   #___________________

@@ -1,1 +1,1 @@
-pub const Callback = *fn Callback (item :int) int;
+pub const Callback = *fn (item :int) int;
