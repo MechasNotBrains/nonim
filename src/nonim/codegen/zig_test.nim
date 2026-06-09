@@ -20,6 +20,7 @@ import ./test/statement_passthrough
 import ./test/statement_comment
 import ./test/format_whitespace
 import ./test/statement_type
+import ./test/statement_alias
 
 const expected_dir = "./expected/zig/"
 template expected (path :static system.string) :system.string= staticRead(expected_dir & path)
@@ -176,3 +177,11 @@ describe "nonim.codegen.zig | Statement.Type.Object":
     var Out = Output.create()
     test_case.ast.expression(test_case.module, test_case.id, Out)
     Out.modules[test_case.module].definitions.eq Expected
+
+describe "nonim.codegen.zig | Statement.Alias":
+  it "must generate a simple alias", proc() =
+    const Expected = expected("statement_alias_simple.zig")
+    let test_case = statement_alias.simple()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+

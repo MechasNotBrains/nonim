@@ -160,8 +160,8 @@ func statement_private *(
     # TODO: Read from Pragmas
     of astTF.sImport    : false
     # TODO: The spec makes no sense for private/public marking of statements
-    of astTF.sAlias,
-       astTF.sPragma,
+    of astTF.sAlias     : false
+    of astTF.sPragma,
        astTF.sBranch,
        astTF.sPassthrough,
        astTF.sExpression,

@@ -358,6 +358,15 @@ func procedure (
 #_______________________________________
 # @section Types
 #_____________________________
+func type_alias (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : astTF.Id;
+    Out    : var Output;
+  ) :void=
+  let typ = ast.typ(id).alias
+  zig.expression(ast, module, typ.target, Out)
+#___________________
 func type_primitive (
     ast    : astTF.Ast;
     module : astTF.Id;
@@ -517,12 +526,12 @@ func Type (
   let typ = ast.typ(id)
   case typ.kind
   of tPrimitive   : zig.type_primitive(ast, module, id, Out)
+  of tAlias       : zig.type_alias(ast, module, id, Out)
   of tPtr         : zig.type_pointer(ast, module, id, Out)
   of tArray       : zig.type_array(ast, module, id, Out)
   of tProcedure   : zig.type_procedure(ast, module, id, Out)
   of tEnumeration : zig.type_enumeration(ast, module, id, Out)
   of tObject      : zig.type_object(ast, module, id, Out)
-  # of tAlias       : zig.type_alias(ast, module, id, Out)
   # of tRange       : zig.type_range(ast, module, id, Out)
   else: fail "type.render:", "Unsupported type kind", typ.kind
 
@@ -1158,6 +1167,23 @@ func statement_comment (
   let stmt = ast.statement(id).comment
   zig.comment(ast, module, stmt.id, Out)
 #___________________
+func statement_alias (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : astTF.Id;
+    Out    : var Output;
+  ) :void=
+  let stmt  = ast.statement(id).alias
+  let alias = ast.alias(stmt.id)
+  Out.string(module, "const", output.Target.definition)
+  Out.string(module, " ", output.Target.definition)
+  zig.identifier(ast, module, alias.name, Out)
+  Out.string(module, " ", output.Target.definition)
+  Out.string(module, "=", output.Target.definition)
+  Out.string(module, " ", output.Target.definition)
+  if alias.target.isSome : zig.identifier(ast, module, alias.target.get, Out)
+  else                   : Out.string(module, "?*anyopaque", output.Target.definition)
+#___________________
 func statement_expression (
     ast    : astTF.Ast;
     module : astTF.Id;
@@ -1241,7 +1267,8 @@ func statement (
   of sImport      : zig.statement_import(ast, module, id, Out)
   of sPassthrough : zig.statement_passthrough(ast, module, id, Out)
   of sComment     : zig.statement_comment(ast, module, id, Out)
-  else: fail "Unsupported statement kind: ", stmt.kind
+  of sAlias       : zig.statement_alias(ast, module, id, Out)
+  of sPragma      : fail "Pragma Statements are not supported for Zig"
   if ast.statement_needs_semicolon(module, id):
     Out.string(module, ";", output.Target.definition)
   if ast.statement_needs_newline(id):
