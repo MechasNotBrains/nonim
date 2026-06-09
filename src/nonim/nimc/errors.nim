@@ -40,3 +40,4 @@ proc errorAST *(conf :ConfigRef; info :TLineInfo; msg :TMsgKind; arg :string)=
       column:  info.col.int,
       file:    toFilename(conf, info),
     ))
+
