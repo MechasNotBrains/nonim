@@ -125,6 +125,10 @@ describe "nonim.minz | Procedures":
     let result = generate_zig(case_input("expression_call"))
     result.eq case_expected("expression_call")
 
+  it "must generate comptime parameter from comptime pragma", proc() =
+    let result = generate_zig(case_input("procedure_comptime_param"))
+    result.eq case_expected("procedure_comptime_param")
+
 describe "nonim.minz | Literals":
   it "must generate bool literals", proc() =
     let result = generate_zig(case_input("literal_bool"))

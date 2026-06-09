@@ -395,10 +395,11 @@ proc procedure_type (state :var State; node :PNode; name = none(astTF.Identifier
         if param_name_str.len == 0: continue
         let is_last_in_group = param_name_index == type_index - 1
         let param_name_loc = state.name_add(param_name_str)
+        let is_comptime = param_name_node.kind == nkPragmaExpr and param_name_node[1].pragma_has("comptime")
         let param_binding = astTF.Binding(
           name     : some(astTF.Identifier(location: param_name_loc)),
           dataType : if is_last_in_group: param_type else: none(astTF.Id),
-          runtime  : some(true),
+          runtime  : some(not is_comptime),
         )
         let binding_id = state.ast.add_binding(param_binding)
         if first_argument.isNone:
@@ -1014,12 +1015,13 @@ proc procedure_build (state :var State; node :PNode) :astTF.Id=
 
 
         let is_last_in_group = name_index == type_index - 1
+        let is_comptime = param_name_node.kind == nkPragmaExpr and param_name_node[1].pragma_has("comptime")
         let param_name_loc = state.name_add(param_name)
         let param_binding = astTF.Binding(
           name     : some(astTF.Identifier(location: param_name_loc)),
           dataType : if is_last_in_group: param_type else: none(astTF.Id),
           private  : some(true),
-          runtime  : some(true),
+          runtime  : some(not is_comptime),
           pragmas  : state.pragmas_binding(param_name_node),
         )
         let binding_id = state.ast.add_binding(param_binding)
