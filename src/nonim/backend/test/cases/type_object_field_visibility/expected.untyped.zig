@@ -1,4 +1,4 @@
 pub const Thing = struct {
-  name: int,
-  count: int,
+  name :int,
+  count :int,
 };

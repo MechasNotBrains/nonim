@@ -73,6 +73,54 @@ proc mutable *() :TestData=
   result.ast.data.modules[result.module].body = some(result.id)
 
 
+proc var_ptr *() :TestData=
+  const input_name   = "instance"
+  const input_type   = "Instance"
+  const input_source = input_name & input_type & "567890Z"
+  result = create(input_source)
+  let name_loc   = astTF.Location(start: 0, `end`: input_name.len)
+  let type_loc   = astTF.Location(start: name_loc.`end`, `end`: name_loc.`end` + input_type.len)
+  let inner_id   = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: type_loc))))
+  let ptr_id     = result.ast.add_type(astTF.Type(kind: astTF.tPtr, `ptr`: astTF.TypePtr(target: inner_id, mutable: some(true))))
+  let type_expr  = result.ast.add_expression_type(ptr_id)
+  let binding_id = result.ast.add_binding(astTF.Binding(
+    name     : some(astTF.Identifier(location: name_loc)),
+    private  : some(true),
+    mutable  : some(false),
+    runtime  : some(true),
+    dataType : some(type_expr),
+  ))
+  result.id = result.ast.add_statement(astTF.Statement(
+    kind     : astTF.sVariable,
+    variable : astTF.StatementVariable(id: binding_id),
+  ))
+  result.ast.data.modules[result.module].body = some(result.id)
+
+
+proc var_const_ptr *() :TestData=
+  const input_name   = "instance"
+  const input_type   = "Instance"
+  const input_source = input_name & input_type & "567890Z"
+  result = create(input_source)
+  let name_loc   = astTF.Location(start: 0, `end`: input_name.len)
+  let type_loc   = astTF.Location(start: name_loc.`end`, `end`: name_loc.`end` + input_type.len)
+  let inner_id   = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: type_loc))))
+  let ptr_id     = result.ast.add_type(astTF.Type(kind: astTF.tPtr, `ptr`: astTF.TypePtr(target: inner_id)))
+  let type_expr  = result.ast.add_expression_type(ptr_id)
+  let binding_id = result.ast.add_binding(astTF.Binding(
+    name     : some(astTF.Identifier(location: name_loc)),
+    private  : some(true),
+    mutable  : some(true),
+    runtime  : some(true),
+    dataType : some(type_expr),
+  ))
+  result.id = result.ast.add_statement(astTF.Statement(
+    kind     : astTF.sVariable,
+    variable : astTF.StatementVariable(id: binding_id),
+  ))
+  result.ast.data.modules[result.module].body = some(result.id)
+
+
 proc immutable_comptime *() :TestData=
   const input_source = "thingint42"
   result = create(input_source)

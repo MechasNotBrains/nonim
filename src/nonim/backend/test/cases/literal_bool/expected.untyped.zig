@@ -1,6 +1,2 @@
-pub fn check (x: bool) bool {
-  if (x) {
-    return true;
-  }
-  return false;
-}
+pub const flag :bool= true;
+pub const other :bool= false;

@@ -4,8 +4,8 @@ test Thing {
   defer Thing.end();
   try it("first test", struct { fn f () !void {
   const x = 1;
-} }.f);
+}}.f);
   try it("second test", struct { fn f () !void {
   const y = 2;
-} }.f);
+}}.f);
 }

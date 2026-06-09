@@ -1,1 +1,1 @@
-const os = @import("./std/os.zig");
+pub const os = @import("./std/os.zig");

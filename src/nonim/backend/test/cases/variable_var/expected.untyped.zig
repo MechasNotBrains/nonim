@@ -1,1 +1,1 @@
-pub var counter: int = 0;
+pub var counter :int= 0;

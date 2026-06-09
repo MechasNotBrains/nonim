@@ -1,1 +1,1 @@
-const mmath = @import("../mmath.zig");
+pub const mmath = @import("../mmath.zig");

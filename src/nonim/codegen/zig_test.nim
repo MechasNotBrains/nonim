@@ -90,6 +90,18 @@ describe "nonim.codegen.zig | Statement.Variable":
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 
+  it "must generate const binding with mutable pointer", proc() =
+    const Expected = expected("statement_variable_var_ptr.zig")
+    let test_case = statement_variable.var_ptr()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate var with const pointer for mutable binding with immutable ptr", proc() =
+    const Expected = expected("statement_variable_let_ptr.zig")
+    let test_case = statement_variable.var_const_ptr()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
 describe "nonim.codegen.zig | Statement.Keyword":
   it "must generate a return statement with literal", proc() =
     const Expected = expected("statement_keyword_return_literal.zig")

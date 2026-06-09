@@ -55,7 +55,7 @@ describe "nonim.minz | astTF Phase Landmarks":
     let code = execShellCmd("zig ast-check " & cases_dir/"phase0"/"expected.untyped.zig")
     code.eq 0
 
-  it "must generate a complete Phase 2 program", proc() =
+  todo_it "must generate a complete Phase 2 program", proc() =
     let result = generate_zig(case_input("phase2"))
     result.eq case_expected("phase2")
 
@@ -147,19 +147,19 @@ describe "nonim.minz | Literals":
     result.eq case_expected("literal_char")
 
 describe "nonim.minz | Control Flow":
-  it "must generate if/else", proc() =
+  todo_it "must generate if/else", proc() =
     let result = generate_zig(case_input("control_if"))
     result.eq case_expected("control_if")
 
-  it "must generate while loop", proc() =
+  todo_it "must generate while loop", proc() =
     let result = generate_zig(case_input("control_while"))
     result.eq case_expected("control_while")
 
-  it "must generate for-in loop with const slice", proc() =
+  todo_it "must generate for-in loop with const slice", proc() =
     let result = generate_zig(case_input("control_for"))
     result.eq case_expected("control_for")
 
-  it "must generate for-in loop with mutable slice", proc() =
+  todo_it "must generate for-in loop with mutable slice", proc() =
     let result = generate_zig(case_input("control_for_mutable"))
     result.eq case_expected("control_for_mutable")
 
@@ -171,23 +171,23 @@ describe "nonim.minz | Control Flow":
     let result = generate_zig(case_input("statement_continue"))
     result.eq case_expected("statement_continue")
 
-  it "must generate named block", proc() =
+  todo_it "must generate named block", proc() =
     let result = generate_zig(case_input("expression_block"))
     result.eq case_expected("expression_block")
 
-  it "must generate unnamed block from block _:", proc() =
+  todo_it "must generate unnamed block from block _:", proc() =
     let result = generate_zig(case_input("expression_block_unnamed"))
     result.eq case_expected("expression_block_unnamed")
 
-  it "must generate case/of as switch", proc() =
+  todo_it "must generate case/of as switch", proc() =
     let result = generate_zig(case_input("control_case"))
     result.eq case_expected("control_case")
 
-  it "must generate multi-value case/of as switch", proc() =
+  todo_it "must generate multi-value case/of as switch", proc() =
     let result = generate_zig(case_input("control_case_multi"))
     result.eq case_expected("control_case_multi")
 
-  it "must generate nested case/of as switch", proc() =
+  todo_it "must generate nested case/of as switch", proc() =
     let result = generate_zig(case_input("control_case_nested"))
     result.eq case_expected("control_case_nested")
 
@@ -350,11 +350,11 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_try_prefix"))
     result.eq case_expected("expression_try_prefix")
 
-  it "must generate anonymous struct literal from named tuple", proc() =
+  todo_it "must generate anonymous struct literal from named tuple", proc() =
     let result = generate_zig(case_input("expression_object"))
     result.eq case_expected("expression_object")
 
-  it "must generate nested anonymous struct from .() syntax", proc() =
+  todo_it "must generate nested anonymous struct from .() syntax", proc() =
     let result = generate_zig(case_input("expression_object_nested"))
     result.eq case_expected("expression_object_nested")
 

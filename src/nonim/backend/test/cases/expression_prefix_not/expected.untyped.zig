@@ -1,3 +1,3 @@
-pub fn f (x: bool) bool {
+pub fn f (x :bool) bool {
   return !x;
 }

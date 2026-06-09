@@ -1,1 +1,1 @@
-type Callback = proc (x :int) :int
+type Callback = ptr proc (x :int) :int

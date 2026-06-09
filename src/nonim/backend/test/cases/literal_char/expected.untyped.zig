@@ -1,1 +1,1 @@
-pub const letter: char = 'a';
+pub const letter :char= 'a';

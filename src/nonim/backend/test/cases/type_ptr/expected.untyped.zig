@@ -1,1 +1,1 @@
-pub const nothing: *const int = null;
+pub const nothing :*const int= null;

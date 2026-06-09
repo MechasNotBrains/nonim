@@ -87,12 +87,13 @@ func operator_spacing (
     operator : astTF.Location;
     kind     : OperatorKind;
   ) :tuple[before:bool, after:bool]=
+  const tight = [".", "!", ".*", ".*.", ".?"]
   result = (before:true, after:true)
   let op = ast.source(module, operator, synthetic=false)
   if kind == Prefix : result.before = false
-  elif op in ["."]  : result.before = false
+  elif op in tight  : result.before = false
   if kind == Prefix : result.after  = false
-  elif op in ["."]  : result.after  = false
+  elif op in tight  : result.after  = false
 #___________________
 func operator (
     ast      : astTF.Ast;
@@ -168,6 +169,20 @@ func comment (
 #_____________________________
 type BindingContext {.pure.}= enum other, variable
 #___________________
+func binding_pragma_has (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : Option[astTF.Id];
+    list   : openArray[system.string];
+  ) :bool=
+  if id.isNone: return false
+  var current = id
+  while current.isSome:
+    let pragma = ast.pragm(current.get)
+    let key    = ast.source(module, ast.expression(pragma.key).identifier.name)
+    if key in list: return true
+    current = pragma.next
+#___________________
 func binding_pragma (
     ast    : astTF.Ast;
     module : astTF.Id;
@@ -220,6 +235,7 @@ func binding (
   let T  = zig.binding_type(ast, id)
   result = B.next
   #___________________
+  zig.indentation(ast, module, B.depth, Out)
   if not B.runtime.get(false) and ctx != variable:
     Out.string(module, "comptime", output.Target.definition)
     Out.string(module, " ", output.Target.definition)
@@ -240,7 +256,7 @@ func binding (
     zig.expression(ast, module, T.get, Out)
   #___________________
   # Value
-  if B.name.isSome and not T.isSome and B.value.isSome:
+  if B.name.isSome and not T.isSome and B.value.isSome and prefix.len == 0:
     Out.string(module, " ", output.Target.definition)
   if (B.name.isSome or T.isSome) and B.value.isSome:
     Out.string(module, "=", output.Target.definition)
@@ -435,11 +451,6 @@ func type_procedure (
     Out    : var Output;
   ) :void=
   let typ = ast.typ(id).procedure
-  if typ.optional.get(false):
-    Out.string(module, "?", output.Target.definition)
-  Out.string(module, "*", output.Target.definition)
-  if not typ.mutable.get(false):
-    Out.string(module, "const ", output.Target.definition)
   zig.procedure(ast, module, typ.id, Out, ctx= p_type)
 #___________________
 func type_field (
@@ -454,7 +465,7 @@ func type_field (
   base.format_before(ast, module, field.fmt, Out)
   #___________________
   # An aliased field is a struct-level declaration, not a data field.
-  let is_alias = field.value.isSome and field.dataType.isNone
+  let is_alias = zig.binding_pragma_has(ast, module, field.pragmas, @["alias"])
   if is_alias:
     if not field.private.get(false):
       Out.string(module, "pub", output.Target.definition)
@@ -465,6 +476,7 @@ func type_field (
   #___________________
   if field.name.isSome:
     zig.identifier(ast, module, field.name.get, Out)
+  if field.name.isSome and (field.dataType.isSome or field.value.isSome):
     Out.string(module, " ", output.Target.definition)
   #___________________
   if field.dataType.isSome:
@@ -528,6 +540,7 @@ func type_enumeration (
     Out.string(module, "(", output.Target.definition)
     zig.Type(ast, module, typ.backing.get, Out)
     Out.string(module, ")", output.Target.definition)
+  Out.string(module, " ", output.Target.definition)
   Out.string(module, "{", output.Target.definition)
   Out.string(module, "\n", output.Target.definition)
   zig.type_enumeration_values(ast, module, id, Out)
@@ -763,6 +776,7 @@ func expression_keyword_discard (
   Out.string(module, "_", output.Target.definition)
   Out.string(module, " ", output.Target.definition)
   Out.string(module, "=", output.Target.definition)
+  Out.string(module, " ", output.Target.definition)
   if expr.value.isSome:
     zig.expression(ast, module, expr.value.get, Out)
 #___________________
@@ -975,8 +989,9 @@ func expression_procedure (
   let expr = ast.expression(id).procedure
   let P    = ast.procedure(expr.id)
   Out.string(module, "struct", output.Target.definition)
+  Out.string(module, " ", output.Target.definition)
   Out.string(module, "{", output.Target.definition)
-  Out.string(module, "\n", output.Target.definition)
+  Out.string(module, " ", output.Target.definition)
   zig.procedure(ast, module, expr.id, Out)
   Out.string(module, "}", output.Target.definition)
   Out.string(module, ".", output.Target.definition)
@@ -1127,7 +1142,7 @@ func statement_import_withSymbols (
     let symbol = ast.source(module, S.name)
     let name   =
       if S.target.isSome : ast.source(module, S.target.get)
-      else               : symbol.changeFileExt("").split(".")[^1]
+      else               : symbol.split(".")[^1]
     #___________________
     # public marker for sub-symbols only
     if not first:

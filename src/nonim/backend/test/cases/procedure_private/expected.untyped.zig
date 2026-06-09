@@ -1,3 +1,3 @@
-fn f (x: int) int {
+fn f (x :int) int {
   return x;
 }

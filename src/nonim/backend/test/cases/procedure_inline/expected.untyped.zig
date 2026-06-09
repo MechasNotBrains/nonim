@@ -1,3 +1,3 @@
-pub inline fn add (x: int, y: int) int {
+pub inline fn add (x :int, y :int) int {
   return x + y;
 }

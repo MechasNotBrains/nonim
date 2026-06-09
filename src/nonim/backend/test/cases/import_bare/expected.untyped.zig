@@ -1,1 +1,1 @@
-const std = @import("./std.zig");
+pub const std = @import("./std.zig");

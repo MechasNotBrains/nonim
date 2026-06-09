@@ -75,3 +75,13 @@ func format_comment *(
   let fmt = ast.format(id.get)
   for _ in 0..<fmt.comment.get(0): Out.string(module, format_Space, output.Target.definition)
 
+
+#_______________________________________
+# FIX: REMOVE COMPLETELY. DO NOT USE AT ALL
+#_____________________________
+func node_depth *(ast :astTF.Ast; depth_id :Option[astTF.Id]) :int=
+  result = 0
+  if depth_id.isNone: return
+  let depth = ast.depth(depth_id.get)
+  if depth.indent.isSome: result = depth.indent.get.int
+

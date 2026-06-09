@@ -1,1 +1,1 @@
-const foo = @import("./foo.zig");
+pub const foo = @import("./foo.zig");

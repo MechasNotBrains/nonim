@@ -1,1 +1,1 @@
-pub extern fn add (x: int, y: int) int;
+pub extern fn add (x :int, y :int) int;

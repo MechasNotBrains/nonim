@@ -1,1 +1,1 @@
-pub const answer: int = 42;
+pub const answer :int= 42;

@@ -1,3 +1,3 @@
-pub fn foo (x: int, y: int) int {
+pub fn foo (x :int, y :int) int {
   return (x + y);
 }
