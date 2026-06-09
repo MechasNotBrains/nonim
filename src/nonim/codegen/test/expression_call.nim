@@ -16,21 +16,21 @@ proc with_arguments *() :TestData=
     ),
   ))
   let arg1_id = result.ast.add_expression(astTF.Expression(
-    kind: astTF.eLiteral,
-    literal: astTF.ExpressionLiteral(
-      kind: astTF.LiteralKind.integer,
-      value: astTF.Location(start: 3, `end`: 4),
+    kind      : astTF.eLiteral,
+    literal   : astTF.ExpressionLiteral(
+      kind    : astTF.LiteralKind.integer,
+      value   : astTF.Location(start: 3, `end`: 4),
     ),
   ))
   let arg2_id = result.ast.add_expression(astTF.Expression(
-    kind: astTF.eLiteral,
-    literal: astTF.ExpressionLiteral(
-      kind: astTF.LiteralKind.integer,
-      value: astTF.Location(start: 4, `end`: 5),
+    kind    : astTF.eLiteral,
+    literal : astTF.ExpressionLiteral(
+      kind  : astTF.LiteralKind.integer,
+      value : astTF.Location(start: 4, `end`: 5),
     ),
   ))
-  let bind1 = result.ast.add_binding(astTF.Binding(value: some(arg1_id)))
-  let bind2 = result.ast.add_binding(astTF.Binding(value: some(arg2_id)))
+  let bind1 = result.ast.add_binding(astTF.Binding(value: some(arg1_id), runtime: some(true)))
+  let bind2 = result.ast.add_binding(astTF.Binding(value: some(arg2_id), runtime: some(true)))
   var binding_first = result.ast.binding(bind1)
   binding_first.next = some(bind2)
   result.ast.data.bindings.get[bind1] = binding_first
@@ -57,7 +57,7 @@ proc with_generics *() :TestData=
     primitive: astTF.TypePrimitive(name: astTF.Identifier(location: astTF.Location(start: 6, `end`: 9))),
   ))
   let generic_type_expr = result.ast.add_expression_type(generic_type_id)
-  let generic_binding = result.ast.add_binding(astTF.Binding(dataType: some(generic_type_expr)))
+  let generic_binding = result.ast.add_binding(astTF.Binding(dataType: some(generic_type_expr), runtime: some(true)))
   let arg_id = result.ast.add_expression(astTF.Expression(
     kind: astTF.eLiteral,
     literal: astTF.ExpressionLiteral(
@@ -65,7 +65,7 @@ proc with_generics *() :TestData=
       value: astTF.Location(start: 9, `end`: 11),
     ),
   ))
-  let arg_binding = result.ast.add_binding(astTF.Binding(value: some(arg_id)))
+  let arg_binding = result.ast.add_binding(astTF.Binding(value: some(arg_id), runtime: some(true)))
   result.id = result.ast.add_expression(astTF.Expression(
     kind: astTF.eCall,
     call: astTF.ExpressionCall(
@@ -95,8 +95,8 @@ proc with_multi_generics *() :TestData=
   ))
   let generic_expr1 = result.ast.add_expression_type(generic_type1)
   let generic_expr2 = result.ast.add_expression_type(generic_type2)
-  let generic_bind2 = result.ast.add_binding(astTF.Binding(dataType: some(generic_expr2)))
-  let generic_bind1 = result.ast.add_binding(astTF.Binding(dataType: some(generic_expr1), next: some(generic_bind2)))
+  let generic_bind2 = result.ast.add_binding(astTF.Binding(dataType: some(generic_expr2), runtime: some(true)))
+  let generic_bind1 = result.ast.add_binding(astTF.Binding(dataType: some(generic_expr1), runtime: some(true), next: some(generic_bind2)))
   result.id = result.ast.add_expression(astTF.Expression(
     kind: astTF.eCall,
     call: astTF.ExpressionCall(

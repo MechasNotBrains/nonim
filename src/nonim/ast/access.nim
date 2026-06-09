@@ -7,18 +7,19 @@ from std/options import isSome, get, Option, some
 import astTF
 
 
-func module     *(atf :astTF.astTF; id :astTF.Id) :astTF.Module= atf.data.modules[id]
-func pragm      *(atf :astTF.astTF; id :astTF.Id) :astTF.Pragma= atf.data.pragmas.get[id]
-func link       *(atf :astTF.astTF; id :astTF.Id) :astTF.Link= atf.data.links.get[id]
-func typ        *(atf :astTF.astTF; id :astTF.Id) :astTF.Type= atf.data.types.get[id]
-func binding    *(atf :astTF.astTF; id :astTF.Id) :astTF.Binding= atf.data.bindings.get[id]
-func procedure  *(atf :astTF.astTF; id :astTF.Id) :astTF.Procedure= atf.data.procedures.get[id]
-func expression *(atf :astTF.astTF; id :astTF.Id) :astTF.Expression= atf.data.expressions.get[id]
-func statement  *(atf :astTF.astTF; id :astTF.Id) :astTF.Statement= atf.data.statements.get[id]
-func comment    *(atf :astTF.astTF; id :astTF.Id) :astTF.Comment= atf.data.comments.get[id]
-func alias      *(atf :astTF.astTF; id :astTF.Id) :astTF.Alias= atf.data.aliases.get[id]
-func depth      *(atf :astTF.astTF; id :astTF.Id) :astTF.Depth= atf.data.depths.get[id]
-func format     *(atf :astTF.astTF; id :astTF.Id) :astTF.Format= atf.data.formats.get[id]
+func module        *(atf :astTF.astTF; id :astTF.Id) :astTF.Module= atf.data.modules[id]
+func pragm         *(atf :astTF.astTF; id :astTF.Id) :astTF.Pragma= atf.data.pragmas.get[id]
+func link          *(atf :astTF.astTF; id :astTF.Id) :astTF.Link= atf.data.links.get[id]
+func typ           *(atf :astTF.astTF; id :astTF.Id) :astTF.Type= atf.data.types.get[id]
+func binding       *(atf :astTF.astTF; id :astTF.Id) :astTF.Binding= atf.data.bindings.get[id]
+func array_element *(atf :astTF.astTF; id :astTF.Id) :astTF.ArrayElement= atf.data.array_elements.get[id]
+func procedure     *(atf :astTF.astTF; id :astTF.Id) :astTF.Procedure= atf.data.procedures.get[id]
+func expression    *(atf :astTF.astTF; id :astTF.Id) :astTF.Expression= atf.data.expressions.get[id]
+func statement     *(atf :astTF.astTF; id :astTF.Id) :astTF.Statement= atf.data.statements.get[id]
+func comment       *(atf :astTF.astTF; id :astTF.Id) :astTF.Comment= atf.data.comments.get[id]
+func alias         *(atf :astTF.astTF; id :astTF.Id) :astTF.Alias= atf.data.aliases.get[id]
+func depth         *(atf :astTF.astTF; id :astTF.Id) :astTF.Depth= atf.data.depths.get[id]
+func format        *(atf :astTF.astTF; id :astTF.Id) :astTF.Format= atf.data.formats.get[id]
 
 func expression_next *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=
   let E = atf.data.expressions.get[id]
@@ -75,7 +76,7 @@ func statement_next *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=
 
 
 #_______________________________________
-# @section Format Fields
+# @section Format & Depth Fields
 #_____________________________
 func statement_format *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=
   let S = atf.statement(id)
@@ -90,6 +91,20 @@ func statement_format *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=
     of sPragma      : S.pragma.fmt
     of sAlias       : S.alias.fmt
     of sType        : S.`type`.fmt
+#___________________
+func statement_depth *(atf :astTF.astTF; id :astTF.Id) :Option[astTF.Id]=
+  let S = atf.statement(id)
+  result = case S.kind
+    of sExpression  : S.expression.depth
+    of sVariable    : S.variable.depth
+    of sProcedure   : S.procedure.depth
+    of sComment     : S.comment.depth
+    of sImport      : S.`import`.depth
+    of sPassthrough : S.passthrough.depth
+    of sBranch      : S.branch.depth
+    of sPragma      : S.pragma.depth
+    of sAlias       : S.alias.depth
+    of sType        : S.`type`.depth
 
 
 #_______________________________________
@@ -141,7 +156,7 @@ func statement_private *(
   result = case S.kind
     of astTF.sType      : ast.type_private(S.`type`.id)
     of astTF.sVariable  : ast.binding(S.variable.id).private.get(false)
-    of astTF.sProcedure : ast.binding(S.procedure.id).private.get(false)
+    of astTF.sProcedure : true # Procedures deal with their own public visibility marker internally
     # TODO: Read from Pragmas
     of astTF.sImport    : false
     # TODO: The spec makes no sense for private/public marking of statements

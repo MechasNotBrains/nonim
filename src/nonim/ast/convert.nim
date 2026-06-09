@@ -49,12 +49,16 @@ proc procedure_build (state :var State; node :PNode) :astTF.Id
 proc procedure_type (state :var State; node :PNode; name = none(astTF.Identifier); private = none(bool)) :astTF.Id
 proc statement_body (state :var State; node :PNode) :astTF.Id
 proc is_at_prefix (node :PNode; prefix :string) :bool
+proc is_at_test (node :PNode) :bool
 proc expression_call (state :var State; node :PNode) :astTF.Id
 proc expression_dot (state :var State; node :PNode) :astTF.Id
 proc expression_infix (state :var State; node :PNode) :astTF.Id
 proc expression_prefix (state :var State; node :PNode) :astTF.Id
 proc expression_type (state :var State; node :PNode) :astTF.Id
 proc expression_addr (state :var State; operand :PNode) :astTF.Id
+proc statement_test (state :var State; node :PNode) :void
+proc statement_describe (state :var State; node :PNode) :void
+proc statement_namespace (state :var State; node :PNode)
 proc statement_top_level (state :var State; node :PNode)
 
 
@@ -847,19 +851,20 @@ proc expression_type_block (state :var State; node :PNode) :astTF.Id=
     for section in head[2]:
       if section.kind == nkFromStmt:
         let is_module = section[0].include_is_global()
-        let raw_name = section[0].include_path()
+        let raw_name  = section[0].include_path()
         if raw_name.len == 0: continue
-        let module_name = if state.target == Language.Zig: resolve_import_path(raw_name, is_module)
-                          else: raw_name
+        let module_name = case state.target
+          of Language.Zig : resolve_import_path(raw_name, is_module)
+          else            : raw_name
         let path_loc = state.name_add(module_name)
-        let path_id = state.ast.add_expression(astTF.Expression(
-          kind: astTF.eLiteral,
-          literal: astTF.ExpressionLiteral(kind: astTF.LiteralKind.string, value: path_loc),
+        let path_id  = state.ast.add_expression(astTF.Expression(
+          kind    : astTF.eLiteral,
+          literal : astTF.ExpressionLiteral(kind: astTF.LiteralKind.string, value: path_loc),
         ))
-        let import_loc = state.name_add("@import")
+        let import_loc     = state.name_add("@import")
         let import_name_id = state.ast.add_expression(astTF.Expression(
-          kind: astTF.eIdentifier,
-          identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: import_loc)),
+          kind       : astTF.eIdentifier,
+          identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: import_loc)),
         ))
         let arg_binding_id = state.ast.add_binding(astTF.Binding(
             value   : some(path_id),
@@ -872,7 +877,7 @@ proc expression_type_block (state :var State; node :PNode) :astTF.Id=
         for symbol_index in 1 ..< section.safeLen:
           let child = section[symbol_index]
           var symbol_name :string
-          var alias_name :string
+          var alias_name  :string
           if child.kind == nkInfix and child[0].name() == "as":
             symbol_name = child[1].symbol_path()
             alias_name  = child[2].symbol_path()
@@ -1148,37 +1153,41 @@ proc statement_comment (state :var State; node :PNode) =
 
 proc include_path (node :PNode) :string=
   case node.kind
-  of nkIdent:    node.ident.s
-  of nkSym:      node.sym.name.s
-  of nkDotExpr:  node[0].include_path() & "." & node[1].include_path()
-  of nkInfix:    node[1].include_path() & "/" & node[2].include_path()
-  of nkPrefix:
+  of nkIdent      : node.ident.s
+  of nkSym        : node.sym.name.s
+  of nkDotExpr    : node[0].include_path() & "." & node[1].include_path()
+  of nkInfix      : node[1].include_path() & "/" & node[2].include_path()
+  of nkPragmaExpr : node[0].include_path()
+  of nkPrefix     :
     let pref = node[0].name()
-    if pref == "@": node[1].include_path()
-    else: pref & node[1].include_path()
+    if pref == "@" : node[1].include_path()
+    else           : pref & node[1].include_path()
   of nkStrLit..nkTripleStrLit: node.strVal
-  else:          ""
+  else: ""
 
 proc include_is_global (node :PNode) :bool=
   case node.kind
-  of nkPrefix:  node[0].name() == "@"
-  of nkDotExpr: node[0].include_is_global()
-  of nkInfix:   node[1].include_is_global()
-  else:         false
+  of nkPragmaExpr : node[0].include_is_global()
+  of nkPrefix     : node[0].name() == "@"
+  of nkDotExpr    : node[0].include_is_global()
+  of nkInfix      : node[1].include_is_global()
+  else            : false
 
 proc include_has_ext (node :PNode) :bool=
   case node.kind
-  of nkDotExpr: true
-  of nkInfix:   node[2].include_has_ext()
-  of nkPrefix:  node[1].include_has_ext()
-  else:         false
+  of nkDotExpr    : true
+  of nkInfix      : node[2].include_has_ext()
+  of nkPrefix     : node[1].include_has_ext()
+  of nkPragmaExpr : node[0].include_has_ext()
+  else            : false
 
 proc symbol_path (node :PNode) :string=
   case node.kind
-  of nkIdent:    node.ident.s
-  of nkSym:      node.sym.name.s
-  of nkDotExpr:  node[0].symbol_path() & "." & node[1].symbol_path()
-  else:          ""
+  of nkIdent      : node.ident.s
+  of nkSym        : node.sym.name.s
+  of nkDotExpr    : node[0].symbol_path() & "." & node[1].symbol_path()
+  of nkPragmaExpr : node[0].symbol_path()
+  else            : ""
 
 proc has_extension (path :string) :bool=
   var last_slash = -1
@@ -1198,17 +1207,17 @@ proc resolve_import_path (raw_path :string; is_module :bool) :string=
 
 proc statement_import (state :var State; node :PNode) =
   let keyword_text = case node.kind
-    of nkImportStmt:       "import"
-    of nkFromStmt:         "from"
-    of nkImportExceptStmt: "import"
-    of nkIncludeStmt:      "include"
-    else:                  "import"
+    of nkImportStmt       : "import"
+    of nkFromStmt         : "from"
+    of nkImportExceptStmt : "import"
+    of nkIncludeStmt      : "include"
+    else                  : "import"
   let keyword_loc = state.name_add(keyword_text)
-  let keyword = astTF.Identifier(location: keyword_loc, synthetic: some(true))
-  let is_include = node.kind == nkIncludeStmt
+  let keyword     = astTF.Identifier(location: keyword_loc, synthetic: some(true))
+  let is_include  = node.kind == nkIncludeStmt
   if node.kind == nkFromStmt:
     let is_module = node[0].include_is_global()
-    let raw_name = node[0].include_path()
+    let raw_name  = node[0].include_path()
     if raw_name.len == 0: return
     let module_name = if state.target == Language.Zig: resolve_import_path(raw_name, is_module)
                       else: raw_name
@@ -1265,26 +1274,29 @@ proc statement_import (state :var State; node :PNode) =
     else:
       var path_node = child
       if child.kind == nkInfix and child[0].name() == "as":
-        path_node = child[1]
+        path_node  = child[1]
         alias_name = child[2].name()
-      let is_module = path_node.kind == nkPrefix and path_node[0].name() == "@"
-      let raw_name = case path_node.kind
-        of nkIdent:  path_node.ident.s
-        of nkSym:    path_node.sym.name.s
-        of nkInfix:  path_node[1].include_path() & "/" & path_node[2].include_path()
-        of nkPrefix: path_node.include_path()
-        of nkStrLit..nkTripleStrLit: path_node.strVal
-        else:        ""
-      module_name = if state.target == Language.Zig: resolve_import_path(raw_name, is_module)
-                    else: raw_name
+      let is_module = path_node.include_is_global()
+      let raw_name  = case path_node.kind
+        of nkIdent                  : path_node.ident.s
+        of nkSym                    : path_node.sym.name.s
+        of nkInfix                  : path_node[1].include_path() & "/" & path_node[2].include_path()
+        of nkPragmaExpr             : path_node[0].include_path()
+        of nkPrefix                 : path_node.include_path()
+        of nkStrLit..nkTripleStrLit : path_node.strVal
+        else                        : ""
+      module_name = case state.target
+        of Language.Zig : resolve_import_path(raw_name, is_module)
+        else            : raw_name
     if module_name.len == 0: continue
     if is_include and state.target == Language.Zig and (is_global or child.include_has_ext()):
-      let passthrough_text = if is_global: "include @" & module_name
-                             else: "include " & module_name
+      let passthrough_text = case is_global
+        of true  : "include @" & module_name
+        of false : "include " & module_name
       let text_loc = state.name_add(passthrough_text)
       let statement = astTF.Statement(
-        kind: astTF.sPassthrough,
-        passthrough: astTF.StatementPassthrough(location: text_loc),
+        kind        : astTF.sPassthrough,
+        passthrough : astTF.StatementPassthrough(location: text_loc),
       )
       let statement_id = state.ast.add_statement(statement)
       state.statement_chain(statement_id)
@@ -1791,9 +1803,19 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
       of nkCaseStmt:
         state.body_case(child)
       of nkCall, nkCommand:
-        if state.target == Language.Zig and not state.typed and child.is_at_prefix("it"):
-          state.body_it(child)
-          return
+        if state.target == Language.Zig and not state.typed:
+          if child.is_at_prefix("it"):
+            state.body_it(child)
+            return
+          if child.is_at_test():
+            state.statement_test(node)
+            return
+          if child.is_at_prefix("describe") and node[node.safeLen - 1].kind == nkStmtList:
+            state.statement_describe(node)
+            return
+          if child.is_at_prefix("namespace") and node[node.safeLen - 1].kind == nkStmtList:
+            state.statement_namespace(node)
+            return
         state.body_call(child)
       of nkVarSection, nkLetSection, nkConstSection:
         state.body_variable(child)
@@ -2246,15 +2268,15 @@ proc statement_namespace (state :var State; node :PNode) =
       first_stmt = some(statement_id)
     if state.previous_stmt.isSome:
       let previous_id = state.previous_stmt.get
-      var previous = state.ast.statement(previous_id)
+      var previous    = state.ast.statement(previous_id)
       case previous.kind
-      of astTF.sVariable:    previous.variable.next = some(statement_id)
-      of astTF.sProcedure:   previous.procedure.next = some(statement_id)
-      of astTF.sExpression:  previous.expression.next = some(statement_id)
-      of astTF.sImport:      previous.`import`.next = some(statement_id)
-      of astTF.sComment:     previous.comment.next = some(statement_id)
-      of astTF.sPassthrough: previous.passthrough.next = some(statement_id)
-      else: discard
+      of astTF.sVariable    : previous.variable.next = some(statement_id)
+      of astTF.sProcedure   : previous.procedure.next = some(statement_id)
+      of astTF.sExpression  : previous.expression.next = some(statement_id)
+      of astTF.sImport      : previous.`import`.next = some(statement_id)
+      of astTF.sComment     : previous.comment.next = some(statement_id)
+      of astTF.sPassthrough : previous.passthrough.next = some(statement_id)
+      else                  : discard
       state.ast.data.statements.get[previous_id] = previous
     state.previous_stmt = some(statement_id)
 
@@ -2262,50 +2284,54 @@ proc statement_namespace (state :var State; node :PNode) =
     for section in body_node:
       if section.kind == nkFromStmt:
         let is_module = section[0].include_is_global()
-        let raw_name = section[0].include_path()
+        let raw_name  = section[0].include_path()
         if raw_name.len == 0: continue
-        let module_name = if state.target == Language.Zig: resolve_import_path(raw_name, is_module)
-                          else: raw_name
+        let module_name = case state.target
+          of Language.Zig : resolve_import_path(raw_name, is_module)
+          else            : raw_name
         let path_loc = state.name_add(module_name)
-        let path_id = state.ast.add_expression(astTF.Expression(
-          kind: astTF.eLiteral,
-          literal: astTF.ExpressionLiteral(kind: astTF.LiteralKind.string, value: path_loc),
+        let path_id  = state.ast.add_expression(astTF.Expression(
+          kind    : astTF.eLiteral,
+          literal : astTF.ExpressionLiteral(kind: astTF.LiteralKind.string, value: path_loc),
         ))
-        let import_loc = state.name_add("@import")
+        let import_loc     = state.name_add("@import")
         let import_name_id = state.ast.add_expression(astTF.Expression(
-          kind: astTF.eIdentifier,
-          identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: import_loc)),
+          kind       : astTF.eIdentifier,
+          identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: import_loc)),
         ))
         let arg_binding_id = state.ast.add_binding(astTF.Binding(
           value   : some(path_id),
           runtime : some(true), ))
         let import_call_id = state.ast.add_expression(astTF.Expression(
-          kind: astTF.eCall,
-          call: astTF.ExpressionCall(name: import_name_id, arguments: some(arg_binding_id)),
+          kind        : astTF.eCall,
+          call        : astTF.ExpressionCall(
+            name      : import_name_id,
+            arguments : some(arg_binding_id)
+          ),
         ))
         for symbol_index in 1 ..< section.safeLen:
           let child = section[symbol_index]
           var symbol_name :string
-          var alias_name :string
+          var alias_name  :string
           if child.kind == nkInfix and child[0].name() == "as":
             symbol_name = child[1].symbol_path()
-            alias_name = child[2].symbol_path()
+            alias_name  = child[2].symbol_path()
           else:
             symbol_name = child.symbol_path()
-            alias_name = ""
+            alias_name  = ""
           if symbol_name.len == 0: continue
           let symbol_loc = state.name_add(symbol_name)
           let symbol_id = state.ast.add_expression(astTF.Expression(
-            kind: astTF.eIdentifier,
-            identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: symbol_loc)),
+            kind       : astTF.eIdentifier,
+            identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: symbol_loc)),
           ))
           let dot_loc = state.name_add(".")
-          let dot_id = state.ast.add_expression(astTF.Expression(
-            kind: astTF.eAffix,
-            affix: astTF.ExpressionAffix(
-              left: some(import_call_id),
-              right: some(symbol_id),
-              operator: dot_loc,
+          let dot_id  = state.ast.add_expression(astTF.Expression(
+            kind       : astTF.eAffix,
+            affix      : astTF.ExpressionAffix(
+              left     : some(import_call_id),
+              right    : some(symbol_id),
+              operator : dot_loc,
             ),
           ))
           let binding_name = if alias_name.len > 0: alias_name else: symbol_name
@@ -2318,8 +2344,8 @@ proc statement_namespace (state :var State; node :PNode) =
             value   : some(dot_id),
           ))
           let stmt_id = state.ast.add_statement(astTF.Statement(
-            kind: astTF.sVariable,
-            variable: astTF.StatementVariable(id: binding_id, depth: depth_id),
+            kind     : astTF.sVariable,
+            variable : astTF.StatementVariable(id: binding_id, depth: depth_id),
           ))
           state.chain_stmt(stmt_id)
         continue
@@ -2373,16 +2399,16 @@ proc statement_namespace (state :var State; node :PNode) =
 
   var block_expr = astTF.Expression(kind: astTF.eBlock)
   block_expr.`block`.body = first_stmt
-  let block_id = state.ast.add_expression(block_expr)
+  let block_id  = state.ast.add_expression(block_expr)
   let struct_id = state.ast.add_expression(astTF.Expression(
-    kind    : astTF.eKeyword,
-    keyword : astTF.ExpressionKeyword(
+    kind      : astTF.eKeyword,
+    keyword   : astTF.ExpressionKeyword(
       keyword : astTF.Identifier(location: keyword_loc),
       value   : some(block_id),
     ),
   ))
-  let name_loc = state.name_add(name_str)
-  let depth_id = some(state.make_depth(node))
+  let name_loc   = state.name_add(name_str)
+  let depth_id   = some(state.make_depth(node))
   let binding_id = state.ast.add_binding(astTF.Binding(
     name    : some(astTF.Identifier(location: name_loc)),
     private : some(is_private),
@@ -2464,8 +2490,8 @@ proc convert *(
     if state.needs.stdbool:
       let path_loc = state.name_add("stdbool.h")
       let import_id = state.ast.add_statement(astTF.Statement(
-        kind: astTF.sImport,
-        `import`: astTF.StatementImport(path: path_loc),
+        kind     : astTF.sImport,
+        `import` : astTF.StatementImport(path: path_loc),
       ))
       if first_import.isNone: first_import = some(import_id)
       if last_import.isSome:
@@ -2476,8 +2502,8 @@ proc convert *(
     if state.needs.stdint:
       let path_loc = state.name_add("stdint.h")
       let import_id = state.ast.add_statement(astTF.Statement(
-        kind: astTF.sImport,
-        `import`: astTF.StatementImport(path: path_loc),
+        kind     : astTF.sImport,
+        `import` : astTF.StatementImport(path: path_loc),
       ))
       if first_import.isNone: first_import = some(import_id)
       if last_import.isSome:

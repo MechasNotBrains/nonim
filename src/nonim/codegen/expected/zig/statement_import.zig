@@ -1,1 +1,1 @@
-const foo = @import("foo");
+pub const foo = @import("foo");

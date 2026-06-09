@@ -1,2 +1,2 @@
-fn foo () void;
-fn bar () void;
+pub fn foo () void;
+pub fn bar () void;

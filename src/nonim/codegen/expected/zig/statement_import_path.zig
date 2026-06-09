@@ -1,1 +1,1 @@
-const os = @import("std/os");
+pub const os = @import("std/os");
