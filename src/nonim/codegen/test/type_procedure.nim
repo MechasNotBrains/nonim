@@ -77,3 +77,28 @@ proc without_return *() :TestData=
     kind: astTF.tProcedure,
     procedure: astTF.TypeProcedure(id: proc_id),
   ))
+
+
+proc callback_in_statement *() :TestData=
+  const input_name   = "Callback"
+  const input_arg    = "item"
+  const input_type   = "int"
+  const input_source = input_name & input_arg & input_type & "567890Z"
+  result = create(input_source)
+  let name_loc        = astTF.Location(start: 0, `end`: input_name.len)
+  var offset          = name_loc.`end`
+  let arg_loc         = astTF.Location(start: offset, `end`: offset + input_arg.len); offset += input_arg.len
+  let type_loc        = astTF.Location(start: offset, `end`: offset + input_type.len); offset += input_type.len
+  let arg_type_id     = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: type_loc))))
+  let arg_type_expr   = result.ast.add_expression_type(arg_type_id)
+  let ret_expr        = result.ast.add_expression_type(arg_type_id)
+  let arg_id          = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: arg_loc)), dataType: some(arg_type_expr), private: some(true), runtime: some(true)))
+  let proc_id         = result.ast.add_procedure(astTF.Procedure(
+    name              : some(astTF.Identifier(location: name_loc)),
+    arguments         : some(arg_id),
+    returnType        : some(ret_expr),
+    impure            : some(true),
+  ))
+  let type_id         = result.ast.add_type(astTF.Type(kind: astTF.tProcedure, procedure: astTF.TypeProcedure(id: proc_id)))
+  result.id = result.ast.add_statement(astTF.Statement(kind: astTF.sType, `type`: astTF.StatementType(id: type_id)))
+  result.ast.data.modules[result.module].body = some(result.id)

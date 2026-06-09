@@ -156,7 +156,7 @@ func statement_private *(
   result = case S.kind
     of astTF.sType      : ast.type_private(S.`type`.id)
     of astTF.sVariable  : ast.binding(S.variable.id).private.get(false)
-    of astTF.sProcedure : true # Procedures deal with their own public visibility marker internally
+    of astTF.sProcedure : ast.procedure(S.procedure.id).private.get(false)
     # TODO: Read from Pragmas
     of astTF.sImport    : false
     # TODO: The spec makes no sense for private/public marking of statements

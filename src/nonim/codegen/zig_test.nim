@@ -21,6 +21,9 @@ import ./test/statement_comment
 import ./test/format_whitespace
 import ./test/statement_type
 import ./test/statement_alias
+import ./test/type_procedure
+import ./test/expression_array
+import ./test/procedure_arguments
 
 const expected_dir = "./expected/zig/"
 template expected (path :static system.string) :system.string= staticRead(expected_dir & path)
@@ -182,6 +185,35 @@ describe "nonim.codegen.zig | Statement.Alias":
   it "must generate a simple alias", proc() =
     const Expected = expected("statement_alias_simple.zig")
     let test_case = statement_alias.simple()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.zig | Type.Procedure":
+  it "must not generate pub on procedure type in statement", proc() =
+    const Expected = expected("type_procedure_no_pub.zig")
+    let test_case = type_procedure.callback_in_statement()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.zig | Type.Array":
+  it "must not generate const on fixed array element type", proc() =
+    const Expected = expected("statement_type_array_fixed.zig")
+    let test_case = statement_type.array_fixed()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.zig | Expression.Array":
+  it "must generate dot-brace for array literal", proc() =
+    const Expected = expected("expression_array_literal.zig")
+    var test_case = expression_array.literal_values()
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Out)
+    Out.modules[test_case.module].definitions.eq Expected
+
+describe "nonim.codegen.zig | Procedure.Arguments":
+  it "must generate type annotation for each shared parameter", proc() =
+    const Expected = expected("procedure_shared_params.zig")
+    let test_case = procedure_arguments.shared_type()
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 

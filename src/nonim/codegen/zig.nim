@@ -197,6 +197,17 @@ func binding_pragmas (
   var current = some(id)
   while current.isSome: current = zig.binding_pragma(ast, module, current.get, ctx, Out)
 #___________________
+func binding_type (
+    ast : astTF.Ast;
+    id  : astTF.Id
+  ) :Option[astTF.Id]=
+  var current = some(id)
+  while current.isSome:
+    let B = ast.binding(current.get)
+    if B.dataType.isSome: return B.dataType
+    current = B.next
+  result = none(astTF.Id)
+#___________________
 func binding (
     ast    : astTF.Ast;
     module : astTF.Id;
@@ -206,6 +217,7 @@ func binding (
     ctx    : BindingContext = other
   ) :Option[astTF.Id]=
   let B  = ast.binding(id)
+  let T  = zig.binding_type(ast, id)
   result = B.next
   #___________________
   if not B.runtime.get(false) and ctx != variable:
@@ -221,16 +233,16 @@ func binding (
   if B.pragmas.isSome: zig.binding_pragmas(ast, module, B.pragmas.get, ctx, Out)
   #___________________
   # Type
-  if B.name.isSome and B.dataType.isSome:
+  if B.name.isSome and T.isSome:
     Out.string(module, " ", output.Target.definition)
     Out.string(module, ":", output.Target.definition) 
-  if B.dataType.isSome:
-    zig.expression(ast, module, B.dataType.get, Out)
+  if T.isSome:
+    zig.expression(ast, module, T.get, Out)
   #___________________
   # Value
-  if B.name.isSome and not B.dataType.isSome and B.value.isSome:
+  if B.name.isSome and not T.isSome and B.value.isSome:
     Out.string(module, " ", output.Target.definition)
-  if (B.name.isSome or B.dataType.isSome) and B.value.isSome:
+  if (B.name.isSome or T.isSome) and B.value.isSome:
     Out.string(module, "=", output.Target.definition)
     Out.string(module, " ", output.Target.definition)
   if B.value.isSome:
@@ -316,7 +328,6 @@ func procedure (
   let P = ast.procedure(id)
   #___________________
   # Prefixes
-  if not P.private.get(false): Out.string(module, "pub ", output.Target.definition)
   zig.procedure_pragmas_before(ast, module, id, Out)
   #___________________
   # Keyword
@@ -409,7 +420,7 @@ func type_array (
   if not is_slice:
     zig.expression(ast, module, typ.length.get, Out)
   Out.string(module, "]", output.Target.definition)
-  if not typ.mutable.get(false):
+  if not typ.mutable.get(false) and typ.length.isNone:
     Out.string(module, "const ", output.Target.definition)
   zig.Type(ast, module, typ.element, Out)
 #___________________
@@ -532,8 +543,7 @@ func Type (
   of tProcedure   : zig.type_procedure(ast, module, id, Out)
   of tEnumeration : zig.type_enumeration(ast, module, id, Out)
   of tObject      : zig.type_object(ast, module, id, Out)
-  # of tRange       : zig.type_range(ast, module, id, Out)
-  else: fail "type.render:", "Unsupported type kind", typ.kind
+  of tRange       : fail "range types are not supported in Zig"
 
 
 #_______________________________________
@@ -717,6 +727,7 @@ func expression_array (
     Out    : var Output;
   ) :void=
   let expr = ast.expression(id).array
+  Out.string(module, ".", output.Target.definition)
   Out.string(module, "{", output.Target.definition)
   if expr.elements.isSome: zig.array_elements(ast, module, expr.elements.get, Out)
   Out.string(module, "}", output.Target.definition)

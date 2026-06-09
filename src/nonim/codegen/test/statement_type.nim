@@ -398,6 +398,28 @@ proc object_field_defaults *() :TestData=
   result.ast.data.modules[result.module].body = some(result.id)
 
 
+proc array_fixed *() :TestData=
+  const input_name    = "Matrix"
+  const input_element = "Float"
+  const input_length  = "16"
+  const input_source  = input_name & input_element & input_length & "567890Z"
+  result = create(input_source)
+  let name_loc       = astTF.Location(start: 0, `end`: input_name.len)
+  var offset         = name_loc.`end`
+  let elem_loc       = astTF.Location(start: offset, `end`: offset + input_element.len); offset += input_element.len
+  let len_loc        = astTF.Location(start: offset, `end`: offset + input_length.len); offset += input_length.len
+  let elem_type_id   = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: elem_loc))))
+  let len_expr       = result.ast.add_expression(astTF.Expression(kind: astTF.eLiteral, literal: astTF.ExpressionLiteral(kind: astTF.LiteralKind.integer, value: len_loc)))
+  let array_type_id  = result.ast.add_type(astTF.Type(kind: astTF.tArray, array: astTF.TypeArray(element: elem_type_id, length: some(len_expr))))
+  let target_expr_id = result.ast.add_expression(astTF.Expression(kind: astTF.eType, `type`: astTF.ExpressionType(id: array_type_id)))
+  let alias_type_id  = result.ast.add_type(astTF.Type(kind: astTF.tAlias, alias: astTF.TypeAlias(
+    name             : some(astTF.Identifier(location: name_loc)),
+    target           : target_expr_id,
+  )))
+  result.id = result.ast.add_statement(astTF.Statement(kind: astTF.sType, `type`: astTF.StatementType(id: alias_type_id)))
+  result.ast.data.modules[result.module].body = some(result.id)
+
+
 proc object_empty *() :TestData=
   result = create("")
   let empty_binding = result.ast.add_binding(astTF.Binding(runtime: some(true)))
