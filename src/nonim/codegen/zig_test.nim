@@ -22,6 +22,7 @@ import ./test/format_whitespace
 import ./test/statement_type
 import ./test/statement_alias
 import ./test/type_procedure
+import ./test/type_pointer
 import ./test/expression_array
 import ./test/procedure_arguments
 
@@ -214,6 +215,31 @@ describe "nonim.codegen.zig | Procedure.Arguments":
   it "must generate type annotation for each shared parameter", proc() =
     const Expected = expected("procedure_shared_params.zig")
     let test_case = procedure_arguments.shared_type()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate const pointer for immutable pointer arguments", proc() =
+    const Expected = expected("procedure_args_const_pointer.zig")
+    let test_case = procedure_arguments.const_pointer()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate mutable pointer for mutable pointer arguments", proc() =
+    const Expected = expected("procedure_args_mutable_pointer.zig")
+    let test_case = procedure_arguments.mutable_pointer()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+describe "nonim.codegen.zig | Type.Pointer":
+  it "must generate const pointer when mutable is absent", proc() =
+    const Expected = expected("type_pointer_immutable.zig")
+    let test_case = type_pointer.immutable()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate mutable pointer when mutable is true", proc() =
+    const Expected = expected("type_pointer_mutable.zig")
+    let test_case = type_pointer.mutable()
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 

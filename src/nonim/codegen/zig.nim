@@ -403,7 +403,7 @@ func type_pointer (
   if typ.optional.get(false):
     Out.string(module, "?", output.Target.definition)
   Out.string(module, "*", output.Target.definition)
-  if typ.mutable.get(false):
+  if not typ.mutable.get(false):
     Out.string(module, "const ", output.Target.definition)
   zig.Type(ast, module, typ.target, Out)
 #___________________
@@ -438,7 +438,7 @@ func type_procedure (
   if typ.optional.get(false):
     Out.string(module, "?", output.Target.definition)
   Out.string(module, "*", output.Target.definition)
-  if typ.mutable.get(false):
+  if not typ.mutable.get(false):
     Out.string(module, "const ", output.Target.definition)
   zig.procedure(ast, module, typ.id, Out, ctx= p_type)
 #___________________
