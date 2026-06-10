@@ -62,6 +62,7 @@ proc statement_test (state :var State; node :PNode) :void
 proc statement_describe (state :var State; node :PNode) :void
 proc statement_namespace (state :var State; node :PNode)
 proc statement_top_level (state :var State; node :PNode)
+proc import_create (state :var State; node :PNode) :seq[astTF.Id]
 
 
 #_______________________________________
@@ -861,6 +862,13 @@ proc expression_type_block (state :var State; node :PNode) :astTF.Id=
 
   if head.safeLen > 2:
     for section in head[2]:
+      if section.kind in {nkImportStmt, nkImportExceptStmt, nkIncludeStmt}:
+        for stmt_id in state.import_create(section):
+          var stmt = state.ast.statement(stmt_id)
+          stmt.`import`.depth = some(state.make_depth(section))
+          state.ast.data.statements.get[stmt_id] = stmt
+          state.chain_stmt(stmt_id)
+        continue
       if section.kind == nkFromStmt:
         let is_module = section[0].include_is_global()
         let raw_name  = section[0].include_path()
@@ -1196,6 +1204,20 @@ proc include_has_ext (node :PNode) :bool=
   of nkPragmaExpr : node[0].include_has_ext()
   else            : false
 
+proc include_find_pragma (node :PNode) :PNode=
+  case node.kind
+  of nkPragmaExpr : node
+  of nkInfix      :
+    let left = node[1].include_find_pragma()
+    if left != nil: left
+    else: node[2].include_find_pragma()
+  of nkPrefix     : node[1].include_find_pragma()
+  of nkDotExpr    :
+    let left = node[0].include_find_pragma()
+    if left != nil: left
+    else: node[1].include_find_pragma()
+  else            : nil
+
 proc symbol_path (node :PNode) :string=
   case node.kind
   of nkIdent      : node.ident.s
@@ -1220,7 +1242,7 @@ proc resolve_import_path (raw_path :string; is_module :bool) :string=
     path = "./" & path
   return path
 
-proc statement_import (state :var State; node :PNode) =
+proc import_create (state :var State; node :PNode) :seq[astTF.Id]=
   let keyword_text = case node.kind
     of nkImportStmt       : "import"
     of nkFromStmt         : "from"
@@ -1231,11 +1253,16 @@ proc statement_import (state :var State; node :PNode) =
   let keyword     = astTF.Identifier(location: keyword_loc, synthetic: some(true))
   let is_include  = node.kind == nkIncludeStmt
   if node.kind == nkFromStmt:
-    let is_module = node[0].include_is_global()
-    let raw_name  = node[0].include_path()
+    let path_source = node[0]
+    let is_module = path_source.include_is_global()
+    let raw_name  = path_source.include_path()
     if raw_name.len == 0: return
     let module_name = if state.target == Language.Zig: resolve_import_path(raw_name, is_module)
                       else: raw_name
+    var import_pragmas = none(astTF.Id)
+    let pragma_node = path_source.include_find_pragma()
+    if pragma_node != nil:
+      import_pragmas = state.pragmas_binding(pragma_node)
     var first_symbol = none(astTF.Id)
     var previous_symbol = none(astTF.Id)
     for index in 1 ..< node.safeLen:
@@ -1272,15 +1299,16 @@ proc statement_import (state :var State; node :PNode) =
         keyword: some(keyword),
         path: path_loc,
         symbols: first_symbol,
+        pragmas: import_pragmas,
       ),
     )
-    let statement_id = state.ast.add_statement(statement)
-    state.statement_chain(statement_id)
+    result.add state.ast.add_statement(statement)
     return
   for child in node:
     var module_name :string
     var alias_name :string
     var is_global = false
+    var pragma_source :PNode = nil
     if is_include and (child.kind in {nkDotExpr, nkInfix, nkPrefix}):
       module_name = child.include_path()
       is_global = child.include_is_global()
@@ -1290,7 +1318,14 @@ proc statement_import (state :var State; node :PNode) =
       var path_node = child
       if child.kind == nkInfix and child[0].name() == "as":
         path_node  = child[1]
-        alias_name = child[2].name()
+        let alias_node = child[2]
+        if alias_node.kind == nkPragmaExpr:
+          alias_name = alias_node[0].name()
+          pragma_source = alias_node
+        else:
+          alias_name = alias_node.name()
+      if path_node.kind == nkPragmaExpr and pragma_source == nil:
+        pragma_source = path_node
       let is_module = path_node.include_is_global()
       let raw_name  = case path_node.kind
         of nkIdent                  : path_node.ident.s
@@ -1313,8 +1348,7 @@ proc statement_import (state :var State; node :PNode) =
         kind        : astTF.sPassthrough,
         passthrough : astTF.StatementPassthrough(location: text_loc),
       )
-      let statement_id = state.ast.add_statement(statement)
-      state.statement_chain(statement_id)
+      result.add state.ast.add_statement(statement)
     else:
       let name_loc = state.name_add(module_name)
       var global_opt = none(bool)
@@ -1323,6 +1357,9 @@ proc statement_import (state :var State; node :PNode) =
       if alias_name.len > 0:
         let alias_loc = state.name_add(alias_name)
         alias_ident = some(astTF.Identifier(location: alias_loc))
+      var import_pragmas = none(astTF.Id)
+      if pragma_source != nil:
+        import_pragmas = state.pragmas_binding(pragma_source)
       let statement = astTF.Statement(
         kind: astTF.sImport,
         `import`: astTF.StatementImport(
@@ -1330,10 +1367,14 @@ proc statement_import (state :var State; node :PNode) =
           path: name_loc,
           global: global_opt,
           alias: alias_ident,
+          pragmas: import_pragmas,
         ),
       )
-      let statement_id = state.ast.add_statement(statement)
-      state.statement_chain(statement_id)
+      result.add state.ast.add_statement(statement)
+
+proc statement_import (state :var State; node :PNode) =
+  for statement_id in state.import_create(node):
+    state.statement_chain(statement_id)
 
 
 proc variables_from_vartuple (state :var State; definition :PNode; is_mutable, is_runtime :bool; inside_body :bool = false) :seq[astTF.Id]=
@@ -2344,6 +2385,13 @@ proc statement_namespace (state :var State; node :PNode) =
 
   if body_node.kind == nkStmtList:
     for section in body_node:
+      if section.kind in {nkImportStmt, nkImportExceptStmt, nkIncludeStmt}:
+        for stmt_id in state.import_create(section):
+          var stmt = state.ast.statement(stmt_id)
+          stmt.`import`.depth = some(state.make_depth(section))
+          state.ast.data.statements.get[stmt_id] = stmt
+          state.chain_stmt(stmt_id)
+        continue
       if section.kind == nkFromStmt:
         let is_module = section[0].include_is_global()
         let raw_name  = section[0].include_path()
@@ -2422,6 +2470,18 @@ proc statement_namespace (state :var State; node :PNode) =
             procedure: astTF.StatementProcedure(id: procedure_id, depth: depth_id),
           ))
           state.chain_stmt(stmt_id)
+        continue
+      if section.is_at_prefix("namespace") and section[section.safeLen - 1].kind == nkStmtList:
+        let saved_prev = state.previous_stmt
+        let saved_body = state.ast.data.modules[state.module].body
+        state.previous_stmt = none(astTF.Id)
+        state.ast.data.modules[state.module].body = some(astTF.Id(0))
+        state.statement_namespace(section)
+        let ns_stmt_id = state.previous_stmt
+        state.previous_stmt = saved_prev
+        state.ast.data.modules[state.module].body = saved_body
+        if ns_stmt_id.isSome:
+          state.chain_stmt(ns_stmt_id.get)
         continue
       if section.kind notin {nkVarSection, nkLetSection, nkConstSection}: continue
       let is_mutable = section.kind == nkVarSection

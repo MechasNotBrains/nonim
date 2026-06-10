@@ -169,20 +169,6 @@ func comment (
 #_____________________________
 type BindingContext {.pure.}= enum other, variable
 #___________________
-func binding_pragma_has (
-    ast    : astTF.Ast;
-    module : astTF.Id;
-    id     : Option[astTF.Id];
-    list   : openArray[system.string];
-  ) :bool=
-  if id.isNone: return false
-  var current = id
-  while current.isSome:
-    let pragma = ast.pragm(current.get)
-    let key    = ast.source(module, ast.expression(pragma.key).identifier.name)
-    if key in list: return true
-    current = pragma.next
-#___________________
 func binding_pragma (
     ast    : astTF.Ast;
     module : astTF.Id;
@@ -465,7 +451,7 @@ func type_field (
   base.format_before(ast, module, field.fmt, Out)
   #___________________
   # An aliased field is a struct-level declaration, not a data field.
-  let is_alias = zig.binding_pragma_has(ast, module, field.pragmas, @["alias"])
+  let is_alias = ast.pragma_has(module, field.pragmas, @["alias"])
   if is_alias:
     if not field.private.get(false):
       Out.string(module, "pub", output.Target.definition)
@@ -1286,7 +1272,7 @@ func statement (
   let fmt   = ast.statement_format(id)
   zig.indentation(ast, module, depth, Out)
   base.format_before(ast, module, fmt, Out)
-  if not ast.statement_private(id):
+  if not ast.statement_private(module, id):
     Out.string(module, "pub", output.Target.definition)
     Out.string(module, " ", output.Target.definition)
   case stmt.kind

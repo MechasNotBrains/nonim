@@ -408,6 +408,14 @@ describe "nonim.minz | Namespaces":
     let result = generate_zig(case_input("statement_namespace"))
     result.eq case_expected("statement_namespace")
 
+  it "must generate nested @namespace declarations", proc() =
+    let result = generate_zig(case_input("statement_namespace_nested"))
+    result.eq case_expected("statement_namespace_nested")
+
+  it "must generate import inside @namespace", proc() =
+    let result = generate_zig(case_input("namespace_import"))
+    result.eq case_expected("namespace_import")
+
 describe "nonim.minz | Passthrough":
   it "must emit raw code from emit pragma", proc() =
     let result = generate_zig(case_input("statement_passthrough"))
@@ -458,6 +466,18 @@ describe "nonim.minz | Imports":
   it "must generate from-import with @-prefixed module path", proc() =
     let result = generate_zig(case_input("import_from_module"))
     result.eq case_expected("import_from_module")
+
+  it "must generate private import without pub", proc() =
+    let result = generate_zig(case_input("import_private"))
+    result.eq case_expected("import_private")
+
+  it "must generate private import with alias without pub", proc() =
+    let result = generate_zig(case_input("import_as_private"))
+    result.eq case_expected("import_as_private")
+
+  it "must generate private from-import without pub", proc() =
+    let result = generate_zig(case_input("import_from_private"))
+    result.eq case_expected("import_from_private")
 
 describe "nonim.minz | Lambdas":
   it "must generate a lambda expression as struct-wrapped function", proc() =

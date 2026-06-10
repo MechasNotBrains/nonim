@@ -2,7 +2,7 @@
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
 # @deps std
-from std/options import isSome, get, Option, some
+from std/options import isSome, isNone, get, Option, some
 # @deps nonim
 import astTF
 
@@ -130,6 +130,24 @@ func source *(
 
 
 #_______________________________________
+# @section Pragma Helpers
+#_____________________________
+func pragma_has *(
+    atf    : astTF.astTF;
+    module : astTF.Id;
+    id     : Option[astTF.Id];
+    list   : openArray[system.string];
+  ) :bool=
+  if id.isNone: return false
+  var current = id
+  while current.isSome:
+    let pragma = atf.pragm(current.get)
+    let key    = atf.source(module, atf.expression(pragma.key).identifier.name)
+    if key in list: return true
+    current = pragma.next
+
+
+#_______________________________________
 # @section Visibility Markers
 #_____________________________
 func type_private *(
@@ -149,16 +167,16 @@ func type_private *(
     of tRange       : false
 #___________________
 func statement_private *(
-    ast : astTF.astTF;
-    id  : astTF.Id;
+    ast    : astTF.astTF;
+    module : astTF.Id;
+    id     : astTF.Id;
   ) :bool=
   let S = ast.statement(id)
   result = case S.kind
     of astTF.sType      : ast.type_private(S.`type`.id)
     of astTF.sVariable  : ast.binding(S.variable.id).private.get(false)
     of astTF.sProcedure : ast.procedure(S.procedure.id).private.get(false)
-    # TODO: Read from Pragmas
-    of astTF.sImport    : false
+    of astTF.sImport    : ast.pragma_has(module, S.`import`.pragmas, @["private"])
     # TODO: The spec makes no sense for private/public marking of statements
     of astTF.sAlias     : false
     of astTF.sPragma,
