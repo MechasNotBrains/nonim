@@ -446,12 +446,13 @@ proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astT
     return state.procedure_type(node)
   of nkBracketExpr:
     let bracket_name = node[0].name()
-    if bracket_name == "array":
-      let element_node = node[2]
+    if bracket_name in ["array", "slice"]:
+      let has_length   = bracket_name == "array"
+      let element_node = if has_length: node[2] else: node[1]
       let is_mutable   = element_node.kind == nkVarTy
       let element_id   = state.type_node_to_type_id(element_node)
       var length_id    = none(astTF.Id)
-      if node[1].kind != nkIdent and node[1].name() != "_":
+      if has_length and node[1].kind != nkIdent and node[1].name() != "_":
         length_id = some(state.expression(node[1]))
       return state.ast.add_type(astTF.Type(
         kind      : astTF.tArray,
@@ -474,7 +475,7 @@ proc expression_of_type (state :var State; type_id :astTF.Id) :astTF.Id=
   ))
 
 proc type_bracket (state :var State; node :PNode) :astTF.Id=
-  if node[0].name() == "array":
+  if node[0].name() in ["array", "slice"]:
     result = state.expression_array_type(node)
   else:
     result = state.type_identifier(node)
@@ -1585,9 +1586,10 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
       let previous_id = state.previous_stmt.get
       var previous = state.ast.statement(previous_id)
       case previous.kind
-      of astTF.sVariable   : previous.variable.next   = some(statement_id)
-      of astTF.sExpression : previous.expression.next = some(statement_id)
-      else                 : discard
+      of astTF.sVariable    : previous.variable.next    = some(statement_id)
+      of astTF.sExpression  : previous.expression.next  = some(statement_id)
+      of astTF.sPassthrough : previous.passthrough.next = some(statement_id)
+      else                  : discard
       state.ast.data.statements.get[previous_id] = previous
     state.previous_stmt = some(statement_id)
 
@@ -1840,6 +1842,26 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
       expression      : astTF.StatementExpression(id: try_kw_id, depth: depth_id),))
     state.body_chain(stmt_id)
 
+  proc body_passthrough (state :var State; node :PNode) =
+    if node.kind != nkPragma or node.safeLen < 1: return
+    let child = node[0]
+    if child.kind != nkExprColonExpr or child.safeLen < 2: return
+    let pragma_name = child[0].name()
+    if pragma_name != "emit": return
+    var value_node = child[1]
+    if value_node.kind == nkArgList and value_node.safeLen > 0:
+      value_node = value_node[0]
+    let text = case value_node.kind
+      of nkStrLit..nkTripleStrLit : value_node.strVal
+      else                        : return
+    let text_loc     = state.name_add(text)
+    let depth_id     = some(state.make_depth(node))
+    let statement_id = state.ast.add_statement(astTF.Statement(
+      kind        : astTF.sPassthrough,
+      passthrough : astTF.StatementPassthrough(location: text_loc, depth: depth_id),
+    ))
+    state.body_chain(statement_id)
+
   proc body_statement (state :var State; child :PNode) =
     let statement_id = case child.kind
       of nkReturnStmt, nkBreakStmt, nkContinueStmt, nkDiscardStmt, nkDefer, nkTryStmt:
@@ -1875,6 +1897,9 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
         state.body_call(child)
       of nkVarSection, nkLetSection, nkConstSection:
         state.body_variable(child)
+        return
+      of nkPragma:
+        state.body_passthrough(child)
         return
       else:
         return

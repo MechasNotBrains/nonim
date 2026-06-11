@@ -421,6 +421,10 @@ describe "nonim.minz | Passthrough":
     let result = generate_zig(case_input("statement_passthrough"))
     result.eq case_expected("statement_passthrough")
 
+  it "must emit raw code from emit pragma inside procedure body", proc() =
+    let result = generate_zig(case_input("statement_passthrough_body"))
+    result.eq case_expected("statement_passthrough_body")
+
 describe "nonim.minz | Comments":
   it "must generate a doc comment", proc() =
     let result = generate_zig(case_input("statement_comment"))
