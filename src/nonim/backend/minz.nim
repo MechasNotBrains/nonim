@@ -4,8 +4,6 @@
 ## MinZ backend: untyped AST path.
 ## Parses Nim source without semantic analysis and emits Zig.
 #_______________________________________________________________|
-# @deps nimc
-import "$nim"/compiler/[ast]
 # @deps nonim
 import ../cli
 import ../cli/output as cli_output

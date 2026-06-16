@@ -1711,26 +1711,62 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
       kind       : astTF.sExpression,
       expression : astTF.StatementExpression(id: loop_expr_id, depth: depth_id), ))
 
+  proc expression_open_range (state :var State; node :PNode) :astTF.Id=
+    let left_id    = state.expression(node[1])
+    let operator_loc = state.name_add("..")
+    result = state.ast.add_expression(astTF.Expression(
+      kind       : astTF.eAffix,
+      affix      : astTF.ExpressionAffix(
+        left     : some(left_id),
+        operator : operator_loc,
+        right    : none(astTF.Id),
+      ),
+    ))
+
+  proc expression_for_iterable (state :var State; iterable_node :PNode) :astTF.Id=
+    if iterable_node.kind == nkTupleConstr:
+      var first_id    = none(astTF.Id)
+      var previous_id = none(astTF.Id)
+      for element_index in 0 ..< iterable_node.safeLen:
+        let element_node = iterable_node[element_index]
+        let element_id =
+          if element_node.kind == nkInfix and element_node[0].ident.s == "..^":
+            state.expression_open_range(element_node)
+          else:
+            state.expression(element_node)
+        if first_id.isNone: first_id = some(element_id)
+        if previous_id.isSome:
+          state.ast.expression_next_set(previous_id.get, some(element_id))
+        previous_id = some(element_id)
+      return first_id.get
+    return state.expression(iterable_node)
+
   proc body_for (state :var State; child :PNode) :astTF.Id=
     let iter_count    = child.safeLen - 2
     let iterable_node = child[iter_count]
     let body_node     = child[iter_count + 1]
-    let iterable_id   = state.expression(iterable_node)
-    var sentry_id     = none(astTF.Id)
+    let iterable_id   = state.expression_for_iterable(iterable_node)
+    var sentry_id       = none(astTF.Id)
+    var previous_sentry = none(astTF.Id)
     for iter_index in 0 ..< iter_count:
       let iter_node = child[iter_index]
       let iter_name = iter_node.name()
       if iter_name.len == 0: continue
       let deref      = if iter_node.kind == nkPostFix: "*" else: ""  # HACK: Major hack, to allow `*fb` mutable sentry access
       let name_loc   = state.name_add(deref & iter_name)
-      let binding_id = state.ast.add_binding(astTF.Binding(
-        name         : some(astTF.Identifier(location: name_loc)),
-        runtime      : some(true),
-        private      : some(true),  ))
+      let expr_id    = state.ast.add_expression(astTF.Expression(
+        kind         : astTF.eIdentifier,
+        identifier   : astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
+      ))
       let stmt_id    = state.ast.add_statement(astTF.Statement(
-        kind         : astTF.sVariable,
-        variable     : astTF.StatementVariable(id: binding_id),  ))
+        kind         : astTF.sExpression,
+        expression   : astTF.StatementExpression(id: expr_id),  ))
       if sentry_id.isNone: sentry_id = some(stmt_id)
+      if previous_sentry.isSome:
+        var previous = state.ast.statement(previous_sentry.get)
+        previous.expression.next = some(stmt_id)
+        state.ast.data.statements.get[previous_sentry.get] = previous
+      previous_sentry = some(stmt_id)
     discard state.scope_push()
     let loop_body_id = some(state.statement_body(body_node))
     state.scope_pop()

@@ -167,6 +167,10 @@ describe "nonim.minz | Control Flow":
     let result = generate_zig(case_input("control_for_mutable"))
     result.eq case_expected("control_for_mutable")
 
+  todo_it "must generate for-in loop with counter", proc() =
+    let result = generate_zig(case_input("control_for_counter"))
+    result.eq case_expected("control_for_counter")
+
   it "must generate break inside loop", proc() =
     let result = generate_zig(case_input("statement_break"))
     result.eq case_expected("statement_break")

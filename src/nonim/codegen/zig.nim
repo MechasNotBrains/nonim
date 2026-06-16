@@ -56,6 +56,8 @@ func statement (
     module : astTF.Id;
     id     : astTF.Id;
     Out    : var Output;
+    post   : string = "";
+    last   : bool   = false;
   ) :Option[astTF.Id]
 #___________________
 func statement_list (
@@ -63,6 +65,7 @@ func statement_list (
     module : astTF.Id;
     id     : astTF.Id;
     Out    : var Output;
+    post   : string = "";
   ) :void
 
 
@@ -87,7 +90,7 @@ func operator_spacing (
     operator : astTF.Location;
     kind     : OperatorKind;
   ) :tuple[before:bool, after:bool]=
-  const tight = [".", "!", ".*", ".*.", ".?"]
+  const tight = [".", "!", ".*", ".*.", ".?", ".."]
   result = (before:true, after:true)
   let op = ast.source(module, operator, synthetic=false)
   if kind == Prefix : result.before = false
@@ -835,13 +838,10 @@ func expression_loop_header_for (
     Out    : var Output;
   ) :void=
   let expr   = ast.expression(id).loop
-  let sentry = ast.binding(ast.statement(expr.sentry.get).variable.id)
   Out.string(module, "for (", output.Target.definition)
-  zig.expression(ast, module, expr.condition.get, Out)
+  zig.expression_list(ast, module, expr.condition.get, Out)
   Out.string(module, ") |", output.Target.definition)
-  case sentry.name.isSome:
-  of true  : Out.string(module, ast.source(module, sentry.name.get), output.Target.definition)
-  of false : Out.string(module, "_", output.Target.definition)
+  zig.statement_list(ast, module, expr.sentry.get, Out, ", ")
   Out.string(module, "|", output.Target.definition)
 #___________________
 func expression_loop_header_while (
@@ -1266,6 +1266,8 @@ func statement (
     module : astTF.Id;
     id     : astTF.Id;
     Out    : var Output;
+    post   : string = "";
+    last   : bool   = false;
   ) :Option[astTF.Id]=
   let stmt  = ast.statement(id)
   let depth = ast.statement_depth(id)
@@ -1286,10 +1288,13 @@ func statement (
   of sComment     : zig.statement_comment(ast, module, id, Out)
   of sAlias       : zig.statement_alias(ast, module, id, Out)
   of sPragma      : fail "Pragma Statements are not supported for Zig"
-  if ast.statement_needs_semicolon(module, id):
-    Out.string(module, ";", output.Target.definition)
-  if ast.statement_needs_newline(id):
-    Out.string(module, "\n", output.Target.definition)
+  if post.len > 0:
+     if not last: Out.string(module, post, output.Target.definition)
+  else:
+    if ast.statement_needs_semicolon(module, id):
+      Out.string(module, ";", output.Target.definition)
+    if ast.statement_needs_newline(id):
+      Out.string(module, "\n", output.Target.definition)
   result = ast.statement_next(id)
 #___________________
 func statement_list (
@@ -1297,9 +1302,10 @@ func statement_list (
     module : astTF.Id;
     id     : astTF.Id;
     Out    : var Output;
+    post   : string = "";
   ) :void=
   var current = some(id)
-  while current.isSome: current = zig.statement(ast, module, current.get, Out)
+  while current.isSome: current = zig.statement(ast, module, current.get, Out, post, ast.statement_next(current.get).isNone)
 
 
 #_______________________________________
