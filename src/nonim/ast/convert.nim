@@ -1102,18 +1102,37 @@ proc expression_conditional_body (state :var State; body_node :PNode) :astTF.Id=
     expression : astTF.StatementExpression(id: expression_id, depth: depth_id),
   ))
 
+proc capture_from_as (state :var State; condition_node :PNode; condition_id :var astTF.Id) :Option[astTF.Id]=
+  if condition_node.kind == nkInfix and condition_node[0].ident.s == "as":
+    condition_id = state.expression(condition_node[1])
+    let name_loc = state.name_add(condition_node[2].name())
+    let expr_id  = state.ast.add_expression(astTF.Expression(
+      kind       : astTF.eIdentifier,
+      identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
+    ))
+    let stmt_id  = state.ast.add_statement(astTF.Statement(
+      kind       : astTF.sExpression,
+      expression : astTF.StatementExpression(id: expr_id),
+    ))
+    return some(stmt_id)
+  condition_id = state.expression(condition_node)
+  return none(astTF.Id)
+
 proc expression_conditional (state :var State; node :PNode) :astTF.Id=
   var main_condition :astTF.Id
+  var main_sentry     = none(astTF.Id)
   var main_body       = none(astTF.Id)
   var first_branch    = none(astTF.Id)
   var previous_branch = none(astTF.Id)
   var is_first        = true
   for branch_node in node:
     if branch_node.kind == nkElifExpr:
-      let condition = state.expression(branch_node[0])
+      var condition :astTF.Id
+      let sentry = state.capture_from_as(branch_node[0], condition)
       let body_id = some(state.expression_conditional_body(branch_node[1]))
       if is_first:
         main_condition = condition
+        main_sentry    = sentry
         main_body      = body_id
         is_first       = false
       else:
@@ -1145,6 +1164,7 @@ proc expression_conditional (state :var State; node :PNode) :astTF.Id=
     kind           : astTF.eConditional,
     conditional    : astTF.ExpressionConditional(
       condition    : main_condition,
+      sentry       : main_sentry,
       body         : main_body,
       branches     : first_branch,
     ),
@@ -1554,6 +1574,9 @@ proc statement_keyword (state :var State; node :PNode) :astTF.Id=
     let discard_content = node[0]
     if discard_content.kind != nkEmpty:
       value = some(state.expression(discard_content))
+    else:
+      let block_id = state.ast.add_expression(astTF.Expression(kind: astTF.eBlock))
+      value = some(block_id)
   elif node.kind in {nkDefer, nkTryStmt} and node.safeLen > 0:
     let body = node[0]
     if body.kind == nkStmtList and body.safeLen > 0:
@@ -1579,18 +1602,21 @@ proc statement_keyword (state :var State; node :PNode) :astTF.Id=
 
 proc statement_conditional (state :var State; node :PNode) :astTF.Id=
   var main_condition :astTF.Id
+  var main_sentry     = none(astTF.Id)
   var main_body       = none(astTF.Id)
   var first_branch    = none(astTF.Id)
   var previous_branch = none(astTF.Id)
   var is_first        = true
   for branch_node in node:
     if branch_node.kind == nkElifBranch:
-      let condition = state.expression(branch_node[0])
+      var condition :astTF.Id
+      let sentry = state.capture_from_as(branch_node[0], condition)
       discard state.scope_push()
       let body_id = some(state.statement_body(branch_node[1]))
       state.scope_pop()
       if is_first:
         main_condition = condition
+        main_sentry    = sentry
         main_body      = body_id
         is_first       = false
       else:
@@ -1625,6 +1651,7 @@ proc statement_conditional (state :var State; node :PNode) :astTF.Id=
     kind           : astTF.eConditional,
     conditional    : astTF.ExpressionConditional(
       condition    : main_condition,
+      sentry       : main_sentry,
       body         : main_body,
       branches     : first_branch,
     ),
@@ -1697,14 +1724,18 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
   proc body_while (state :var State; child :PNode) :astTF.Id=
     let condition_node = child[0]
     let body_node = child[1]
-    let condition_id = state.expression(condition_node)
+    var condition_id :astTF.Id
+    let sentry_id = state.capture_from_as(condition_node, condition_id)
     discard state.scope_push()
     let loop_body_id = some(state.statement_body(body_node))
     state.scope_pop()
     let depth_id = some(state.make_depth(child))
+    let keyword_loc = state.name_add("while")
     let loop_expr_id = state.ast.add_expression(astTF.Expression(
       kind        : astTF.eLoop,
       loop        : astTF.ExpressionLoop(
+        keyword   : some(keyword_loc),
+        sentry    : sentry_id,
         condition : some(condition_id),
         body      : loop_body_id,  ),  ))
     result = state.ast.add_statement(astTF.Statement(
@@ -1850,6 +1881,7 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
       let branch_node = child[branch_index]
       var condition = none(astTF.Id)
       var body_id = none(astTF.Id)
+      var branch_sentry = none(astTF.Id)
       if branch_node.kind == nkOfBranch:
         let body_node = branch_node[branch_node.safeLen - 1]
         discard state.scope_push()
@@ -1860,7 +1892,11 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
         var first_value = none(astTF.Id)
         var previous_value = none(astTF.Id)
         for value_index in 0 ..< branch_node.safeLen - 1:
-          let value_id = state.expression(branch_node[value_index])
+          let value_node = branch_node[value_index]
+          var value_id :astTF.Id
+          let sentry = state.capture_from_as(value_node, value_id)
+          if sentry.isSome:
+            branch_sentry = sentry
           if first_value.isNone: first_value = some(value_id)
           if previous_value.isSome:
             state.ast.expression_next_set(previous_value.get, some(value_id))
@@ -1877,7 +1913,7 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
       state.scope_pop()
       let branch_id = state.ast.add_statement(astTF.Statement(
         kind: astTF.sBranch,
-        branch: astTF.StatementBranch(condition: condition, body: body_id, depth: branch_depth),
+        branch: astTF.StatementBranch(condition: condition, body: body_id, depth: branch_depth, sentry: branch_sentry),
       ))
       if first_branch.isNone: first_branch = some(branch_id)
       if previous_branch.isSome:

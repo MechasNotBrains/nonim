@@ -852,8 +852,15 @@ func expression_loop_header_while (
   ) :void=
   let expr = ast.expression(id).loop
   Out.string(module, "while (", output.Target.definition)
-  zig.expression(ast, module, expr.condition.get, Out)
+  zig.expression_list(ast, module, expr.condition.get, Out)
   Out.string(module, ")", output.Target.definition)
+  # Sentry/Capture Variable
+  if expr.sentry.isSome:
+    Out.string(module, " ", output.Target.definition)
+    Out.string(module, "|", output.Target.definition)
+    zig.statement_list(ast, module, expr.sentry.get, Out, ", ")
+    Out.string(module, "|", output.Target.definition)
+  # Increment Expression
   if expr.increment.isSome:
     Out.string(module, " ", output.Target.definition)
     Out.string(module, ":", output.Target.definition)
@@ -925,6 +932,13 @@ func expression_conditional_if (
   Out.string(module, "if (", output.Target.definition)
   zig.expression(ast, module, expr.condition, Out)
   Out.string(module, ")", output.Target.definition)
+  # Sentry/Capture Variable
+  if expr.sentry.isSome:
+    Out.string(module, " ", output.Target.definition)
+    Out.string(module, "|", output.Target.definition)
+    zig.statement_list(ast, module, expr.sentry.get, Out, ", ")
+    Out.string(module, "|", output.Target.definition)
+  # Body
   if expr.body.isSome     : zig.expression_conditional_body(ast, module, expr.body.get, Out)
   if expr.branches.isSome : discard zig.statement(ast, module, expr.branches.get, Out)
 #___________________
@@ -946,8 +960,8 @@ func expression_loop (
     Out    : var Output;
   ) :void=
   let expr = ast.expression(id).loop
-  if expr.sentry.isSome : zig.expression_loop_header_for(ast, module, id, Out)
-  else                  : zig.expression_loop_header_while(ast, module, id, Out)
+  if expr.keyword.isNone : zig.expression_loop_header_for(ast, module, id, Out)
+  else                   : zig.expression_loop_header_while(ast, module, id, Out)
   Out.string(module, " ", output.Target.definition)
   Out.string(module, "{\n", output.Target.definition)
   if expr.body.isSome: zig.statement_list(ast, module, expr.body.get, Out)
@@ -960,11 +974,11 @@ func expression_block (
     Out    : var Output;
   ) :void=
   let expr = ast.expression(id).`block`
+  Out.string(module, "{", output.Target.definition)
   if expr.body.isSome:
-    Out.string(module, "{", output.Target.definition)
     Out.string(module, "\n", output.Target.definition)
     zig.statement_list(ast, module, expr.body.get, Out)
-    Out.string(module, "}", output.Target.definition)
+  Out.string(module, "}", output.Target.definition)
 #___________________
 func expression_procedure (
     ast    : astTF.Ast;

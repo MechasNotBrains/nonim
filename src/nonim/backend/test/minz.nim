@@ -3,6 +3,7 @@
 #:_________________________________________________________
 ## Integration tests for the minz (untyped Zig) backend.
 #_______________________________________________________________|
+# nim r --outDir:bin/ --path:bin/.lib/minitest/src --path:bin/.lib/astTF/spec --path:bin/.lib/minibuild/src src/nonim/backend/test/minz.nim
 # @deps std
 from std/os import `/`, parentDir, fileExists, execShellCmd
 # @deps nimc
@@ -170,6 +171,14 @@ describe "nonim.minz | Control Flow":
   todo_it "must generate for-in loop with counter", proc() =
     let result = generate_zig(case_input("control_for_counter"))
     result.eq case_expected("control_for_counter")
+
+  todo_it "must generate while loop with capture", proc() =
+    let result = generate_zig(case_input("control_while_capture"))
+    result.eq case_expected("control_while_capture")
+
+  todo_it "must generate if with capture", proc() =
+    let result = generate_zig(case_input("control_if_capture"))
+    result.eq case_expected("control_if_capture")
 
   it "must generate break inside loop", proc() =
     let result = generate_zig(case_input("statement_break"))
