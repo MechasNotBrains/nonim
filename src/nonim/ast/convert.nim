@@ -1092,6 +1092,65 @@ proc expression_lambda (state :var State; node :PNode) :astTF.Id=
   ))
 
 
+proc expression_conditional_body (state :var State; body_node :PNode) :astTF.Id=
+  let value_node = if body_node.kind == nkStmtList and body_node.safeLen > 0: body_node[0]
+                   else: body_node
+  let expression_id = state.expression(value_node)
+  let depth_id = some(state.make_depth(body_node))
+  state.ast.add_statement(astTF.Statement(
+    kind       : astTF.sExpression,
+    expression : astTF.StatementExpression(id: expression_id, depth: depth_id),
+  ))
+
+proc expression_conditional (state :var State; node :PNode) :astTF.Id=
+  var main_condition :astTF.Id
+  var main_body       = none(astTF.Id)
+  var first_branch    = none(astTF.Id)
+  var previous_branch = none(astTF.Id)
+  var is_first        = true
+  for branch_node in node:
+    if branch_node.kind == nkElifExpr:
+      let condition = state.expression(branch_node[0])
+      let body_id = some(state.expression_conditional_body(branch_node[1]))
+      if is_first:
+        main_condition = condition
+        main_body      = body_id
+        is_first       = false
+      else:
+        let branch_depth = some(state.make_depth(branch_node))
+        let branch_id    = state.ast.add_statement(astTF.Statement(
+          kind           : astTF.sBranch,
+          branch         : astTF.StatementBranch(condition: some(condition), body: body_id, depth: branch_depth),
+        ))
+        if first_branch.isNone: first_branch = some(branch_id)
+        if previous_branch.isSome:
+          var prev = state.ast.statement(previous_branch.get)
+          prev.branch.next = some(branch_id)
+          state.ast.data.statements.get[previous_branch.get] = prev
+        previous_branch = some(branch_id)
+    elif branch_node.kind == nkElseExpr:
+      let body_id = some(state.expression_conditional_body(branch_node[0]))
+      let branch_depth = some(state.make_depth(branch_node))
+      let branch_id = state.ast.add_statement(astTF.Statement(
+        kind: astTF.sBranch,
+        branch: astTF.StatementBranch(body: body_id, depth: branch_depth),
+      ))
+      if first_branch.isNone: first_branch = some(branch_id)
+      if previous_branch.isSome:
+        var prev = state.ast.statement(previous_branch.get)
+        prev.branch.next = some(branch_id)
+        state.ast.data.statements.get[previous_branch.get] = prev
+      previous_branch = some(branch_id)
+  result = state.ast.add_expression(astTF.Expression(
+    kind           : astTF.eConditional,
+    conditional    : astTF.ExpressionConditional(
+      condition    : main_condition,
+      body         : main_body,
+      branches     : first_branch,
+    ),
+  ))
+
+
 proc expression (state :var State; node :PNode) :astTF.Id=
   case node.kind
   of nkBlockStmt:
@@ -1113,6 +1172,7 @@ proc expression (state :var State; node :PNode) :astTF.Id=
   of nkObjConstr          : state.expression_obj_constr(node)
   of nkBracket            : state.expression_array(node)
   of nkTryStmt            : state.expression_try(node)
+  of nkIfExpr             : state.expression_conditional(node)
   of nkPtrTy, nkVarTy     : state.expression_of_type(state.type_node_to_type_id(node))
   of nkLambda             : state.expression_lambda(node)
   of nkBracketExpr        :
