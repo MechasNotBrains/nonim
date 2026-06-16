@@ -524,7 +524,7 @@ func type_enumeration (
   Out.string(module, "enum", output.Target.definition)
   if typ.backing.isSome:
     Out.string(module, "(", output.Target.definition)
-    zig.Type(ast, module, typ.backing.get, Out)
+    zig.expression(ast, module, typ.backing.get, Out)
     Out.string(module, ")", output.Target.definition)
   Out.string(module, " ", output.Target.definition)
   Out.string(module, "{", output.Target.definition)
