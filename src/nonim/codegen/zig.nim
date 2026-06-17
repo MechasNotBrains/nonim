@@ -1244,8 +1244,15 @@ func statement_expression_conditional_needs_semicolon (
     module : astTF.Id;
     id     : astTF.Id;
   ) :bool=
-  let expr = ast.expression(id).conditional
-  return expr.body.isSome and ast.statement_next(expr.body.get).isNone
+  let expr          = ast.expression(id).conditional
+  let is_last       = expr.branches.isNone
+  let one_statement = expr.body.isSome and ast.statement_next(expr.body.get).isNone
+  if is_last: return one_statement
+  var current = expr.branches
+  while current.isSome:
+    let S   = ast.statement(current.get).branch
+    result  = S.body.isSome and ast.statement_next(S.body.get).isNone
+    current = S.next
 #___________________
 func statement_expression_needs_semicolon (
     ast    : astTF.Ast;
@@ -1260,6 +1267,14 @@ func statement_expression_needs_semicolon (
   of eLoop        : false
   of eBlock       : false
   else            : true
+#___________________
+func statement_procedure_needs_semicolon (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : astTF.Id;
+  ) :bool=
+  let P = ast.procedure(id)
+  result = P.body.isNone
 #___________________
 func statement_needs_semicolon (
     ast    : astTF.Ast;
@@ -1277,9 +1292,7 @@ func statement_needs_semicolon (
     of sPassthrough : false
     of sComment     : false
     of sExpression  : zig.statement_expression_needs_semicolon(ast, module, stmt.expression.id)
-    of sProcedure   :
-      let P = ast.procedure(stmt.procedure.id)
-      P.body.isNone
+    of sProcedure   : zig.statement_procedure_needs_semicolon(ast, module, stmt.procedure.id)
 #___________________
 func statement (
     ast    : astTF.Ast;
@@ -1292,7 +1305,8 @@ func statement (
   let stmt  = ast.statement(id)
   let depth = ast.statement_depth(id)
   let fmt   = ast.statement_format(id)
-  zig.indentation(ast, module, depth, Out)
+  if stmt.kind != sBranch:
+    zig.indentation(ast, module, depth, Out)
   base.format_before(ast, module, fmt, Out)
   if not ast.statement_private(module, id):
     Out.string(module, "pub", output.Target.definition)

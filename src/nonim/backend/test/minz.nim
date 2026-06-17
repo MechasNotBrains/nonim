@@ -180,6 +180,10 @@ describe "nonim.minz | Control Flow":
     let result = generate_zig(case_input("control_if_capture"))
     result.eq case_expected("control_if_capture")
 
+  it "must generate mixed braced/braceless if/else", proc() =
+    let result = generate_zig(case_input("control_if_mixed"))
+    result.eq case_expected("control_if_mixed")
+
   it "must generate if/else as expression value", proc() =
     let result = generate_zig(case_input("expression_conditional_value"))
     result.eq case_expected("expression_conditional_value")
