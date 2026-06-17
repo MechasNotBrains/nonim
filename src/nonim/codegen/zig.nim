@@ -56,7 +56,7 @@ func statement (
     module : astTF.Id;
     id     : astTF.Id;
     Out    : var Output;
-    post   : string = "";
+    post   : Option[system.string] = none(system.string);
     last   : bool   = false;
   ) :Option[astTF.Id]
 #___________________
@@ -65,7 +65,7 @@ func statement_list (
     module : astTF.Id;
     id     : astTF.Id;
     Out    : var Output;
-    post   : string = "";
+    post   : Option[system.string] = none(system.string);
   ) :void
 
 
@@ -841,7 +841,7 @@ func expression_loop_header_for (
   Out.string(module, "for (", output.Target.definition)
   zig.expression_list(ast, module, expr.condition.get, Out)
   Out.string(module, ") |", output.Target.definition)
-  zig.statement_list(ast, module, expr.sentry.get, Out, ", ")
+  zig.statement_list(ast, module, expr.sentry.get, Out, some(", "))
   Out.string(module, "|", output.Target.definition)
 #___________________
 func expression_loop_header_while (
@@ -858,7 +858,7 @@ func expression_loop_header_while (
   if expr.sentry.isSome:
     Out.string(module, " ", output.Target.definition)
     Out.string(module, "|", output.Target.definition)
-    zig.statement_list(ast, module, expr.sentry.get, Out, ", ")
+    zig.statement_list(ast, module, expr.sentry.get, Out, some(", "))
     Out.string(module, "|", output.Target.definition)
   # Increment Expression
   if expr.increment.isSome:
@@ -875,13 +875,16 @@ func expression_conditional_body (
     id     : astTF.Id;
     Out    : var Output;
   ) :void=
+  let next  = ast.statement_next(id)
   let depth = ast.statement_depth(id)
   Out.string(module, " ", output.Target.definition)
-  Out.string(module, "{", output.Target.definition)
-  Out.string(module, "\n", output.Target.definition)
-  zig.statement_list(ast, module, id, Out)
-  zig.indentation(ast, module, depth, Out)
-  Out.string(module, "}", output.Target.definition)
+  if next.isSome:
+    Out.string(module, "{", output.Target.definition)
+    Out.string(module, "\n", output.Target.definition)
+  zig.statement_list(ast, module, id, Out, post= if next.isSome: none(system.string) else: some(""))
+  if next.isSome:
+    zig.indentation(ast, module, depth, Out)
+    Out.string(module, "}", output.Target.definition)
 #___________________
 func expression_conditional_switch_branch (
     ast    : astTF.Ast;
@@ -936,7 +939,7 @@ func expression_conditional_if (
   if expr.sentry.isSome:
     Out.string(module, " ", output.Target.definition)
     Out.string(module, "|", output.Target.definition)
-    zig.statement_list(ast, module, expr.sentry.get, Out, ", ")
+    zig.statement_list(ast, module, expr.sentry.get, Out, some(", "))
     Out.string(module, "|", output.Target.definition)
   # Body
   if expr.body.isSome     : zig.expression_conditional_body(ast, module, expr.body.get, Out)
@@ -1086,20 +1089,15 @@ func statement_branch (
   let stmt = ast.statement(id).branch
   Out.string(module, " ", output.Target.definition)
   Out.string(module, "else", output.Target.definition)
-  Out.string(module, " ", output.Target.definition)
   #___________________
   if stmt.condition.isSome:
+    Out.string(module, " ", output.Target.definition)
     Out.string(module, "if (", output.Target.definition)
     zig.expression(ast, module, stmt.condition.get, Out)
     Out.string(module, ")", output.Target.definition)
-    Out.string(module, " ", output.Target.definition)
   #___________________
-  Out.string(module, "{\n", output.Target.definition)
-  if stmt.body.isSome: zig.statement_list(ast, module, stmt.body.get, Out)
-  Out.string(module, "}", output.Target.definition)
-  #___________________
-  if stmt.condition.isNone:
-    Out.string(module, "\n", output.Target.definition)
+  if stmt.body.isSome:
+    zig.expression_conditional_body(ast, module, stmt.body.get, Out)
   #___________________
   if stmt.next.isSome:
     discard zig.statement(ast, module, stmt.next.get, Out)
@@ -1241,6 +1239,14 @@ func statement_expression_keyword_needs_semicolon (
   let expr = ast.expression(id).keyword
   result = ast.source(module, expr.keyword) notin ["block", "test"]
 #___________________
+func statement_expression_conditional_needs_semicolon (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : astTF.Id;
+  ) :bool=
+  let expr = ast.expression(id).conditional
+  return expr.body.isSome and ast.statement_next(expr.body.get).isNone
+#___________________
 func statement_expression_needs_semicolon (
     ast    : astTF.Ast;
     module : astTF.Id;
@@ -1249,9 +1255,9 @@ func statement_expression_needs_semicolon (
   let expr = ast.expression(id)
   case expr.kind
   of eKeyword     : zig.statement_expression_keyword_needs_semicolon(ast, module, id)
+  of eConditional : zig.statement_expression_conditional_needs_semicolon(ast, module, id)
   of eProcedure   : false
   of eLoop        : false
-  of eConditional : false
   of eBlock       : false
   else            : true
 #___________________
@@ -1280,7 +1286,7 @@ func statement (
     module : astTF.Id;
     id     : astTF.Id;
     Out    : var Output;
-    post   : string = "";
+    post   : Option[system.string] = none(system.string);
     last   : bool   = false;
   ) :Option[astTF.Id]=
   let stmt  = ast.statement(id)
@@ -1302,8 +1308,8 @@ func statement (
   of sComment     : zig.statement_comment(ast, module, id, Out)
   of sAlias       : zig.statement_alias(ast, module, id, Out)
   of sPragma      : fail "Pragma Statements are not supported for Zig"
-  if post.len > 0:
-     if not last: Out.string(module, post, output.Target.definition)
+  if post.isSome:
+     if not last: Out.string(module, post.get, output.Target.definition)
   else:
     if ast.statement_needs_semicolon(module, id):
       Out.string(module, ";", output.Target.definition)
@@ -1316,7 +1322,7 @@ func statement_list (
     module : astTF.Id;
     id     : astTF.Id;
     Out    : var Output;
-    post   : string = "";
+    post   : Option[system.string] = none(system.string);
   ) :void=
   var current = some(id)
   while current.isSome: current = zig.statement(ast, module, current.get, Out, post, ast.statement_next(current.get).isNone)

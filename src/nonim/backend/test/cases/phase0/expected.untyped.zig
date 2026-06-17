@@ -14,9 +14,7 @@ pub fn accumulate (limit :isize) isize {
       _ = increment(current, 0);
       continue;
       }
-    if (total > 100) {
-      break;
-      }
+    if (total > 100) break;
 }
   return total;
 }

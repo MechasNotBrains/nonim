@@ -561,6 +561,66 @@ proc expression_infix (state :var State; node :PNode) :astTF.Id=
   let operator_node = node[0]
   if operator_node.name() == ".?":
     return state.expression_optional_call(node)
+  if operator_node.name() == ".?.":
+    let unwrap_loc = state.name_add(".?")
+    let left_id    = state.expression(node[1])
+    let unwrap_id  = state.ast.add_expression(astTF.Expression(
+      kind       : astTF.eAffix,
+      affix      : astTF.ExpressionAffix(
+        left     : some(left_id),
+        operator : unwrap_loc,
+      ),
+    ))
+    let right_node = node[2]
+    if right_node.kind == nkCall:
+      let dot_loc    = state.name_add(".")
+      let method_id  = state.expression_identifier(right_node[0].name())
+      let callee_id  = state.ast.add_expression(astTF.Expression(
+        kind       : astTF.eAffix,
+        affix      : astTF.ExpressionAffix(
+          left     : some(unwrap_id),
+          right    : some(method_id),
+          operator : dot_loc,
+        ),
+      ))
+      var first_arg      = none(astTF.Id)
+      var previous_arg   = none(astTF.Id)
+      for arg_index in 1 ..< right_node.safeLen:
+        let value_id   = state.expression(right_node[arg_index])
+        let binding_id = state.ast.add_binding(astTF.Binding(
+          value   : some(value_id),
+          runtime : some(true),
+        ))
+        if first_arg.isNone: first_arg = some(binding_id)
+        if previous_arg.isSome:
+          var prev  = state.ast.binding(previous_arg.get)
+          prev.next = some(binding_id)
+          state.ast.data.bindings.get[previous_arg.get] = prev
+        previous_arg = some(binding_id)
+      return state.ast.add_expression(astTF.Expression(
+        kind       : astTF.eCall,
+        call       : astTF.ExpressionCall(name: callee_id, arguments: first_arg),
+      ))
+    let right_name = right_node.name()
+    if right_name == "addr":
+      let addr_loc = state.name_add("&")
+      return state.ast.add_expression(astTF.Expression(
+        kind       : astTF.eAffix,
+        affix      : astTF.ExpressionAffix(
+          right    : some(unwrap_id),
+          operator : addr_loc,
+        ),
+      ))
+    let dot_loc = state.name_add(".")
+    let right_id = state.expression_identifier(right_name)
+    return state.ast.add_expression(astTF.Expression(
+      kind       : astTF.eAffix,
+      affix      : astTF.ExpressionAffix(
+        left     : some(unwrap_id),
+        right    : some(right_id),
+        operator : dot_loc,
+      ),
+    ))
   let left_node    = node[1]
   let right_node   = node[2]
   let operator_loc = state.name_add(state.translate_operator(operator_node.name()))
@@ -1092,14 +1152,29 @@ proc expression_lambda (state :var State; node :PNode) :astTF.Id=
   ))
 
 
+proc strip_depth_if_single (state :var State; statement_id :astTF.Id) =
+  if state.ast.statement_next(statement_id).isSome: return
+  var statement = state.ast.statement(statement_id)
+  case statement.kind
+  of astTF.sExpression  : statement.expression.depth = none(astTF.Id)
+  of astTF.sVariable    : statement.variable.depth = none(astTF.Id)
+  of astTF.sBranch      : statement.branch.depth = none(astTF.Id)
+  of astTF.sPassthrough : statement.passthrough.depth = none(astTF.Id)
+  of astTF.sComment     : statement.comment.depth = none(astTF.Id)
+  of astTF.sImport      : statement.`import`.depth = none(astTF.Id)
+  of astTF.sPragma      : statement.pragma.depth = none(astTF.Id)
+  of astTF.sAlias       : statement.alias.depth = none(astTF.Id)
+  of astTF.sType        : statement.`type`.depth = none(astTF.Id)
+  of astTF.sProcedure   : statement.procedure.depth = none(astTF.Id)
+  state.ast.data.statements.get[statement_id] = statement
+
 proc expression_conditional_body (state :var State; body_node :PNode) :astTF.Id=
   let value_node = if body_node.kind == nkStmtList and body_node.safeLen > 0: body_node[0]
                    else: body_node
   let expression_id = state.expression(value_node)
-  let depth_id = some(state.make_depth(body_node))
   state.ast.add_statement(astTF.Statement(
     kind       : astTF.sExpression,
-    expression : astTF.StatementExpression(id: expression_id, depth: depth_id),
+    expression : astTF.StatementExpression(id: expression_id),
   ))
 
 proc capture_from_as (state :var State; condition_node :PNode; condition_id :var astTF.Id) :Option[astTF.Id]=
@@ -1136,10 +1211,9 @@ proc expression_conditional (state :var State; node :PNode) :astTF.Id=
         main_body      = body_id
         is_first       = false
       else:
-        let branch_depth = some(state.make_depth(branch_node))
         let branch_id    = state.ast.add_statement(astTF.Statement(
           kind           : astTF.sBranch,
-          branch         : astTF.StatementBranch(condition: some(condition), body: body_id, depth: branch_depth),
+          branch         : astTF.StatementBranch(condition: some(condition), body: body_id),
         ))
         if first_branch.isNone: first_branch = some(branch_id)
         if previous_branch.isSome:
@@ -1149,10 +1223,9 @@ proc expression_conditional (state :var State; node :PNode) :astTF.Id=
         previous_branch = some(branch_id)
     elif branch_node.kind == nkElseExpr:
       let body_id = some(state.expression_conditional_body(branch_node[0]))
-      let branch_depth = some(state.make_depth(branch_node))
       let branch_id = state.ast.add_statement(astTF.Statement(
         kind: astTF.sBranch,
-        branch: astTF.StatementBranch(body: body_id, depth: branch_depth),
+        branch: astTF.StatementBranch(body: body_id),
       ))
       if first_branch.isNone: first_branch = some(branch_id)
       if previous_branch.isSome:
@@ -1614,6 +1687,7 @@ proc statement_conditional (state :var State; node :PNode) :astTF.Id=
       discard state.scope_push()
       let body_id = some(state.statement_body(branch_node[1]))
       state.scope_pop()
+      state.strip_depth_if_single(body_id.get)
       if is_first:
         main_condition = condition
         main_sentry    = sentry
@@ -1635,6 +1709,7 @@ proc statement_conditional (state :var State; node :PNode) :astTF.Id=
       discard state.scope_push()
       let body_id = some(state.statement_body(branch_node[0]))
       state.scope_pop()
+      state.strip_depth_if_single(body_id.get)
       let branch_depth = some(state.make_depth(branch_node))
       let branch_id = state.ast.add_statement(astTF.Statement(
         kind: astTF.sBranch,

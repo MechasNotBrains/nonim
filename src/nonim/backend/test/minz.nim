@@ -180,6 +180,10 @@ describe "nonim.minz | Control Flow":
     let result = generate_zig(case_input("control_if_capture"))
     result.eq case_expected("control_if_capture")
 
+  it "must generate if/else as expression value", proc() =
+    let result = generate_zig(case_input("expression_conditional_value"))
+    result.eq case_expected("expression_conditional_value")
+
   it "must generate break inside loop", proc() =
     let result = generate_zig(case_input("statement_break"))
     result.eq case_expected("statement_break")
@@ -322,6 +326,14 @@ describe "nonim.minz | Expressions":
   it "must generate .? optional call", proc() =
     let result = generate_zig(case_input("expression_optional_call"))
     result.eq case_expected("expression_optional_call")
+
+  it "must generate .?.addr as &expr.?", proc() =
+    let result = generate_zig(case_input("expression_optional_unwrap_addr"))
+    result.eq case_expected("expression_optional_unwrap_addr")
+
+  it "must generate .?.method() as expr.?.method()", proc() =
+    let result = generate_zig(case_input("expression_optional_unwrap_call"))
+    result.eq case_expected("expression_optional_unwrap_call")
 
   it "must translate addr to & prefix", proc() =
     let result = generate_zig(case_input("expression_addr"))
