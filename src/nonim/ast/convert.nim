@@ -2197,6 +2197,7 @@ proc statement_type_object (
     body_node  : PNode;
     name_loc   : astTF.Location;
     is_private : bool;
+    pragmas    : Option[astTF.Id] = none(astTF.Id);
   ) =
   let first_field  = state.statement_type_object_fields(body_node)
   let type_id      = state.ast.add_type(astTF.Type(
@@ -2204,7 +2205,8 @@ proc statement_type_object (
     `object`       : astTF.TypeObject(
       name         : some(astTF.Identifier(location: name_loc)),
       fields       : first_field,
-      private      : some(is_private),  ),  ))
+      private      : some(is_private),
+      pragmas      : pragmas,  ),  ))
   let statement_id = state.ast.add_statement(astTF.Statement(
     kind           : astTF.sType,
     `type`         : astTF.StatementType(id: type_id),
@@ -2219,8 +2221,9 @@ proc statement_type (state :var State; node :PNode) =
   if name_str.len == 0: return
   let is_private = state.declaration_private(name_node)
   let name_loc   = state.name_add(name_str)
+  let type_pragmas = state.pragmas_binding(name_node)
   if body_node.kind == nkObjectTy:
-    state.statement_type_object(body_node, name_loc, is_private)
+    state.statement_type_object(body_node, name_loc, is_private, type_pragmas)
   elif body_node.kind == nkEnumTy:
     var backing = none(astTF.Id)
     let backing_node = name_node.pragma_value("backing")
@@ -2612,6 +2615,7 @@ proc statement_namespace (state :var State; node :PNode) =
       of astTF.sImport      : previous.`import`.next = some(statement_id)
       of astTF.sComment     : previous.comment.next = some(statement_id)
       of astTF.sPassthrough : previous.passthrough.next = some(statement_id)
+      of astTF.sType        : previous.`type`.next = some(statement_id)
       else                  : discard
       state.ast.data.statements.get[previous_id] = previous
     state.previous_stmt = some(statement_id)
@@ -2715,6 +2719,23 @@ proc statement_namespace (state :var State; node :PNode) =
         state.ast.data.modules[state.module].body = saved_body
         if ns_stmt_id.isSome:
           state.chain_stmt(ns_stmt_id.get)
+        continue
+      if section.kind == nkTypeSection:
+        for child in section:
+          if child.kind != nkTypeDef: continue
+          let saved_prev = state.previous_stmt
+          let saved_body = state.ast.data.modules[state.module].body
+          state.previous_stmt = none(astTF.Id)
+          state.ast.data.modules[state.module].body = some(astTF.Id(0))
+          state.statement_type(child)
+          let type_stmt_id = state.previous_stmt
+          state.previous_stmt = saved_prev
+          state.ast.data.modules[state.module].body = saved_body
+          if type_stmt_id.isSome:
+            var type_stmt = state.ast.statement(type_stmt_id.get)
+            type_stmt.`type`.depth = some(state.make_depth(child))
+            state.ast.data.statements.get[type_stmt_id.get] = type_stmt
+            state.chain_stmt(type_stmt_id.get)
         continue
       if section.kind notin {nkVarSection, nkLetSection, nkConstSection}: continue
       let is_mutable = section.kind == nkVarSection

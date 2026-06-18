@@ -491,6 +491,24 @@ func type_object_fields (
   var current = typ.fields
   while current.isSome: current = zig.type_field(ast, module, current.get, Out)
 #___________________
+func type_object_pragmas (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : astTF.Id;
+    Out    : var Output;
+  ) :void=
+  let typ     = ast.typ(id).`object`
+  var current = typ.pragmas
+  while current.isSome:
+    let pragma = ast.pragm(current.get)
+    let key    = ast.source(module, ast.expression(pragma.key).identifier.name)
+    case key
+    of "extern":
+      Out.string(module, key, output.Target.definition)
+      Out.string(module, " ", output.Target.definition)
+    else: discard
+    current = pragma.next
+#___________________
 func type_object (
     ast    : astTF.Ast;
     module : astTF.Id;
@@ -500,6 +518,7 @@ func type_object (
   let typ = ast.typ(id).`object`
   if typ.optional.get(false):
     Out.string(module, "?", output.Target.definition)
+  zig.type_object_pragmas(ast, module, id, Out)
   Out.string(module, "struct", output.Target.definition)
   Out.string(module, " ", output.Target.definition)
   Out.string(module, "{", output.Target.definition)

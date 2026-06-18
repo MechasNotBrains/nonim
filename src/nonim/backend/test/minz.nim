@@ -250,6 +250,10 @@ describe "nonim.minz | Types":
     let result = generate_zig(case_input("type_object"))
     result.eq case_expected("type_object")
 
+  it "must generate extern struct from {.extern.} object", proc() =
+    let result = generate_zig(case_input("type_object_extern"))
+    result.eq case_expected("type_object_extern")
+
   it "must generate an immutable pointer type from ptr T", proc() =
     let result = generate_zig(case_input("type_ptr"))
     result.eq case_expected("type_ptr")
@@ -444,6 +448,10 @@ describe "nonim.minz | Namespaces":
   it "must generate import inside @namespace", proc() =
     let result = generate_zig(case_input("namespace_import"))
     result.eq case_expected("namespace_import")
+
+  it "must generate type inside @namespace", proc() =
+    let result = generate_zig(case_input("namespace_type"))
+    result.eq case_expected("namespace_type")
 
 describe "nonim.minz | Passthrough":
   it "must emit raw code from emit pragma", proc() =
