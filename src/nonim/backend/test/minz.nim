@@ -436,6 +436,10 @@ describe "nonim.minz | Visibility":
     let result = generate_zig(case_input("expression_type_block_private"))
     result.eq case_expected("expression_type_block_private")
 
+  it "must generate @struct with body as struct expression", proc() =
+    let result = generate_zig(case_input("expression_at_struct_body"))
+    result.eq case_expected("expression_at_struct_body")
+
   it "must respect per-element private pragmas in a tuple unpack", proc() =
     let result = generate_zig(case_input("variable_tuple_unpack_private"))
     result.eq case_expected("variable_tuple_unpack_private")

@@ -170,7 +170,7 @@ func comment (
 #_______________________________________
 # @section Bindings
 #_____________________________
-type BindingContext {.pure.}= enum other, variable
+type BindingContext {.pure.}= enum other, variable, field
 #___________________
 func binding_pragma (
     ast    : astTF.Ast;
@@ -225,7 +225,7 @@ func binding (
   result = B.next
   #___________________
   zig.indentation(ast, module, B.depth, Out)
-  if not B.runtime.get(false) and ctx != variable:
+  if not B.runtime.get(false) and ctx notin [variable, field]:
     Out.string(module, "comptime", output.Target.definition)
     Out.string(module, " ", output.Target.definition)
   #___________________
@@ -252,6 +252,10 @@ func binding (
     Out.string(module, " ", output.Target.definition)
   if B.value.isSome:
     zig.expression(ast, module, B.value.get, Out)
+  #___________________
+  # HACK: Emit `,` for fields.
+  #       Should be on statement level, but lets get this done for now.
+  if ctx == field: Out.string(module, ",", output.Target.definition)
 #___________________
 func binding_list (
     ast    : astTF.Ast;
@@ -1061,18 +1065,29 @@ func expression_list (
 #_______________________________________
 # @section Statements
 #_____________________________
+func statement_variable_is_field (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : astTF.Id;
+  ) :bool=
+  let stmt = ast.statement(id).variable
+  let B    = ast.binding(stmt.id)
+  return ast.pragma_has(module, B.pragmas, @["field"])
+#___________________
 func statement_variable (
     ast    : astTF.Ast;
     module : astTF.Id;
     id     : astTF.Id;
     Out    : var Output;
   ) :void=
-  let stmt = ast.statement(id).variable
-  let B    = ast.binding(stmt.id)
-  let keyw = if B.mutable.get(false): "var" else: "const"
-  Out.string(module, keyw, output.Target.definition)
-  Out.string(module, " ", output.Target.definition)
-  discard zig.binding(ast, module, stmt.id, Out, ctx= variable)
+  let stmt  = ast.statement(id).variable
+  let B     = ast.binding(stmt.id)
+  let keyw  = if B.mutable.get(false): "var" else: "const"
+  let ctx   = if zig.statement_variable_is_field(ast, module, id): field else: variable
+  if ctx == variable:
+    Out.string(module, keyw, output.Target.definition)
+    Out.string(module, " ", output.Target.definition)
+  discard zig.binding(ast, module, stmt.id, Out, ctx= ctx)
 #___________________
 func statement_procedure (
     ast    : astTF.Ast;
@@ -1303,13 +1318,13 @@ func statement_needs_semicolon (
   let stmt = ast.statement(id)
   result = case stmt.kind
     of sType        : true
-    of sVariable    : true
     of sImport      : true
     of sAlias       : true
     of sPragma      : true
     of sBranch      : false
     of sPassthrough : false
     of sComment     : false
+    of sVariable    : not zig.statement_variable_is_field(ast, module, id)
     of sExpression  : zig.statement_expression_needs_semicolon(ast, module, stmt.expression.id)
     of sProcedure   : zig.statement_procedure_needs_semicolon(ast, module, stmt.procedure.id)
 #___________________

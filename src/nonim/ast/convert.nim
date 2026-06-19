@@ -55,6 +55,7 @@ proc expression_call (state :var State; node :PNode) :astTF.Id
 proc expression_dot (state :var State; node :PNode) :astTF.Id
 proc expression_infix (state :var State; node :PNode) :astTF.Id
 proc expression_prefix (state :var State; node :PNode) :astTF.Id
+proc expression_keyword_body (state :var State; keyword_name :string; body_node :PNode) :astTF.Id
 proc expression_type (state :var State; node :PNode) :astTF.Id
 proc expression_addr (state :var State; operand :PNode) :astTF.Id
 proc expression_tuple (state :var State; node :PNode; first :int = 0) :astTF.Id
@@ -846,6 +847,8 @@ proc expression_prefix (state :var State; node :PNode) :astTF.Id=
     for argument_index in 0 ..< right_node.safeLen:
       call_node.add right_node[argument_index]
     return state.expression_call(call_node)
+  if operator_node.name() == "@" and node.safeLen >= 3 and node[2].kind == nkStmtList:
+    return state.expression_keyword_body(right_node.name(), node[2])
   let operator_loc = state.name_add(operator_node.name())
   let right_id = if right_node.kind in {nkPtrTy, nkVarTy}: state.expression_type(right_node)
                  else: state.expression(right_node)
@@ -893,11 +896,9 @@ proc expression_try (state :var State; node :PNode) :astTF.Id=
       value   : some(value_id),  ),  ))
 
 
-proc expression_type_block (state :var State; node :PNode) :astTF.Id=
-  ## `block @keyword: <decls>` builds eKeyword(keyword) + eBlock(statement list).
-  let body_list  = node[1]
-  let head       = body_list[0]
-  let keyword_loc = state.name_add(head[1].name())
+proc expression_keyword_body (state :var State; keyword_name :string; body_node :PNode) :astTF.Id=
+  ## `@keyword: <decls>` builds eKeyword(keyword) + eBlock(statement list).
+  let keyword_loc = state.name_add(keyword_name)
   discard state.scope_push()
 
   let saved_previous = state.previous_stmt
@@ -917,12 +918,12 @@ proc expression_type_block (state :var State; node :PNode) :astTF.Id=
       of astTF.sImport      : previous.`import`.next    = some(statement_id)
       of astTF.sComment     : previous.comment.next     = some(statement_id)
       of astTF.sPassthrough : previous.passthrough.next = some(statement_id)
+      of astTF.sType        : previous.`type`.next      = some(statement_id)
       else                  : discard
       state.ast.data.statements.get[previous_id] = previous
     state.previous_stmt = some(statement_id)
 
-  if head.safeLen > 2:
-    for section in head[2]:
+  for section in body_node:
       if section.kind in {nkImportStmt, nkImportExceptStmt, nkIncludeStmt}:
         for stmt_id in state.import_create(section):
           var stmt = state.ast.statement(stmt_id)
@@ -1026,13 +1027,16 @@ proc expression_type_block (state :var State; node :PNode) :astTF.Id=
           if name_str.len == 0: continue
           let member_loc = state.name_add(name_str)
           let depth_id   = some(state.make_depth(name_node))
-          let binding_id = state.ast.add_binding(astTF.Binding(
+          let is_field    = name_node.kind == nkPragmaExpr and name_node[1].pragma_has("field")
+          let is_private  = if is_field: true else: state.declaration_private(name_node)
+          let binding_id  = state.ast.add_binding(astTF.Binding(
             name     : some(astTF.Identifier(location: member_loc)),
-            private  : some(state.declaration_private(name_node)),
+            private  : some(is_private),
             mutable  : some(is_mutable),
             runtime  : some(is_runtime),
             dataType : data_type,
             value    : value,
+            pragmas  : state.pragmas_binding(name_node),
           ))
           let stmt_id = state.ast.add_statement(astTF.Statement(
             kind     : astTF.sVariable,
@@ -1051,6 +1055,13 @@ proc expression_type_block (state :var State; node :PNode) :astTF.Id=
     keyword   : astTF.ExpressionKeyword(
       keyword : astTF.Identifier(location: keyword_loc),
       value   : some(block_id),  ),  ))
+
+proc expression_type_block (state :var State; node :PNode) :astTF.Id=
+  ## `block @keyword: <decls>` — delegates to expression_keyword_body.
+  let head = node[1][0]
+  if head.safeLen > 2:
+    return state.expression_keyword_body(head[1].name(), head[2])
+  return state.expression_keyword_body(head[1].name(), newNode(nkEmpty))
 
 
 proc procedure_build (state :var State; node :PNode) :astTF.Id=
