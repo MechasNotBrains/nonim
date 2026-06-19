@@ -294,6 +294,10 @@ describe "nonim.minz | Types":
     let result = generate_zig(case_input("type_object_array_field"))
     result.eq case_expected("type_object_array_field")
 
+  it "must generate an array with identifier length", proc() =
+    let result = generate_zig(case_input("type_array_ident_length"))
+    result.eq case_expected("type_array_ident_length")
+
   it "must emit an alias-pragma object field as a public const declaration", proc() =
     let result = generate_zig(case_input("type_object_alias_field"))
     result.eq case_expected("type_object_alias_field")

@@ -452,7 +452,7 @@ proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astT
       let is_mutable   = element_node.kind == nkVarTy
       let element_id   = state.type_node_to_type_id(element_node)
       var length_id    = none(astTF.Id)
-      if has_length and node[1].kind != nkIdent and node[1].name() != "_":
+      if has_length and node[1].name() != "_":
         length_id = some(state.expression(node[1]))
       return state.ast.add_type(astTF.Type(
         kind      : astTF.tArray,
