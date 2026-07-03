@@ -1278,7 +1278,8 @@ func statement_expression_conditional_needs_semicolon (
     module : astTF.Id;
     id     : astTF.Id;
   ) :bool=
-  let expr          = ast.expression(id).conditional
+  let expr = ast.expression(id).conditional
+  if expr.keyword.isSome and ast.source(module, expr.keyword.get, false) == "switch": return false
   let is_last       = expr.branches.isNone
   let one_statement = expr.body.isSome and ast.statement_next(expr.body.get).isNone
   if is_last: return one_statement
