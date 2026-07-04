@@ -807,6 +807,25 @@ func expression_keyword_test (
   if expr.value.isSome:
     zig.expression(ast, module, expr.value.get, Out)
 #___________________
+func expression_keyword_catch (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : astTF.Id;
+    Out    : var Output;
+  ) :void=
+  let expr  = ast.expression(id).keyword
+  let inner = ast.expression(expr.value.get).affix
+  zig.expression(ast, module, inner.left.get, Out)
+  Out.string(module, " ", output.Target.definition)
+  Out.string(module, ast.source(module, expr.keyword), output.Target.definition)
+  Out.string(module, " ", output.Target.definition)
+  if expr.label.isSome:
+    Out.string(module, "|", output.Target.definition)
+    zig.identifier(ast, module, expr.label.get, Out)
+    Out.string(module, "|", output.Target.definition)
+    Out.string(module, " ", output.Target.definition)
+  zig.expression(ast, module, inner.right.get, Out)
+#___________________
 func expression_keyword_labeled (
     ast    : astTF.Ast;
     module : astTF.Id;
@@ -835,6 +854,7 @@ func expression_keyword (
   of "block"   : zig.expression_keyword_block(ast, module, id, Out)
   of "discard" : zig.expression_keyword_discard(ast, module, id, Out)
   of "test"    : zig.expression_keyword_test(ast, module, id, Out)
+  of "catch"   : zig.expression_keyword_catch(ast, module, id, Out)
   else         : zig.expression_keyword_labeled(ast, module, id, Out)
 #___________________
 func expression_affix (

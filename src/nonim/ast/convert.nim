@@ -52,6 +52,9 @@ proc statement_body (state :var State; node :PNode) :astTF.Id
 proc is_at_prefix (node :PNode; prefix :string) :bool
 proc is_at_test (node :PNode) :bool
 proc expression_call (state :var State; node :PNode) :astTF.Id
+proc expression_handler (state :var State; handler_node :PNode) :astTF.Id
+proc expression_catch_keyword (state :var State; error_union :astTF.Id; capture :Option[astTF.Identifier]; handler_id :astTF.Id) :astTF.Id
+proc expression_catch (state :var State; node :PNode) :astTF.Id
 proc expression_dot (state :var State; node :PNode) :astTF.Id
 proc expression_infix (state :var State; node :PNode) :astTF.Id
 proc expression_prefix (state :var State; node :PNode) :astTF.Id
@@ -707,6 +710,17 @@ proc expression_call (state :var State; node :PNode) :astTF.Id=
     return state.expression_dot_leading(node)
   if state.target == Language.Zig and not state.typed and function_node.name() == "addr" and node.safeLen == 2:
     return state.expression_addr(node[1])
+  if state.target == Language.Zig and not state.typed and node.is_at_prefix("catch") and node.safeLen >= 3:
+    let error_union = state.expression(node[1])
+    var capture = none(astTF.Identifier)
+    var handler_node :PNode
+    if node.safeLen >= 4:
+      capture = some(astTF.Identifier(location: state.name_add(node[2].name())))
+      handler_node = node[3]
+    else:
+      handler_node = node[2]
+    let handler_id = state.expression_handler(handler_node)
+    return state.expression_catch_keyword(error_union, capture, handler_id)
   let function_id = state.expression(function_node)
   var first_argument = none(astTF.Id)
   var previous_binding = none(astTF.Id)
@@ -884,7 +898,71 @@ proc expression_array_type (state :var State; node :PNode) :astTF.Id=
   result = state.expression_of_type(state.type_node_to_type_id(node))
 
 
+proc expression_handler (state :var State; handler_node :PNode) :astTF.Id=
+  if handler_node.kind == nkStmtList and handler_node.safeLen > 0:
+    let stmt = handler_node[0]
+    case stmt.kind
+    of nkContinueStmt:
+      return state.ast.add_expression(astTF.Expression(
+        kind: astTF.eKeyword, keyword: astTF.ExpressionKeyword(
+          keyword: astTF.Identifier(location: state.name_add("continue")))))
+    of nkBreakStmt:
+      return state.ast.add_expression(astTF.Expression(
+        kind: astTF.eKeyword, keyword: astTF.ExpressionKeyword(
+          keyword: astTF.Identifier(location: state.name_add("break")))))
+    of nkReturnStmt:
+      let return_value = if stmt.safeLen > 0 and stmt[0].kind != nkEmpty: some(state.expression(stmt[0])) else: none(astTF.Id)
+      return state.ast.add_expression(astTF.Expression(
+        kind: astTF.eKeyword, keyword: astTF.ExpressionKeyword(
+          keyword: astTF.Identifier(location: state.name_add("return")),
+          value: return_value)))
+    else:
+      return state.expression(stmt)
+  return state.expression(handler_node)
+
+proc expression_catch_keyword (state :var State; error_union :astTF.Id; capture :Option[astTF.Identifier]; handler_id :astTF.Id) :astTF.Id=
+  let affix_id = state.ast.add_expression(astTF.Expression(
+    kind  : astTF.eAffix,
+    affix : astTF.ExpressionAffix(
+      left     : some(error_union),
+      operator : state.name_add("catch"),
+      right    : some(handler_id),
+    ),
+  ))
+  result = state.ast.add_expression(astTF.Expression(
+    kind    : astTF.eKeyword,
+    keyword : astTF.ExpressionKeyword(
+      keyword : astTF.Identifier(location: state.name_add("catch")),
+      label   : capture,
+      value   : some(affix_id),
+    ),
+  ))
+
+proc expression_catch (state :var State; node :PNode) :astTF.Id=
+  let try_body = node[0]
+  let inner = if try_body.kind == nkStmtList and try_body.safeLen > 0: try_body[0] else: try_body
+  let error_union = state.expression(inner)
+  let except_branch = node[1]
+  var capture = none(astTF.Identifier)
+  var handler_node :PNode
+  if except_branch.safeLen > 1 and except_branch[0].kind in SomeIdent:
+    capture = some(astTF.Identifier(location: state.name_add(except_branch[0].name())))
+    handler_node = except_branch[except_branch.safeLen - 1]
+  elif except_branch.safeLen > 0:
+    handler_node = except_branch[except_branch.safeLen - 1]
+  else:
+    handler_node = except_branch
+  let handler_id = state.expression_handler(handler_node)
+  result = state.expression_catch_keyword(error_union, capture, handler_id)
+
 proc expression_try (state :var State; node :PNode) :astTF.Id=
+  var has_except = false
+  for child_index in 1 ..< node.safeLen:
+    if node[child_index].kind == nkExceptBranch:
+      has_except = true
+      break
+  if has_except:
+    return state.expression_catch(node)
   let body        = node[0]
   let inner       = if body.kind == nkStmtList and body.safeLen > 0: body[0] else: body
   let value_id    = state.expression(inner)
@@ -1727,7 +1805,25 @@ proc statement_keyword (state :var State; node :PNode) :astTF.Id=
     else:
       let block_id = state.ast.add_expression(astTF.Expression(kind: astTF.eBlock))
       value = some(block_id)
-  elif node.kind in {nkDefer, nkTryStmt} and node.safeLen > 0:
+  elif node.kind == nkDefer and node.safeLen > 0:
+    let body = node[0]
+    if body.kind == nkStmtList and body.safeLen > 0:
+      value = some(state.expression(body[0]))
+    elif body.kind != nkEmpty:
+      value = some(state.expression(body))
+  elif node.kind == nkTryStmt and node.safeLen > 0:
+    var has_except = false
+    for child_index in 1 ..< node.safeLen:
+      if node[child_index].kind == nkExceptBranch:
+        has_except = true
+        break
+    if has_except:
+      let catch_id = state.expression_catch(node)
+      let depth_id = some(state.make_depth(node))
+      return state.ast.add_statement(astTF.Statement(
+        kind       : astTF.sExpression,
+        expression : astTF.StatementExpression(id: catch_id, depth: depth_id),
+      ))
     let body = node[0]
     if body.kind == nkStmtList and body.safeLen > 0:
       value = some(state.expression(body[0]))

@@ -391,6 +391,22 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_try_prefix"))
     result.eq case_expected("expression_try_prefix")
 
+  it "must generate catch from inline try/except", proc() =
+    let result = generate_zig(case_input("expression_catch_inline"))
+    result.eq case_expected("expression_catch_inline")
+
+  it "must generate catch from multiline try/except", proc() =
+    let result = generate_zig(case_input("expression_catch_multiline"))
+    result.eq case_expected("expression_catch_multiline")
+
+  it "must generate catch from @catch special keyword", proc() =
+    let result = generate_zig(case_input("expression_catch_at"))
+    result.eq case_expected("expression_catch_at")
+
+  it "must generate catch with capture from inline try/except", proc() =
+    let result = generate_zig(case_input("expression_catch_capture_inline"))
+    result.eq case_expected("expression_catch_capture_inline")
+
   todo_it "must generate anonymous struct literal from named tuple", proc() =
     let result = generate_zig(case_input("expression_object"))
     result.eq case_expected("expression_object")
