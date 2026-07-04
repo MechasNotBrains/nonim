@@ -31,7 +31,15 @@ proc strValue *(node :PNode) :string=
     for entry in node          : result.add entry.strValue
   of nkSym                     : result = node.sym.name.s
   of nkIdent                   : result = node.ident.s
-  of nkCharLit                 : result = $char(node.intVal)
+  of nkCharLit                 :
+    let character = char(node.intVal)
+    result = case character
+      of '\n' : "\\n"
+      of '\t' : "\\t"
+      of '\r' : "\\r"
+      of '\\' : "\\\\"
+      of '\0' : "\\x00"
+      else    : $character
   of nkIntLit..nkUInt64Lit     : result = $node.intVal
   of nkFloatLit..nkFloat128Lit : result = $node.floatVal
   of nkStrLit                  : result = node.strVal.replace("\n", "\\n")
