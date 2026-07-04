@@ -192,6 +192,10 @@ describe "nonim.minz | Control Flow":
     let result = generate_zig(case_input("expression_conditional_value"))
     result.eq case_expected("expression_conditional_value")
 
+  it "must generate case as expression value", proc() =
+    let result = generate_zig(case_input("expression_case_value"))
+    result.eq case_expected("expression_case_value")
+
   it "must generate break inside loop", proc() =
     let result = generate_zig(case_input("statement_break"))
     result.eq case_expected("statement_break")
@@ -411,6 +415,10 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_catch_capture_inline"))
     result.eq case_expected("expression_catch_capture_inline")
 
+  it "must generate grouped try expression with parentheses", proc() =
+    let result = generate_zig(case_input("expression_try_grouped"))
+    result.eq case_expected("expression_try_grouped")
+
   todo_it "must generate anonymous struct literal from named tuple", proc() =
     let result = generate_zig(case_input("expression_object"))
     result.eq case_expected("expression_object")
@@ -548,6 +556,14 @@ describe "nonim.minz | Imports":
     let result = generate_zig(case_input("import_from_private"))
     result.eq case_expected("import_from_private")
 
+  it "must generate import inside a procedure body", proc() =
+    let result = generate_zig(case_input("body_import"))
+    result.eq case_expected("body_import")
+
+  it "must generate discard import from as _", proc() =
+    let result = generate_zig(case_input("import_discard"))
+    result.eq case_expected("import_discard")
+
 describe "nonim.minz | Lambdas":
   it "must generate a lambda expression as struct-wrapped function", proc() =
     let result = generate_zig(case_input("expression_lambda"))
@@ -561,6 +577,10 @@ describe "nonim.minz | Test Blocks":
   it "must generate a test block from @test with string name", proc() =
     let result = generate_zig(case_input("statement_test_string"))
     result.eq case_expected("statement_test_string")
+
+  it "must generate a nameless test block from @test", proc() =
+    let result = generate_zig(case_input("statement_test_nameless"))
+    result.eq case_expected("statement_test_nameless")
 
   it "must generate @it as try it() with struct-wrapped lambda", proc() =
     let result = generate_zig(case_input("statement_it"))

@@ -1434,7 +1434,12 @@ proc expression (state :var State; node :PNode) :astTF.Id=
     else                : state.expression_identifier("")
   of nkStmtListExpr:
     for child in node:
-      if child.kind != nkEmpty: return state.expression(child)
+      if child.kind != nkEmpty:
+        let inner_id = state.expression(child)
+        return state.ast.add_expression(astTF.Expression(
+          kind  : astTF.eGroup,
+          group : astTF.ExpressionGroup(inner: inner_id),
+        ))
     state.expression_identifier("")
   else:
     state.expression_identifier(node.name())
@@ -1602,6 +1607,7 @@ proc import_create (state :var State; node :PNode) :seq[astTF.Id]=
         state.ast.data.aliases.get[previous_symbol.get] = prev
       previous_symbol = some(alias_id)
     let path_loc = state.name_add(module_name)
+    let depth_id = some(state.make_depth(node))
     let statement = astTF.Statement(
       kind: astTF.sImport,
       `import`: astTF.StatementImport(
@@ -1609,6 +1615,7 @@ proc import_create (state :var State; node :PNode) :seq[astTF.Id]=
         path: path_loc,
         symbols: first_symbol,
         pragmas: import_pragmas,
+        depth: depth_id,
       ),
     )
     result.add state.ast.add_statement(statement)
@@ -1669,6 +1676,21 @@ proc import_create (state :var State; node :PNode) :seq[astTF.Id]=
       var import_pragmas = none(astTF.Id)
       if pragma_source != nil:
         import_pragmas = state.pragmas_binding(pragma_source)
+      if alias_name == "_":
+        let private_key = state.ast.add_expression(astTF.Expression(
+          kind: astTF.eIdentifier,
+          identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: state.name_add("private"))),
+        ))
+        let private_pragma = state.ast.add_pragma(astTF.Pragma(
+          key: private_key,
+        ))
+        if import_pragmas.isSome:
+          var prev = state.ast.pragm(import_pragmas.get)
+          prev.next = some(private_pragma)
+          state.ast.data.pragmas.get[import_pragmas.get] = prev
+        else:
+          import_pragmas = some(private_pragma)
+      let depth_id = some(state.make_depth(child))
       let statement = astTF.Statement(
         kind: astTF.sImport,
         `import`: astTF.StatementImport(
@@ -1677,6 +1699,7 @@ proc import_create (state :var State; node :PNode) :seq[astTF.Id]=
           global: global_opt,
           alias: alias_ident,
           pragmas: import_pragmas,
+          depth: depth_id,
         ),
       )
       result.add state.ast.add_statement(statement)
@@ -1931,6 +1954,7 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
       of astTF.sVariable    : previous.variable.next    = some(statement_id)
       of astTF.sExpression  : previous.expression.next  = some(statement_id)
       of astTF.sPassthrough : previous.passthrough.next = some(statement_id)
+      of astTF.sImport      : previous.`import`.next    = some(statement_id)
       else                  : discard
       state.ast.data.statements.get[previous_id] = previous
     state.previous_stmt = some(statement_id)
@@ -2227,7 +2251,7 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
             state.statement_namespace(node)
             return
         state.body_call(child)
-      of nkDotExpr, nkPrefix, nkIdent, nkSym:
+      of SomeLit, nkBracketExpr, nkDotExpr, nkPrefix, nkIdent, nkSym:
         let expression_id = state.expression(child)
         let depth_id = some(state.make_depth(child))
         state.ast.add_statement(astTF.Statement(
@@ -2236,6 +2260,10 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
         ))
       of nkVarSection, nkLetSection, nkConstSection:
         state.body_variable(child)
+        return
+      of nkImportStmt, nkFromStmt, nkImportExceptStmt, nkIncludeStmt:
+        for import_id in state.import_create(child):
+          state.body_chain(import_id)
         return
       of nkPragma:
         state.body_passthrough(child)
@@ -2543,7 +2571,12 @@ proc is_at_prefix (node :PNode; prefix :string) :bool=
     node[0][0].name() == "@" and node[0][1].name() == prefix
 
 proc is_at_test (node :PNode) :bool=
-  node.is_at_prefix("test") and node[node.safeLen - 1].kind == nkStmtList
+  if node.is_at_prefix("test") and node[node.safeLen - 1].kind == nkStmtList:
+    return true
+  if node.kind == nkPrefix and node.safeLen >= 3 and
+     node[0].name() == "@" and node[1].name() == "test" and
+     node[node.safeLen - 1].kind == nkStmtList:
+    return true
 
 proc statement_test (state :var State; node :PNode) :void=
   let name_node     = node[1]
@@ -2556,15 +2589,18 @@ proc statement_test (state :var State; node :PNode) :void=
   var block_expr    = astTF.Expression(kind: astTF.eBlock)
   block_expr.`block`.body = block_body_id
   let block_id      = state.ast.add_expression(block_expr)
-  let test_name     = if name_node.kind in {nkStrLit..nkTripleStrLit}: "\"" & name_node.strVal & "\""
-                      else: name_node.name()
   let keyword_loc   = state.name_add("test")
-  let label_loc     = state.name_add(test_name)
+  let label         = if node.kind == nkPrefix:
+    none(astTF.Identifier)
+  else:
+    let test_name   = if name_node.kind in {nkStrLit..nkTripleStrLit}: "\"" & name_node.strVal & "\""
+                      else: name_node.name()
+    some(astTF.Identifier(location: state.name_add(test_name)))
   let keyword_id    = state.ast.add_expression(astTF.Expression(
     kind            : astTF.eKeyword,
     keyword         : astTF.ExpressionKeyword(
       keyword       : astTF.Identifier(location: keyword_loc),
-      label         : some(astTF.Identifier(location: label_loc)),
+      label         : label,
       value         : some(block_id),),))
   let depth_id      = some(state.make_depth(node))
   let statement_id  = state.ast.add_statement(astTF.Statement(

@@ -1188,7 +1188,7 @@ func statement_import_code (
     Out     : var Output;
     subpath : system.string = "";
   ) :void=
-  Out.string(module, "const",    output.Target.definition)
+  if name != "_": Out.string(module, "const", output.Target.definition)
   Out.string(module, " ",        output.Target.definition)
   Out.string(module, name,       output.Target.definition)
   Out.string(module, " ",        output.Target.definition)

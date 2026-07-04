@@ -1,0 +1,1 @@
+ _ = @import("./command.test");
