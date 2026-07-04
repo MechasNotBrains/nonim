@@ -606,7 +606,21 @@ func expression_literal_char (
   zig.location(ast, module, expr.value, Out)
   Out.string(module, "'", output.Target.definition)
 #___________________
-func expression_literal_string (
+func expression_literal_string_multiline (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : astTF.Id;
+    Out    : var Output;
+  ) :void=
+  let expr  = ast.expression(id).literal
+  let lines = ast.source(module, expr.value, synthetic=false).split("\n")
+  for id, line in lines:
+    zig.indentation(ast, module, expr.depth, Out)
+    Out.string(module, "\\\\", output.Target.definition)
+    Out.string(module, line, output.Target.definition)
+    Out.string(module, "\n", output.Target.definition)
+#___________________
+func expression_literal_string_singleline (
     ast    : astTF.Ast;
     module : astTF.Id;
     id     : astTF.Id;
@@ -616,6 +630,17 @@ func expression_literal_string (
   Out.string(module, "\"", output.Target.definition)
   zig.location(ast, module, expr.value, Out)
   Out.string(module, "\"", output.Target.definition)
+#___________________
+func expression_literal_string (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : astTF.Id;
+    Out    : var Output;
+  ) :void=
+  let expr = ast.expression(id).literal
+  let multiline = expr.variant.isSome and ast.source(module, expr.variant.get) in ["\"\"\"", "\\\\", "/**"]
+  if multiline : zig.expression_literal_string_multiline(ast, module, id, Out)
+  else         : zig.expression_literal_string_singleline(ast, module, id, Out)
 #___________________
 func expression_literal_any (
     ast    : astTF.Ast;

@@ -147,6 +147,10 @@ describe "nonim.minz | Literals":
     let result = generate_zig(case_input("literal_string"))
     result.eq case_expected("literal_string")
 
+  it "must generate multiline string literal", proc() =
+    let result = generate_zig(case_input("literal_string_multiline"))
+    result.eq case_expected("literal_string_multiline")
+
   it "must generate char literal", proc() =
     let result = generate_zig(case_input("literal_char"))
     result.eq case_expected("literal_char")

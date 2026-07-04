@@ -360,9 +360,14 @@ proc expression_literal (state :var State; node :PNode) :astTF.Id=
     of Str   : astTF.LiteralKind.string
     else     : astTF.LiteralKind.generic
   let value_loc = state.name_add(node.strValue)
+  let literal_variant = if node.kind == nkTripleStrLit:
+    some(astTF.Identifier(location: state.name_add("\"\"\"")))
+  else:
+    none(astTF.Identifier)
+  let literal_depth = some(state.make_depth(node))
   result = state.ast.add_expression(astTF.Expression(
     kind    : astTF.eLiteral,
-    literal : astTF.ExpressionLiteral(kind: literal_kind, value: value_loc),
+    literal : astTF.ExpressionLiteral(kind: literal_kind, value: value_loc, variant: literal_variant, depth: literal_depth),
   ))
 
 proc expression_identifier (state :var State; node :PNode) :astTF.Id=

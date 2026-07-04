@@ -42,7 +42,17 @@ proc strValue *(node :PNode) :string=
       else    : $character
   of nkIntLit..nkUInt64Lit     : result = $node.intVal
   of nkFloatLit..nkFloat128Lit : result = $node.floatVal
-  of nkStrLit                  : result = node.strVal.replace("\n", "\\n")
+  of nkStrLit                  :
+    result = ""
+    for character in node.strVal:
+      case character
+      of '\\': result.add "\\\\"
+      of '"' : result.add "\\\""
+      of '\n': result.add "\\n"
+      of '\r': result.add "\\r"
+      of '\t': result.add "\\t"
+      of '\0': result.add "\\x00"
+      else   : result.add character
   of nkRStrLit..nkTripleStrLit : result = node.strVal
   of nkCommentStmt             : result = node.comment() # assert false, debugEcho(node.treeRepr & "\n\n" & $node[] & "\n" & node.renderTree)
   of nkBracket                 :
