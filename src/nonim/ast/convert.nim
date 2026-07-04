@@ -1335,7 +1335,7 @@ proc expression (state :var State; node :PNode) :astTF.Id=
   of nkObjConstr          : state.expression_obj_constr(node)
   of nkBracket            : state.expression_array(node)
   of nkTryStmt            : state.expression_try(node)
-  of nkIfExpr             : state.expression_conditional(node)
+  of nkIfExpr, nkIfStmt   : state.expression_conditional(node)
   of nkCaseStmt           : state.expression_case(node)
   of nkPtrTy, nkVarTy     : state.expression_of_type(state.type_node_to_type_id(node))
   of nkLambda             : state.expression_lambda(node)
