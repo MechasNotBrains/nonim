@@ -20,6 +20,10 @@ type Command *{.pure.}= enum
   compile  ## Generate C and compile to binary.
   run      ## Generate, compile, and execute.
 
+type Zig * = object
+  bin   *:string= "zig"
+  cache *:string= ""
+
 type Dir * = object
   bin   *:string= "bin"
   cache *:string= "bin/.cache"
@@ -31,6 +35,7 @@ type Options * = object
   input        *:string
   output       *:string
   dir          *:Dir
+  zig          *:Zig
   verbose      *:bool
   quiet        *:bool
   pass_c       *:seq[string]
@@ -63,6 +68,8 @@ proc options_parse *(args :seq[string]= commandLineParams(); default_backend :Ba
       of "binDir":   result.dir.bin = parser.val
       of "cacheDir": result.dir.cache = parser.val
       of "codeDir":  result.dir.code = parser.val
+      of "zigBin":   result.zig.bin = parser.val
+      of "zigCache": result.zig.cache = parser.val
       of "backend":
         case parser.val
         of "minc":   result.backend = Backend.minc

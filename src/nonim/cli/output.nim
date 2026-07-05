@@ -20,6 +20,8 @@ proc make_target *(options :Options; sources :seq[string]) :B.Target=
   var cfg = B.Config()
   cfg.dir.src = ""
   cfg.dir.bin = options.dir.bin
+  cfg.zig.bin = options.zig.bin
+  cfg.zig.cache = options.zig.cache
   if options.verbose: cfg.log.level = ReportMode.verbose
   case options.backend
   of Backend.minz, Backend.zig:
