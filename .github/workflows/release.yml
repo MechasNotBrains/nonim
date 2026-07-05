@@ -1,0 +1,65 @@
+name: Rolling Release
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'build.nim'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          # - os: macos-latest
+          #   platform: macos-aarch64
+          # - os: macos-13
+          #   platform: macos-x86_64
+          - os: windows-latest
+            platform: windows-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jiro4989/setup-nim-action@v2
+      - name: Clone dependencies
+        run: |
+          git clone https://github.com/MechasNotBrains/minibuild bin/.lib/minibuild
+          git clone https://codeberg.org/heysokam/astTF bin/.lib/astTF
+      - name: Build all
+        run: nim r --outDir:bin/ -p:bin/.lib/minibuild/src build.nim
+      - name: Package binaries
+        shell: bash
+        run: |
+          mkdir -p release
+          for name in nimcheck nimgen minc minz nonim; do
+            if [ -f "bin/${name}.exe" ]; then
+              mv "bin/${name}.exe" "release/${name}-${{ matrix.platform }}.exe"
+            elif [ -f "bin/${name}" ]; then
+              mv "bin/${name}" "release/${name}-${{ matrix.platform }}"
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nonim-${{ matrix.platform }}
+          path: release/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: rolling
+          name: Rolling Release
+          prerelease: true
+          make_latest: false
+          body: Automated rolling release built from the latest master commit.
+          files: '*'
