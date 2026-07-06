@@ -165,15 +165,17 @@ proc run *(options :Options; generate :GenerateProc) =
   if options.backend in {Backend.minz, Backend.minc} and dirExists(options.input):
     options.run_folder(generate)
     return
-  let output = generate(options)
-  let sources = options.sources_collect(output)
-  let trg = options.make_target(sources)
-  options.write_output(output, trg)
-  case options.command
+  var opts = options
+  opts.dir.cache = options.dir.cache / options.output.splitFile.name
+  let output = generate(opts)
+  let sources = opts.sources_collect(output)
+  let trg = opts.make_target(sources)
+  opts.write_output(output, trg)
+  case opts.command
   of Command.codegen: discard
   of Command.compile:
-    if options.backend in {Backend.minz, Backend.zig}: options.link_imports()
+    if opts.backend in {Backend.minz, Backend.zig}: opts.link_imports()
     trg.build()
   of Command.run:
-    if options.backend in {Backend.minz, Backend.zig}: options.link_imports()
+    if opts.backend in {Backend.minz, Backend.zig}: opts.link_imports()
     trg.build(run = true)
