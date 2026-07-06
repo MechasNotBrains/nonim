@@ -632,6 +632,31 @@ proc expression_infix (state :var State; node :PNode) :astTF.Id=
     ))
   let left_node    = node[1]
   let right_node   = node[2]
+  if operator_node.name() == "..^":
+    if right_node.kind == nkIntLit and right_node.intVal == 1:
+      let left_id      = state.expression(left_node)
+      let operator_loc = state.name_add("..")
+      return state.ast.add_expression(astTF.Expression(
+        kind       : astTF.eAffix,
+        affix      : astTF.ExpressionAffix(
+          left     : some(left_id),
+          operator : operator_loc,
+          right    : none(astTF.Id),
+        ),
+      ))
+  if operator_node.name() == "..":
+    if right_node.kind == nkPrefix and right_node[0].ident.s == "^" and right_node.safeLen > 1:
+      if right_node[1].kind == nkIntLit and right_node[1].intVal == 1:
+        let left_id      = state.expression(left_node)
+        let operator_loc = state.name_add("..")
+        return state.ast.add_expression(astTF.Expression(
+          kind       : astTF.eAffix,
+          affix      : astTF.ExpressionAffix(
+            left     : some(left_id),
+            operator : operator_loc,
+            right    : none(astTF.Id),
+          ),
+        ))
   let operator_loc = state.name_add(state.translate_operator(operator_node.name()))
   let left_id      = state.expression(left_node)
   let right_id     = state.expression(right_node)

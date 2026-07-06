@@ -335,6 +335,18 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_indexed"))
     result.eq case_expected("expression_indexed")
 
+  it "must generate open slice as function argument", proc() =
+    let result = generate_zig(case_input("expression_slice_open"))
+    result.eq case_expected("expression_slice_open")
+
+  it "must generate open slice with spaces as function argument", proc() =
+    let result = generate_zig(case_input("expression_slice_open_spaced"))
+    result.eq case_expected("expression_slice_open_spaced")
+
+  it "must generate range slice", proc() =
+    let result = generate_zig(case_input("expression_slice_range"))
+    result.eq case_expected("expression_slice_range")
+
   it "must translate Nim operators to Zig operators", proc() =
     let result = generate_zig(case_input("expression_operator"))
     result.eq case_expected("expression_operator")
