@@ -278,9 +278,17 @@ describe "nonim.minz | Types":
     let result = generate_zig(case_input("type_object_fields"))
     result.eq case_expected("type_object_fields")
 
+  it "must generate a call from a generic instantiation in a type position", proc() =
+    let result = generate_zig(case_input("type_instantiation"))
+    result.eq case_expected("type_instantiation")
+
   it "must generate a function that returns the struct from a generic object", proc() =
     let result = generate_zig(case_input("type_object_generic"))
     result.eq case_expected("type_object_generic")
+
+  it "must generate a member function from a generic field of a generic object", proc() =
+    let result = generate_zig(case_input("type_object_generic_member"))
+    result.eq case_expected("type_object_generic_member")
 
   it "must generate object fields with visibility", proc() =
     let result = generate_zig(case_input("type_object_field_visibility"))

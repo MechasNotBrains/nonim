@@ -262,6 +262,19 @@ describe "nonim.codegen.zig | Statement.Type.Object.Alias":
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 
+describe "nonim.codegen.zig | Statement.Type.Primitive.Instantiation":
+  it "must generate a call from a single instantiation argument", proc() =
+    const Expected = expected("statement_type_primitive_instantiation.zig")
+    let test_case = statement_type.primitive_instantiation()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate a call from multiple instantiation arguments", proc() =
+    const Expected = expected("statement_type_primitive_instantiation_multi.zig")
+    let test_case = statement_type.primitive_instantiation_multi()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
 describe "nonim.codegen.zig | Statement.Type.Object.Generic":
   it "must generate a function that returns the struct when the object has generic parameters", proc() =
     const Expected = expected("statement_type_object_generic.zig")

@@ -386,6 +386,23 @@ proc type_identifier (state :var State; node :PNode) :astTF.Id=
     identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
   ))
 
+proc type_instantiation (state :var State; node :PNode) :astTF.Id=
+  ## @descr Type id of a generic instantiation `Name[A, B]`. Its arguments chain through the expressions store.
+  let name     = state.translate_type(node[0].name())
+  let name_loc = state.name_add(name)
+  var first_argument = none(astTF.Id)
+  var previous       = none(astTF.Id)
+  for argument_index in 1 ..< node.safeLen:
+    let argument_id = state.expression_type(node[argument_index])
+    if first_argument.isNone: first_argument = some(argument_id)
+    if previous.isSome: state.ast.expression_next_set(previous.get, some(argument_id))
+    previous = some(argument_id)
+  result = state.ast.add_type(astTF.Type(
+    kind            : astTF.tPrimitive,
+    primitive       : astTF.TypePrimitive(
+      name          : astTF.Identifier(location: name_loc),
+      instantiation : first_argument,  ),  ))
+
 proc procedure_type (state :var State; node :PNode; name = none(astTF.Identifier); private = none(bool)) :astTF.Id=
   let params_node      = node[0]
   var first_argument   = none(astTF.Id)
@@ -469,6 +486,7 @@ proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astT
           element : element_id,
           length  : length_id,
           mutable : some(is_mutable)  )))
+    return state.type_instantiation(node)
   else: discard
   let name     = state.translate_type(node.name())
   let name_loc = state.name_add(name)
@@ -487,7 +505,7 @@ proc type_bracket (state :var State; node :PNode) :astTF.Id=
   if node[0].name() in ["array", "slice"]:
     result = state.expression_array_type(node)
   else:
-    result = state.type_identifier(node)
+    result = state.expression_of_type(state.type_instantiation(node))
 
 proc type_error (state :var State; node :PNode) :astTF.Id=
   case node.kind
@@ -1263,12 +1281,9 @@ proc procedure_build (state :var State; node :PNode) :astTF.Id=
   var body_id = none(astTF.Id)
   let body_node = node[6]
   if body_node.kind != nkEmpty:
-    let saved_stack = state.scope_stack
-    state.scope_stack = @[0'u64]
     discard state.scope_push()
     body_id = some(state.statement_body(body_node))
     state.scope_pop()
-    state.scope_stack = saved_stack
 
   result = state.ast.add_procedure(astTF.Procedure(
     name       : name_ident,
@@ -1278,6 +1293,7 @@ proc procedure_build (state :var State; node :PNode) :astTF.Id=
     returnType : return_type,
     pragmas    : first_pragma,
     body       : body_id,
+    depth      : some(state.make_depth(node)),
   ))
 
 
@@ -2368,7 +2384,28 @@ proc statement_type_object_fields (state :var State; body_node :PNode) :Option[a
         runtime : some(true),
         depth   : depth_id,
       )
-      if alias_value != nil:
+      let is_generic = field_name_node.kind == nkPragmaExpr and field_name_node[1].pragma_has("generic")
+      if is_generic:
+        # A `{.generic.}` field declares behavior, not data. Its value is a lambda that
+        # takes the name of the field, so the object emits it as a member procedure.
+        let member_private = state.declaration_private(field_name_node)
+        let member_value   = state.expression(field_def[field_def.safeLen - 1])
+        let member_kind    = state.ast.expression(member_value).kind
+        if member_kind == astTF.eProcedure:
+          let member_id = state.ast.expression(member_value).procedure.id
+          var member    = state.ast.procedure(member_id)
+          member.name    = some(astTF.Identifier(location: field_name_loc))
+          member.private = some(member_private)
+          state.ast.data.procedures.get[member_id] = member
+        let generic_key_loc = state.name_add("generic")
+        let generic_key_id  = state.ast.add_expression(astTF.Expression(
+          kind       : astTF.eIdentifier,
+          identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: generic_key_loc)),
+        ))
+        field_binding.pragmas = some(state.ast.add_pragma(astTF.Pragma(key: generic_key_id)))
+        field_binding.value   = some(member_value)
+        field_binding.private = some(member_private)
+      elif alias_value != nil:
         let alias_key_loc = state.name_add("alias")
         let alias_key_id  = state.ast.add_expression(astTF.Expression(
           kind       : astTF.eIdentifier,

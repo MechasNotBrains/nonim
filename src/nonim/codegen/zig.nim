@@ -376,6 +376,7 @@ func procedure (
     Out.string(module, "{", output.Target.definition)
     Out.string(module, "\n", output.Target.definition)
     zig.statement_list(ast, module, P.body.get, Out)
+    zig.indentation(ast, module, P.depth, Out)
     Out.string(module, "}", output.Target.definition)
 
 
@@ -401,6 +402,14 @@ func type_primitive (
   if typ.optional.get(false):
     Out.string(module, "?", output.Target.definition)
   zig.identifier(ast, module, typ.name, Out)
+  if typ.instantiation.isNone: return
+  Out.string(module, "(", output.Target.definition)
+  var current = typ.instantiation
+  while current.isSome:
+    zig.expression(ast, module, current.get, Out)
+    current = ast.expression_next(current.get)
+    if current.isSome: Out.string(module, ", ", output.Target.definition)
+  Out.string(module, ")", output.Target.definition)
 #___________________
 func type_pointer (
     ast    : astTF.Ast;
@@ -456,6 +465,17 @@ func type_field (
   result = field.next
   zig.indentation(ast, module, field.depth, Out)
   base.format_before(ast, module, field.fmt, Out)
+  #___________________
+  # A generic field is a member procedure of the struct, not a data field.
+  if ast.pragma_has(module, field.pragmas, @["generic"]) and field.value.isSome:
+    let value = ast.expression(field.value.get)
+    if value.kind == astTF.eProcedure:
+      if not field.private.get(false):
+        Out.string(module, "pub", output.Target.definition)
+        Out.string(module, " ", output.Target.definition)
+      zig.procedure(ast, module, value.procedure.id, Out)
+      Out.string(module, "\n", output.Target.definition)
+      return
   #___________________
   # An aliased field is a struct-level declaration, not a data field.
   let is_alias = ast.pragma_has(module, field.pragmas, @["alias"])
