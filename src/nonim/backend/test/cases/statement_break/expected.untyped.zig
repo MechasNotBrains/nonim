@@ -1,3 +1,8 @@
 pub fn find_first (n :int) int {
-  break;
+  var current :int= 0;
+  while (true) {
+    if (current == n) break;
+    current = current + 1;
+}
+  return current;
 }

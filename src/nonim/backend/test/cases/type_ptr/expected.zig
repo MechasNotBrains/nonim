@@ -1,1 +1,1 @@
-const nothing: *isize = null;
+const nothing :*const isize= null;

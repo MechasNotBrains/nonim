@@ -1,1 +1,1 @@
-{.emit: "__some_thing   =   42;".}
+{.emit: """__some_thing   =   42;""".}

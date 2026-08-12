@@ -1,5 +1,2 @@
-proc check (x :bool) :bool=
-  if x:
-    return true
-  return false
-
+let flag :bool= true
+let other :bool= false

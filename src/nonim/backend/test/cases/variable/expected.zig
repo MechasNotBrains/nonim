@@ -1,1 +1,1 @@
-const answer: isize = 42;
+const answer :isize= 42;

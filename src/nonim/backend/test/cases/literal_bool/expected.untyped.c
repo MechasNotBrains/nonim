@@ -1,6 +1,2 @@
-static bool check (bool const x) {
-  if (x) {
-    return true;
-  }
-  return false;
-}
+static bool const flag = true;
+static bool const other = false;

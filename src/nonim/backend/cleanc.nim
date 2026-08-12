@@ -20,7 +20,7 @@ proc generate *(options :Options) :Output=
   var root     = newNode(nkStmtList)
   for statement in compiled.statements:
     root.add(statement)
-  let converted = convert.convert(root, Language.C, options.input)
+  let converted = convert.convert(root, Language.C, path = options.input)
   return converted.C()
 
 

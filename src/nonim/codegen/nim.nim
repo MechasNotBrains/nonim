@@ -538,6 +538,12 @@ func block_keyword *(
 #_______________________________________
 # @section Statements
 #_____________________________
+func statement_indent *(ast :astTF.Ast; stored :Option[astTF.Id]; block_depth :int) :int=
+  ## @descr Indentation level of a statement. Falls back to the level of the block that holds it
+  ## when the statement stores none of its own.
+  if stored.isNone: return block_depth
+  result = ast.node_depth(stored)
+#___________________
 func variable *(
     ast     : astTF.Ast;
     module  : astTF.Id;
@@ -545,10 +551,11 @@ func variable *(
     target  : output.Target;
     Out     : var Output;
     isBlock : bool = false;
+    block_depth : int = 0;
   ) :void=
   let V = ast.statement(id).variable
   let B = ast.binding(V.id)
-  let depth = ast.node_depth(V.depth)
+  let depth = ast.statement_indent(V.depth, block_depth)
   if isBlock:
     Out.string(module, indentation, target)
   else:
@@ -724,7 +731,7 @@ func expression_keyword *(
     Out.string(module, " ", target)
     ast.expression(module, E.keyword.value.get, target, Out)
 
-func statement_list *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; mode :BlockMode= defaultBlockMode()) :void
+func statement_list *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :output.Target; Out :var Output; mode :BlockMode= defaultBlockMode(); block_depth :int = 0) :void
 
 func statement_procedure *(
     ast     : astTF.Ast;
@@ -836,7 +843,7 @@ func expression_loop *(
     ast.expression(module, expr.loop.condition.get, target, Out)
   Out.string(module, ":\n", target)
   if expr.loop.body.isSome:
-    ast.statement_list(module, expr.loop.body.get, target, Out, mode)
+    ast.statement_list(module, expr.loop.body.get, target, Out, mode, depth + 1)
 #___________________
 func statement_branch *(
     ast     : astTF.Ast;
@@ -858,7 +865,7 @@ func statement_branch *(
     else:
       Out.string(module, "else:\n", target)
     if branch.body.isSome:
-      ast.statement_list(module, branch.body.get, target, Out, mode)
+      ast.statement_list(module, branch.body.get, target, Out, mode, depth + 1)
     current = branch.next
 #___________________
 func expression_conditional *(
@@ -875,7 +882,7 @@ func expression_conditional *(
   ast.expression(module, expr.conditional.condition, target, Out)
   Out.string(module, ":\n", target)
   if expr.conditional.body.isSome:
-    ast.statement_list(module, expr.conditional.body.get, target, Out, mode)
+    ast.statement_list(module, expr.conditional.body.get, target, Out, mode, depth + 1)
   if expr.conditional.branches.isSome:
     ast.statement_branch(module, expr.conditional.branches.get, target, Out, mode)
 #___________________
@@ -886,10 +893,11 @@ func statement_expression *(
     target  : output.Target;
     Out     : var Output;
     mode    : BlockMode;
+    block_depth : int = 0;
   ) :void=
   let S = ast.statement(id).expression
   let expr = ast.expression(S.id)
-  let depth = ast.node_depth(S.depth)
+  let depth = ast.statement_indent(S.depth, block_depth)
   for indentation_level in 0 ..< depth: Out.string(module, indentation, target)
   case expr.kind
   of astTF.eLoop:        ast.expression_loop(module, S.id, depth, target, Out, mode)
@@ -905,11 +913,12 @@ func statement *(
     target  : output.Target;
     Out     : var Output;
     mode    : BlockMode;
+    block_depth : int = 0;
   ) :void=
   let S = ast.statement(id)
   case S.kind
   of astTF.sPragma      : ast.pragma(module, S.pragma.id, target, Out)
-  of astTF.sVariable    : ast.variable(module, id, target, Out, isBlock = false)
+  of astTF.sVariable    : ast.variable(module, id, target, Out, isBlock = false, block_depth = block_depth)
   of astTF.sProcedure   : ast.statement_procedure(module, id, target, Out, mode)
   of astTF.sType        : ast.statement_type(module, id, target, Out, isBlock = false)
   of astTF.sPassthrough : ast.statement_passthrough(module, id, target, Out)
@@ -917,7 +926,7 @@ func statement *(
   of astTF.sImport      : ast.statement_import(module, id, target, Out)
   of astTF.sAlias       : ast.statement_alias(module, id, target, Out, isBlock = false)
   of astTF.sExpression  :
-    ast.statement_expression(module, id, target, Out, mode)
+    ast.statement_expression(module, id, target, Out, mode, block_depth)
     return
   of astTF.sBranch      :
     ast.statement_branch(module, id, target, Out, mode)
@@ -958,20 +967,21 @@ func statement_list *(
     target  : output.Target;
     Out     : var Output;
     mode    : BlockMode = defaultBlockMode();
+    block_depth : int = 0;
   ) :void=
   var current = some(id)
   while current.isSome:
     let current_id = current.get
     let keyword = ast.block_keyword(current_id)
     if mode == BlockMode.none or keyword.len == 0:
-      ast.statement(module, current_id, target, Out, mode)
+      ast.statement(module, current_id, target, Out, mode, block_depth)
       current = ast.statement_next(current_id)
       continue
     let next_id = ast.statement_next(current_id)
     let has_group = mode == BlockMode.always or
       (next_id.isSome and ast.block_keyword(next_id.get) == keyword)
     if not has_group:
-      ast.statement(module, current_id, target, Out, mode)
+      ast.statement(module, current_id, target, Out, mode, block_depth)
       current = next_id
       continue
     Out.string(module, keyword, target)

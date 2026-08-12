@@ -1,3 +1,8 @@
 pub fn skip_negatives (n :int) void {
-  continue;
+  var current :int= 0;
+  while (current < n) {
+    current = current + 1;
+    if (current < 0) continue;
+    _ = current;
+}
 }

@@ -22,8 +22,15 @@ const Tab = "  "
 #_____________________________
 func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func expression_keyword (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
-func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
+func expression_condition (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
+func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0) :void
 func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
+
+func statement_indent (ast :astTF.Ast; stored :Option[astTF.Id]; block_depth :int) :int=
+  ## @descr Indentation level of a statement. Falls back to the level of the block that holds it
+  ## when the statement stores none of its own.
+  if stored.isNone: return block_depth
+  result = ast.node_depth(stored)
 
 func expression_identifier (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
@@ -90,22 +97,32 @@ func expression_call (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var O
 
 func expression_loop (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
   let expr = ast.data.expressions.get[id]
-  Out.string(module, "while (", output.Target.definition)
+  Out.string(module, "while ", output.Target.definition)
   if expr.loop.condition.isSome:
-    ast.expression(module, expr.loop.condition.get, Out)
-  Out.string(module, ") {\n", output.Target.definition)
+    ast.expression_condition(module, expr.loop.condition.get, Out)
+  Out.string(module, " {\n", output.Target.definition)
   if expr.loop.body.isSome:
-    ast.statement_list(module, expr.loop.body.get, Out)
+    ast.statement_list(module, expr.loop.body.get, Out, depth + 1)
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
   Out.string(module, "}\n", output.Target.definition)
 
+func expression_condition (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  ## @descr Condition of a control flow construct, wrapped in the parentheses that C requires.
+  ## A condition that already carries a group spells them itself.
+  if ast.data.expressions.get[id].kind == astTF.eGroup:
+    ast.expression(module, id, Out)
+    return
+  Out.string(module, "(", output.Target.definition)
+  ast.expression(module, id, Out)
+  Out.string(module, ")", output.Target.definition)
+
 func expression_conditional (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
   let expr = ast.data.expressions.get[id]
-  Out.string(module, "if (", output.Target.definition)
-  ast.expression(module, expr.conditional.condition, Out)
-  Out.string(module, ") {\n", output.Target.definition)
+  Out.string(module, "if ", output.Target.definition)
+  ast.expression_condition(module, expr.conditional.condition, Out)
+  Out.string(module, " {\n", output.Target.definition)
   if expr.conditional.body.isSome:
-    ast.statement_list(module, expr.conditional.body.get, Out)
+    ast.statement_list(module, expr.conditional.body.get, Out, depth + 1)
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
   Out.string(module, "}", output.Target.definition)
   if expr.conditional.branches.isSome:
@@ -120,6 +137,16 @@ func expression_indexed (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
   ast.expression(module, expr.indexed.index, Out)
   Out.string(module, "]", output.Target.definition)
 
+func expression_group (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let expression = ast.data.expressions.get[id]
+  Out.string(module, "(", output.Target.definition)
+  var current = some(expression.group.inner)
+  while current.isSome:
+    ast.expression(module, current.get, Out)
+    current = ast.expression_next(current.get)
+    if current.isSome: Out.string(module, ", ", output.Target.definition)
+  Out.string(module, ")", output.Target.definition)
+
 func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
   case expression.kind
@@ -129,6 +156,7 @@ func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Outpu
   of astTF.eCall:       ast.expression_call(module, id, Out)
   of astTF.eIndexed:    ast.expression_indexed(module, id, Out)
   of astTF.eKeyword:    ast.expression_keyword(module, id, Out)
+  of astTF.eGroup:      ast.expression_group(module, id, Out)
   else: assert false, "codegen.C: unsupported expression kind: " & $expression.kind
 
 
@@ -168,7 +196,7 @@ func type_suffix (ast :astTF.Ast; module :astTF.Id; expression_id :Option[astTF.
 #_______________________________________
 # @section Statements
 #_____________________________
-func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0) :void=
   let statement = ast.data.statements.get[id]
   let binding = ast.data.bindings.get[statement.variable.id]
 
@@ -177,7 +205,7 @@ func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
   let is_mutable = binding.mutable.get(false)
   let is_private = binding.private.get(true)
 
-  let depth = ast.node_depth(statement.variable.depth)
+  let depth = ast.statement_indent(statement.variable.depth, block_depth)
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
 
   if is_private and depth == 0:
@@ -311,10 +339,10 @@ func statement_type (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
     Out.string(module, ";\n", output.Target.definition)
 
 
-func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0) :void=
   let statement = ast.data.statements.get[id]
   let expr = ast.data.expressions.get[statement.expression.id]
-  let depth = ast.node_depth(statement.expression.depth)
+  let depth = ast.statement_indent(statement.expression.depth, block_depth)
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
   case expr.kind
   of astTF.eLoop:        ast.expression_loop(module, statement.expression.id, depth, Out)
@@ -351,14 +379,14 @@ func statement_comment (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var
     first = false
   Out.string(module, "\n", output.Target.definition)
 
-func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0) :void=
   let statement = ast.data.statements.get[id]
   case statement.kind
-  of astTF.sVariable:    ast.statement_variable(module, id, Out)
+  of astTF.sVariable:    ast.statement_variable(module, id, Out, block_depth)
   of astTF.sProcedure:   ast.statement_procedure(module, id, Out)
   of astTF.sType:        ast.statement_type(module, id, Out)
   of astTF.sBranch:      ast.statement_branch(module, id, Out)
-  of astTF.sExpression:  ast.statement_expression(module, id, Out)
+  of astTF.sExpression:  ast.statement_expression(module, id, Out, block_depth)
   of astTF.sImport:      ast.statement_import(module, id, Out)
   of astTF.sPassthrough: ast.statement_passthrough(module, id, Out)
   of astTF.sComment:     ast.statement_comment(module, id, Out)
@@ -371,24 +399,24 @@ func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var 
     let branch = ast.data.statements.get[current.get].branch
     let depth = ast.node_depth(branch.depth)
     if branch.condition.isSome:
-      Out.string(module, " else if (", output.Target.definition)
-      ast.expression(module, branch.condition.get, Out)
-      Out.string(module, ") {\n", output.Target.definition)
+      Out.string(module, " else if ", output.Target.definition)
+      ast.expression_condition(module, branch.condition.get, Out)
+      Out.string(module, " {\n", output.Target.definition)
     else:
       Out.string(module, " else {\n", output.Target.definition)
     if branch.body.isSome:
-      ast.statement_list(module, branch.body.get, Out)
+      ast.statement_list(module, branch.body.get, Out, depth + 1)
     for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
     Out.string(module, "}", output.Target.definition)
     current = branch.next
   Out.string(module, "\n", output.Target.definition)
 
 
-func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0) :void=
   var current = some(id)
   while current.isSome:
     let current_id = current.get
-    ast.statement(module, current_id, Out)
+    ast.statement(module, current_id, Out, block_depth)
     let statement = ast.data.statements.get[current_id]
     current = case statement.kind
       of astTF.sVariable:    statement.variable.next

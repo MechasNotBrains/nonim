@@ -151,11 +151,11 @@ proc translate_type_c (state :var State; nim_type :string) :string=
     of "cstring":  "char const*"
     of "void":     "void"
     else:          nim_type
-  state.needs.stdint = result in [
+  if result in [
     "int64_t",  "int8_t",  "int16_t",  "int32_t",
     "uint64_t", "uint8_t", "uint16_t", "uint32_t",
-    "size_t" ]
-  state.needs.stdbool = result == "bool"
+    "size_t" ]: state.needs.stdint = true
+  if result == "bool": state.needs.stdbool = true
 
 proc translate_type_zig (state :var State; nim_type :string) :string=
   result = case nim_type
@@ -1331,7 +1331,7 @@ proc expression_conditional_body (state :var State; body_node :PNode) :astTF.Id=
   ))
 
 proc capture_from_as (state :var State; condition_node :PNode; condition_id :var astTF.Id) :Option[astTF.Id]=
-  if condition_node.kind == nkInfix and condition_node[0].ident.s == "as":
+  if condition_node.kind == nkInfix and condition_node[0].name() == "as":
     condition_id = state.expression(condition_node[1])
     let name_loc = state.name_add(condition_node[2].name())
     let expr_id  = state.ast.add_expression(astTF.Expression(
@@ -1492,13 +1492,15 @@ proc expression (state :var State; node :PNode) :astTF.Id=
     if node.safeLen > 1 : state.expression(node[1])
     else                : state.expression_identifier("")
   of nkStmtListExpr:
+    let is_expansion = node.safeLen > 0 and node[0].kind == nkEmpty
     for child in node:
-      if child.kind != nkEmpty:
-        let inner_id = state.expression(child)
-        return state.ast.add_expression(astTF.Expression(
-          kind  : astTF.eGroup,
-          group : astTF.ExpressionGroup(inner: inner_id),
-        ))
+      if child.kind == nkEmpty: continue
+      let inner_id = state.expression(child)
+      if is_expansion: return inner_id
+      return state.ast.add_expression(astTF.Expression(
+        kind  : astTF.eGroup,
+        group : astTF.ExpressionGroup(inner: inner_id),
+      ))
     state.expression_identifier("")
   else:
     state.expression_identifier(node.name())

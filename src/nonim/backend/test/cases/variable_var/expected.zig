@@ -1,1 +1,1 @@
-var counter: isize = 0;
+var counter :isize= 0;

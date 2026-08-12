@@ -1,1 +1,1 @@
-const letter: u8 = 'a';
+const letter :u8= 'a';
