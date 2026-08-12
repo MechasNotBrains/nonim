@@ -82,8 +82,9 @@ proc object_generic *() :TestData=
   let generic_id  = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: param_loc)), private: some(true)))
   let fieldT_id   = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: param_loc))))
   let fieldT_expr = result.ast.add_expression_type(fieldT_id)
-  let field2_id   = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field2_loc)), dataType: some(fieldT_expr)))
-  let field1_id   = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field1_loc)), dataType: some(fieldT_expr), next: some(field2_id)))
+  let field_depth = some(result.ast.add_depth(astTF.Depth(indent: some(1'u64))))
+  let field2_id   = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field2_loc)), dataType: some(fieldT_expr), depth: field_depth))
+  let field1_id   = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field1_loc)), dataType: some(fieldT_expr), next: some(field2_id), depth: field_depth))
   let type_id     = result.ast.add_type(astTF.Type(kind: astTF.tObject, `object`: astTF.TypeObject(
     name     : some(astTF.Identifier(location: name_loc)),
     fields   : some(field1_id),

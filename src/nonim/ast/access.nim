@@ -218,3 +218,19 @@ func type_name *(
     of tRange       : T.range.name
     of tProcedure   : ast.procedure(T.procedure.id).name
 
+func type_generics *(
+    ast : astTF.astTF;
+    id  : astTF.Id;
+  ) :Option[astTF.Id]=
+  ## @descr Id of the first generic parameter that the type declares. None when it declares none.
+  let T = ast.typ(id)
+  result = case T.kind
+    of tObject      : T.`object`.generics
+    of tAlias       : T.alias.generics
+    of tProcedure   : ast.procedure(T.procedure.id).generics
+    of tEnumeration : none(astTF.Id)
+    of tPrimitive   : none(astTF.Id)
+    of tArray       : none(astTF.Id)
+    of tPtr         : none(astTF.Id)
+    of tRange       : none(astTF.Id)
+

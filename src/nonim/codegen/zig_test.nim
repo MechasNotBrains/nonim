@@ -262,6 +262,13 @@ describe "nonim.codegen.zig | Statement.Type.Object.Alias":
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 
+describe "nonim.codegen.zig | Statement.Type.Object.Generic":
+  it "must generate a function that returns the struct when the object has generic parameters", proc() =
+    const Expected = expected("statement_type_object_generic.zig")
+    let test_case = statement_type.object_generic()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
 describe "nonim.codegen.zig | Statement.Type.Object.Keyword":
   it "must generate a union from the union keyword", proc() =
     const Expected = expected("statement_type_union.zig")

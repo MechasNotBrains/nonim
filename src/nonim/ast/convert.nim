@@ -2394,12 +2394,34 @@ proc statement_type_object_fields (state :var State; body_node :PNode) :Option[a
       previous = some(field_id)
   state.scope_pop()
 
+proc statement_type_generics (state :var State; generics_node :PNode) :Option[astTF.Id]=
+  result = none(astTF.Id)
+  if generics_node == nil or generics_node.kind != nkGenericParams: return
+  var previous = none(astTF.Id)
+  for parameter_def in generics_node:
+    if parameter_def.kind != nkIdentDefs: continue
+    for name_index in 0 ..< parameter_def.safeLen - 2:
+      let parameter_name = parameter_def[name_index].name()
+      if parameter_name.len == 0: continue
+      let parameter_loc = state.name_add(parameter_name)
+      let parameter_id  = state.ast.add_binding(astTF.Binding(
+        name    : some(astTF.Identifier(location: parameter_loc)),
+        private : some(true),
+      ))
+      if result.isNone: result = some(parameter_id)
+      if previous.isSome:
+        var prev  = state.ast.data.bindings.get[previous.get]
+        prev.next = some(parameter_id)
+        state.ast.data.bindings.get[previous.get] = prev
+      previous = some(parameter_id)
+
 proc statement_type_object (
     state      : var State;
     body_node  : PNode;
     name_loc   : astTF.Location;
     is_private : bool;
     pragmas    : Option[astTF.Id] = none(astTF.Id);
+    generics   : Option[astTF.Id] = none(astTF.Id);
   ) =
   let first_field  = state.statement_type_object_fields(body_node)
   let type_id      = state.ast.add_type(astTF.Type(
@@ -2408,7 +2430,8 @@ proc statement_type_object (
       name         : some(astTF.Identifier(location: name_loc)),
       fields       : first_field,
       private      : some(is_private),
-      pragmas      : pragmas,  ),  ))
+      pragmas      : pragmas,
+      generics     : generics,  ),  ))
   let statement_id = state.ast.add_statement(astTF.Statement(
     kind           : astTF.sType,
     `type`         : astTF.StatementType(id: type_id),
@@ -2424,8 +2447,9 @@ proc statement_type (state :var State; node :PNode) =
   let is_private = state.declaration_private(name_node)
   let name_loc   = state.name_add(name_str)
   let type_pragmas = state.pragmas_binding(name_node)
+  let type_generics = state.statement_type_generics(node[1])
   if body_node.kind == nkObjectTy:
-    state.statement_type_object(body_node, name_loc, is_private, type_pragmas)
+    state.statement_type_object(body_node, name_loc, is_private, type_pragmas, type_generics)
   elif body_node.kind == nkEnumTy:
     var backing = none(astTF.Id)
     let backing_node = name_node.pragma_value("backing")

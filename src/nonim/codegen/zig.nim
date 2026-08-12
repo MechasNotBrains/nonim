@@ -1162,14 +1162,43 @@ func statement_procedure (
   let proc_id = ast.statement(id).procedure.id
   zig.procedure(ast, module, proc_id, Out)
 #___________________
+func statement_type_generics (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : astTF.Id;
+    Out    : var Output;
+  ) :void=
+  Out.string(module, "(", output.Target.definition)
+  var current = some(id)
+  while current.isSome:
+    let parameter = ast.binding(current.get)
+    if parameter.name.isSome:
+      zig.identifier(ast, module, parameter.name.get, Out)
+      Out.string(module, " ", output.Target.definition)
+    Out.string(module, ":type", output.Target.definition)
+    current = parameter.next
+    if current.isSome: Out.string(module, ", ", output.Target.definition)
+  Out.string(module, ")", output.Target.definition)
+#___________________
 func statement_type (
     ast    : astTF.Ast;
     module : astTF.Id;
     id     : astTF.Id;
     Out    : var Output;
   ) :void=
-  let type_id = ast.statement(id).`type`.id
-  let name    = base.type_name(ast, module, type_id)
+  let type_id  = ast.statement(id).`type`.id
+  let name     = base.type_name(ast, module, type_id)
+  let generics = ast.type_generics(type_id)
+  if generics.isSome:
+    Out.string(module, "fn", output.Target.definition)
+    Out.string(module, " ", output.Target.definition)
+    Out.string(module, name, output.Target.definition)
+    Out.string(module, " ", output.Target.definition)
+    zig.statement_type_generics(ast, module, generics.get, Out)
+    Out.string(module, " type { return ", output.Target.definition)
+    zig.Type(ast, module, type_id, Out)
+    Out.string(module, "; }", output.Target.definition)
+    return
   Out.string(module, "const", output.Target.definition)
   Out.string(module, " ", output.Target.definition)
   Out.string(module, name, output.Target.definition)
@@ -1382,7 +1411,7 @@ func statement_needs_semicolon (
   ) :bool=
   let stmt = ast.statement(id)
   result = case stmt.kind
-    of sType        : true
+    of sType        : ast.type_generics(stmt.`type`.id).isNone
     of sImport      : true
     of sAlias       : true
     of sPragma      : true
