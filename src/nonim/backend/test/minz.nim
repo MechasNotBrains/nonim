@@ -427,6 +427,14 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_catch_capture_inline"))
     result.eq case_expected("expression_catch_capture_inline")
 
+  it "must generate catch with block body from multi-statement except", proc() =
+    let result = generate_zig(case_input("expression_catch_block"))
+    result.eq case_expected("expression_catch_block")
+
+  it "must generate catch on the right side of an assignment", proc() =
+    let result = generate_zig(case_input("expression_catch_assignment"))
+    result.eq case_expected("expression_catch_assignment")
+
   it "must generate grouped try expression with parentheses", proc() =
     let result = generate_zig(case_input("expression_try_grouped"))
     result.eq case_expected("expression_try_grouped")

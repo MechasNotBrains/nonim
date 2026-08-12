@@ -188,13 +188,15 @@ proc union *() :TestData=
   let fieldT_loc  = astTF.Location(start: field2_loc.`end`, `end`: field2_loc.`end` + input_type.len)
   let fieldT_id   = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: fieldT_loc))))
   let fieldT_expr = result.ast.add_expression_type(fieldT_id)
-  let field2_id   = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field2_loc)), dataType: some(fieldT_expr)))
-  let field1_id   = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field1_loc)), dataType: some(fieldT_expr), next: some(field2_id)))
+  let field_depth = some(result.ast.add_depth(astTF.Depth(indent: some(1'u64))))
+  let field2_id   = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field2_loc)), dataType: some(fieldT_expr), depth: field_depth))
+  let field1_id   = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field1_loc)), dataType: some(fieldT_expr), next: some(field2_id), depth: field_depth))
   let pragma_key  = result.ast.add_expression(astTF.Expression(kind: astTF.eIdentifier, identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: pragma_loc))))
-  let pragma_id   = result.ast.add_pragma(astTF.Pragma(key: pragma_key))
+  let bycopy_id   = result.ast.add_pragma(astTF.Pragma(key: pragma_key))
+  let keyw_key    = result.ast.add_expression(astTF.Expression(kind: astTF.eIdentifier, identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: keyw_loc))))
+  let pragma_id   = result.ast.add_pragma(astTF.Pragma(key: keyw_key, next: some(bycopy_id)))
   let type_id     = result.ast.add_type(astTF.Type(kind: astTF.tObject, `object`: astTF.TypeObject(
     name    : some(astTF.Identifier(location: name_loc)),
-    keyword : some(astTF.Identifier(location: keyw_loc)),
     fields  : some(field1_id),
     pragmas : some(pragma_id),
   )))
@@ -489,14 +491,16 @@ proc procedure_tuple_return *() :TestData=
 
 proc object_alias_pub *() :TestData=
   const input_name    = "Type"
+  const input_pragma  = "alias"
   const input_alias   = "create"
   const input_target  = "This.create"
   const input_field   = "x"
   const input_ftype   = "int"
-  const input_source  = input_name & input_alias & input_target & input_field & input_ftype & "567890Z"
+  const input_source  = input_name & input_pragma & input_alias & input_target & input_field & input_ftype & "567890Z"
   result = create(input_source)
   let name_loc       = astTF.Location(start: 0, `end`: input_name.len)
   var offset         = name_loc.`end`
+  let pragma_loc     = astTF.Location(start: offset, `end`: offset + input_pragma.len); offset += input_pragma.len
   let alias_loc      = astTF.Location(start: offset, `end`: offset + input_alias.len); offset += input_alias.len
   let target_loc     = astTF.Location(start: offset, `end`: offset + input_target.len); offset += input_target.len
   let field_loc      = astTF.Location(start: offset, `end`: offset + input_field.len); offset += input_field.len
@@ -505,7 +509,9 @@ proc object_alias_pub *() :TestData=
   let ftype_expr     = result.ast.add_expression_type(ftype_id)
   let target_expr    = result.ast.add_expression(astTF.Expression(kind: astTF.eIdentifier, identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: target_loc))))
   let field_depth    = some(result.ast.add_depth(astTF.Depth(indent: some(1'u64))))
-  let alias_binding  = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: alias_loc)), value: some(target_expr), private: some(false), depth: field_depth))
+  let pragma_key     = result.ast.add_expression(astTF.Expression(kind: astTF.eIdentifier, identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: pragma_loc))))
+  let pragma_id      = result.ast.add_pragma(astTF.Pragma(key: pragma_key))
+  let alias_binding  = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: alias_loc)), value: some(target_expr), private: some(false), depth: field_depth, pragmas: some(pragma_id)))
   let field_binding  = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field_loc)), dataType: some(ftype_expr), next: some(alias_binding), depth: field_depth))
   let type_id        = result.ast.add_type(astTF.Type(kind: astTF.tObject, `object`: astTF.TypeObject(
     name             : some(astTF.Identifier(location: name_loc)),

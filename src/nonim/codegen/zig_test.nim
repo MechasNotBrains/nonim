@@ -262,3 +262,10 @@ describe "nonim.codegen.zig | Statement.Type.Object.Alias":
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 
+describe "nonim.codegen.zig | Statement.Type.Object.Keyword":
+  it "must generate a union from the union keyword", proc() =
+    const Expected = expected("statement_type_union.zig")
+    let test_case = statement_type.union()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+

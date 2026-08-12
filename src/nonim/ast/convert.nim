@@ -929,6 +929,14 @@ proc expression_array_type (state :var State; node :PNode) :astTF.Id=
 
 
 proc expression_handler (state :var State; handler_node :PNode) :astTF.Id=
+  if handler_node.kind == nkStmtList and handler_node.safeLen > 1:
+    discard state.scope_push()
+    let body_id = state.statement_body(handler_node)
+    state.scope_pop()
+    var block_expr = astTF.Expression(kind: astTF.eBlock)
+    block_expr.`block`.body  = some(body_id)
+    block_expr.`block`.depth = some(state.make_depth(handler_node))
+    return state.ast.add_expression(block_expr)
   if handler_node.kind == nkStmtList and handler_node.safeLen > 0:
     let stmt = handler_node[0]
     case stmt.kind
@@ -983,6 +991,16 @@ proc expression_catch (state :var State; node :PNode) :astTF.Id=
   else:
     handler_node = except_branch
   let handler_id = state.expression_handler(handler_node)
+  if inner.kind == nkAsgn and inner.safeLen >= 2:
+    let left_id  = state.expression(inner[0])
+    let right_id = state.expression(inner[1])
+    let catch_id = state.expression_catch_keyword(right_id, capture, handler_id)
+    return state.ast.add_expression(astTF.Expression(
+      kind       : astTF.eAffix,
+      affix      : astTF.ExpressionAffix(
+        left     : some(left_id),
+        operator : state.name_add("="),
+        right    : some(catch_id),  ),  ))
   result = state.expression_catch_keyword(error_union, capture, handler_id)
 
 proc expression_try (state :var State; node :PNode) :astTF.Id=

@@ -1,1 +1,1 @@
-let thing *:int= 42
+let thing :int= 42

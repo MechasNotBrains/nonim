@@ -513,6 +513,24 @@ func type_object_pragmas (
     else: discard
     current = pragma.next
 #___________________
+func type_object_keyword (
+    ast    : astTF.Ast;
+    module : astTF.Id;
+    id     : astTF.Id;
+    Out    : var Output;
+  ) :void=
+  let typ   = ast.typ(id).`object`
+  let union = ast.pragma_find(module, typ.pragmas, "union")
+  if union.isNone:
+    Out.string(module, "struct", output.Target.definition)
+    return
+  Out.string(module, "union", output.Target.definition)
+  let pragma = ast.pragm(union.get)
+  if pragma.value.isSome:
+    Out.string(module, "(", output.Target.definition)
+    zig.expression(ast, module, pragma.value.get, Out)
+    Out.string(module, ")", output.Target.definition)
+#___________________
 func type_object (
     ast    : astTF.Ast;
     module : astTF.Id;
@@ -523,7 +541,7 @@ func type_object (
   if typ.optional.get(false):
     Out.string(module, "?", output.Target.definition)
   zig.type_object_pragmas(ast, module, id, Out)
-  Out.string(module, "struct", output.Target.definition)
+  zig.type_object_keyword(ast, module, id, Out)
   Out.string(module, " ", output.Target.definition)
   Out.string(module, "{", output.Target.definition)
   Out.string(module, "\n", output.Target.definition)
@@ -1049,6 +1067,7 @@ func expression_block (
   if expr.body.isSome:
     Out.string(module, "\n", output.Target.definition)
     zig.statement_list(ast, module, expr.body.get, Out)
+  zig.indentation(ast, module, expr.depth, Out)
   Out.string(module, "}", output.Target.definition)
 #___________________
 func expression_procedure (

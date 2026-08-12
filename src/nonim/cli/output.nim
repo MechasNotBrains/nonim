@@ -39,7 +39,7 @@ proc make_target *(options :Options; sources :seq[string]) :B.Target=
       flags.add("-M" & dep.name & "=" & dep.path)
     for dep in options.dependencies:
       deps.add(B.Dependency(name: dep.name, url: "", path: ""))
-  result = B.target(B.Kind.Program, sources[0], options.output.splitFile.name, sources, cfg, flags, deps)
+  result = B.target(B.Kind.Program, sources[0], options.output.splitFile.name, sources[1..^1], cfg, flags, deps)
 
 
 proc ext_src *(options :Options) :string=

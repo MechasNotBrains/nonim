@@ -2,7 +2,7 @@
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
 # @deps std
-from std/options import isSome, isNone, get, Option, some
+from std/options import isSome, isNone, get, Option, some, none
 # @deps nonim
 import astTF
 
@@ -132,6 +132,20 @@ func source *(
 #_______________________________________
 # @section Pragma Helpers
 #_____________________________
+func pragma_find *(
+    atf    : astTF.astTF;
+    module : astTF.Id;
+    id     : Option[astTF.Id];
+    key    : system.string;
+  ) :Option[astTF.Id]=
+  result = none(astTF.Id)
+  var current = id
+  while current.isSome:
+    let pragma = atf.pragm(current.get)
+    let name   = atf.source(module, atf.expression(pragma.key).identifier.name)
+    if name == key: return current
+    current = pragma.next
+
 func pragma_has *(
     atf    : astTF.astTF;
     module : astTF.Id;
