@@ -956,6 +956,8 @@ func expression_loop_header_for (
     Out    : var Output;
   ) :void=
   let expr   = ast.expression(id).loop
+  if ast.pragma_has(module, ast.statement(expr.sentry.get).expression.pragmas, @["inline"]):
+    Out.string(module, "inline ", output.Target.definition)
   Out.string(module, "for (", output.Target.definition)
   zig.expression_list(ast, module, expr.condition.get, Out)
   Out.string(module, ") |", output.Target.definition)

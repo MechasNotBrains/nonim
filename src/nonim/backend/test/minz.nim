@@ -278,6 +278,10 @@ describe "nonim.minz | Types":
     let result = generate_zig(case_input("type_object_fields"))
     result.eq case_expected("type_object_fields")
 
+  it "must generate an inline loop from an inline pragma on the capture", proc() =
+    let result = generate_zig(case_input("control_for_inline"))
+    result.eq case_expected("control_for_inline")
+
   it "must generate a quoted identifier when the name is a zig keyword", proc() =
     let result = generate_zig(case_input("expression_dot_keyword"))
     result.eq case_expected("expression_dot_keyword")

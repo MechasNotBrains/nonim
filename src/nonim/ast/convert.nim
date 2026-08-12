@@ -2128,9 +2128,17 @@ proc statement_body (state :var State; node :PNode) :astTF.Id=
         kind         : astTF.eIdentifier,
         identifier   : astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
       ))
+      var capture_pragmas = none(astTF.Id)
+      if iter_node.kind == nkPragmaExpr and iter_node[1].pragma_has("inline"):
+        let inline_key_loc = state.name_add("inline")
+        let inline_key_id  = state.ast.add_expression(astTF.Expression(
+          kind       : astTF.eIdentifier,
+          identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: inline_key_loc)),
+        ))
+        capture_pragmas = some(state.ast.add_pragma(astTF.Pragma(key: inline_key_id)))
       let stmt_id    = state.ast.add_statement(astTF.Statement(
         kind         : astTF.sExpression,
-        expression   : astTF.StatementExpression(id: expr_id),  ))
+        expression   : astTF.StatementExpression(id: expr_id, pragmas: capture_pragmas),  ))
       if sentry_id.isNone: sentry_id = some(stmt_id)
       if previous_sentry.isSome:
         var previous = state.ast.statement(previous_sentry.get)
