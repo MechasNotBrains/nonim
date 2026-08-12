@@ -1366,7 +1366,7 @@ proc expression_conditional (state :var State; node :PNode) :astTF.Id=
       else:
         let branch_id    = state.ast.add_statement(astTF.Statement(
           kind           : astTF.sBranch,
-          branch         : astTF.StatementBranch(condition: some(condition), body: body_id),
+          branch         : astTF.StatementBranch(condition: some(condition), sentry: sentry, body: body_id),
         ))
         if first_branch.isNone: first_branch = some(branch_id)
         if previous_branch.isSome:
@@ -1960,7 +1960,7 @@ proc statement_conditional (state :var State; node :PNode) :astTF.Id=
         let branch_depth = some(state.make_depth(branch_node))
         let branch_id    = state.ast.add_statement(astTF.Statement(
           kind           : astTF.sBranch,
-          branch         : astTF.StatementBranch(condition: some(condition), body: body_id, depth: branch_depth),
+          branch         : astTF.StatementBranch(condition: some(condition), sentry: sentry, body: body_id, depth: branch_depth),
         ))
         if first_branch.isNone: first_branch = some(branch_id)
         if previous_branch.isSome:

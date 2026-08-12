@@ -1257,6 +1257,13 @@ func statement_branch (
     zig.expression(ast, module, stmt.condition.get, Out)
     Out.string(module, ")", output.Target.definition)
   #___________________
+  # Sentry/Capture Variable
+  if stmt.sentry.isSome:
+    Out.string(module, " ", output.Target.definition)
+    Out.string(module, "|", output.Target.definition)
+    zig.statement_list(ast, module, stmt.sentry.get, Out, some(", "))
+    Out.string(module, "|", output.Target.definition)
+  #___________________
   if stmt.body.isSome:
     zig.expression_conditional_body(ast, module, stmt.body.get, Out)
   #___________________
