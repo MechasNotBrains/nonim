@@ -1,6 +1,9 @@
 type Type [T] = object
-  result  :T
-  process {.generic.}= proc (P :var ptr Type[T]) :void=
-    for field {.inline.} in @typeInfo(T).struct.fields:
-      discard field
-      discard P
+  data    :T
+  scalar {.generic.}= proc (P :var ptr Type[T]; F :typedesc) :F=
+    case @typeInfo(F)
+    of .int : return try: std.fmt.parseInt(F, P.data, 0) except: 0
+    else    : return P.data
+
+type Error = object
+  id    :int
