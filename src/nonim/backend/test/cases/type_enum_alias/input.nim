@@ -1,4 +1,4 @@
 type Kind = enum
   orthographic
   perspective
-  test   {.alias: thing.thing .}
+  thing   {.alias: thing.thing .}

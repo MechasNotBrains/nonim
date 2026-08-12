@@ -140,12 +140,24 @@ func location (
     Out    : var Output;
   ) :void= Out.string(module, ast.source(module, loc, synthetic=false), output.Target.definition)
 #___________________
+const Keywords = [
+  "addrspace", "align", "allowzero", "and", "anyframe", "asm", "async", "await",
+  "break", "callconv", "catch", "comptime", "const", "continue", "defer", "else", "enum",
+  "errdefer", "error", "export", "extern", "fn", "for", "if", "inline", "linksection",
+  "noalias", "noinline", "nosuspend", "opaque", "or", "orelse", "packed", "pub", "resume",
+  "return", "struct", "suspend", "switch", "test", "threadlocal", "try", "union",
+  "unreachable", "usingnamespace", "var", "volatile", "while" ]
+#___________________
 func identifier (
     ast    : astTF.Ast;
     module : astTF.Id;
     ident  : astTF.Identifier;
     Out    : var Output;
-  ) :void= Out.string(module, ast.source(module, ident), output.Target.definition)
+  ) :void=
+  let name = ast.source(module, ident)
+  if name in zig.Keywords: Out.string(module, "@\"", output.Target.definition)
+  Out.string(module, name, output.Target.definition)
+  if name in zig.Keywords: Out.string(module, "\"", output.Target.definition)
 #___________________
 func comment (
     ast    : astTF.Ast;
@@ -862,7 +874,7 @@ func expression_keyword_test (
     Out    : var Output;
   ) :void=
   let expr = ast.expression(id).keyword
-  zig.identifier(ast, module, expr.keyword, Out)
+  Out.string(module, ast.source(module, expr.keyword), output.Target.definition)
   if expr.label.isSome:
     Out.string(module, " ", output.Target.definition)
     zig.identifier(ast, module, expr.label.get, Out)
@@ -896,7 +908,7 @@ func expression_keyword_labeled (
     Out    : var Output;
   ) :void=
   let expr = ast.expression(id).keyword
-  zig.identifier(ast, module, expr.keyword, Out)
+  Out.string(module, ast.source(module, expr.keyword), output.Target.definition)
   if expr.label.isSome:
     Out.string(module, " ", output.Target.definition)
     Out.string(module, ":", output.Target.definition)

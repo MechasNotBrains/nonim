@@ -1,2 +1,2 @@
-proc test (a :string) =
+proc thing (a :string) =
   var b = call(a[1..^1], '\"')

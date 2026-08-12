@@ -1,5 +1,5 @@
 pub const Kind = enum {
   orthographic,
   perspective,
-  pub const test = thing.thing;
+  pub const thing = thing.thing;
 };

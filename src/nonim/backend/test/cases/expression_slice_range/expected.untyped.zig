@@ -1,3 +1,3 @@
-pub fn test (a :string) void {
+pub fn thing (a :string) void {
   var b = a[1..a.len];
 }

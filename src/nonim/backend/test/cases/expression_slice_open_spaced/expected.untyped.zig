@@ -1,3 +1,3 @@
-pub fn test (a :string) void {
+pub fn thing (a :string) void {
   var b = call(a[1..], '"');
 }

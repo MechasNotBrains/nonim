@@ -1,2 +1,2 @@
-proc test (a :string) =
+proc thing (a :string) =
   var b = a[1..a.len]
