@@ -108,7 +108,7 @@ func expression_loop (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int
 
 func expression_condition (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   ## @descr Condition of a control flow construct, wrapped in the parentheses that C requires.
-  ## A condition that already carries a group spells them itself.
+  ## A condition that already carries a group writes them itself.
   if ast.data.expressions.get[id].kind == astTF.eGroup:
     ast.expression(module, id, Out)
     return

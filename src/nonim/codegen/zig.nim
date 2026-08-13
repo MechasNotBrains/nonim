@@ -989,6 +989,16 @@ func expression_loop_header_while (
     zig.expression(ast, module, expr.increment.get, Out)
     Out.string(module, ")", output.Target.definition)
 #___________________
+func statement_is_conditional (
+    ast : astTF.Ast;
+    id  : astTF.Id;
+  ) :bool=
+  let stmt = ast.statement(id)
+  if stmt.kind != sExpression: return false
+  let expr = ast.expression(stmt.expression.id)
+  if expr.kind != eConditional: return false
+  result = expr.conditional.branches.isNone
+#___________________
 func expression_conditional_body (
     ast    : astTF.Ast;
     module : astTF.Id;
@@ -997,12 +1007,13 @@ func expression_conditional_body (
   ) :void=
   let next  = ast.statement_next(id)
   let depth = ast.statement_depth(id)
+  let braced = next.isSome or zig.statement_is_conditional(ast, id)
   Out.string(module, " ", output.Target.definition)
-  if next.isSome:
+  if braced:
     Out.string(module, "{", output.Target.definition)
     Out.string(module, "\n", output.Target.definition)
-  zig.statement_list(ast, module, id, Out, post= if next.isSome: none(system.string) else: some(""))
-  if next.isSome:
+  zig.statement_list(ast, module, id, Out, post= if braced: none(system.string) else: some(""))
+  if braced:
     zig.indentation(ast, module, depth, Out)
     Out.string(module, "}", output.Target.definition)
 #___________________
@@ -1415,12 +1426,14 @@ func statement_expression_conditional_needs_semicolon (
   let expr = ast.expression(id).conditional
   if expr.keyword.isSome and ast.source(module, expr.keyword.get, false) == "switch": return false
   let is_last       = expr.branches.isNone
-  let one_statement = expr.body.isSome and ast.statement_next(expr.body.get).isNone
+  let one_statement = expr.body.isSome and ast.statement_next(expr.body.get).isNone and
+                      not zig.statement_is_conditional(ast, expr.body.get)
   if is_last: return one_statement
   var current = expr.branches
   while current.isSome:
     let S   = ast.statement(current.get).branch
-    result  = S.body.isSome and ast.statement_next(S.body.get).isNone
+    result  = S.body.isSome and ast.statement_next(S.body.get).isNone and
+              not zig.statement_is_conditional(ast, S.body.get)
     current = S.next
 #___________________
 func statement_expression_needs_semicolon (

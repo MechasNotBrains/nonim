@@ -195,7 +195,7 @@ proc translate_type_zig (state :var State; nim_type :string) :string=
 proc translate_type_untyped (state :var State; nim_type :string) :string=
   ## Untyped backends pass type names through verbatim, except for Nim reserved
   ## keywords that have no valid identifier form and must map to the target's
-  ## spelling (eg. `typedesc` → Zig `type`).
+  ## own name for them (eg. `typedesc` → Zig `type`).
   if state.target == Language.Zig and nim_type == "typedesc": return "type"
   return nim_type
 
@@ -1308,6 +1308,9 @@ proc expression_lambda (state :var State; node :PNode) :astTF.Id=
 proc strip_depth_if_single (state :var State; statement_id :astTF.Id) =
   if state.ast.statement_next(statement_id).isSome: return
   var statement = state.ast.statement(statement_id)
+  if statement.kind == astTF.sExpression:
+    let inner = state.ast.expression(statement.expression.id)
+    if inner.kind == astTF.eConditional and inner.conditional.branches.isNone: return
   case statement.kind
   of astTF.sExpression  : statement.expression.depth = none(astTF.Id)
   of astTF.sVariable    : statement.variable.depth = none(astTF.Id)

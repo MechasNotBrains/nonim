@@ -278,6 +278,10 @@ describe "nonim.minz | Types":
     let result = generate_zig(case_input("type_object_fields"))
     result.eq case_expected("type_object_fields")
 
+  it "must brace a body whose only statement is a conditional", proc() =
+    let result = generate_zig(case_input("control_if_nested_else"))
+    result.eq case_expected("control_if_nested_else")
+
   it "must generate the capture of an elif branch", proc() =
     let result = generate_zig(case_input("control_if_capture_elif"))
     result.eq case_expected("control_if_capture_elif")
