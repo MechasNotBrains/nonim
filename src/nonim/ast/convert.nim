@@ -38,6 +38,12 @@ type State = object
 
 
 #_______________________________________
+# @section Keyword Expressions
+#_____________________________
+const ZigKeywordExpressions = ["unreachable"]
+
+
+#_______________________________________
 # @section Forward Declarations
 #_____________________________
 proc include_path (node :PNode) :string
@@ -45,6 +51,7 @@ proc include_is_global (node :PNode) :bool
 proc symbol_path (node :PNode) :string
 proc resolve_import_path (raw_path :string; is_module :bool) :string
 proc expression (state :var State; node :PNode) :astTF.Id
+proc expression_keyword (state :var State; name :string) :astTF.Id
 proc expression_array_type (state :var State; node :PNode) :astTF.Id
 proc procedure_build (state :var State; node :PNode) :astTF.Id
 proc procedure_type (state :var State; node :PNode; name = none(astTF.Identifier); private = none(bool)) :astTF.Id
@@ -372,6 +379,8 @@ proc expression_literal (state :var State; node :PNode) :astTF.Id=
 
 proc expression_identifier (state :var State; node :PNode) :astTF.Id=
   let name     = node.name()
+  if state.target == Language.Zig and name in ZigKeywordExpressions:
+    return state.expression_keyword(name)
   let name_loc = state.name_add(name)
   result = state.ast.add_expression(astTF.Expression(
     kind       : astTF.eIdentifier,
@@ -527,6 +536,13 @@ proc expression_identifier (state :var State; name :string) :astTF.Id=
   result = state.ast.add_expression(astTF.Expression(
     kind       : astTF.eIdentifier,
     identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: name_loc)),
+  ))
+
+proc expression_keyword (state :var State; name :string) :astTF.Id=
+  let keyword_loc = state.name_add(name)
+  result = state.ast.add_expression(astTF.Expression(
+    kind    : astTF.eKeyword,
+    keyword : astTF.ExpressionKeyword(keyword: astTF.Identifier(location: keyword_loc)),
   ))
 
 proc expression_dot (state :var State; node :PNode) :astTF.Id=

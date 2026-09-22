@@ -487,6 +487,10 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_named_constructor"))
     result.eq case_expected("expression_named_constructor")
 
+  it "must generate unreachable as a keyword instead of a quoted identifier", proc() =
+    let result = generate_zig(case_input("expression_unreachable"))
+    result.eq case_expected("expression_unreachable")
+
 describe "nonim.minz | Visibility":
   it "must make a procedure private with a private pragma", proc() =
     let result = generate_zig(case_input("procedure_private"))
