@@ -282,6 +282,12 @@ describe "nonim.codegen.zig | Statement.Type.Object.Generic":
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 
+  it "must generate the declared type of a comptime generic parameter", proc() =
+    const Expected = expected("statement_type_object_generic_comptime.zig")
+    let test_case = statement_type.object_generic_comptime()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
 describe "nonim.codegen.zig | Statement.Type.Object.Keyword":
   it "must generate a union from the union keyword", proc() =
     const Expected = expected("statement_type_union.zig")

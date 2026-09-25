@@ -1217,10 +1217,17 @@ func statement_type_generics (
   var current = some(id)
   while current.isSome:
     let parameter = ast.binding(current.get)
+    if not parameter.runtime.get(true):
+      Out.string(module, "comptime", output.Target.definition)
+      Out.string(module, " ", output.Target.definition)
     if parameter.name.isSome:
       zig.identifier(ast, module, parameter.name.get, Out)
       Out.string(module, " ", output.Target.definition)
-    Out.string(module, ":type", output.Target.definition)
+    if parameter.dataType.isNone:
+      Out.string(module, ":type", output.Target.definition)
+    else:
+      Out.string(module, ":", output.Target.definition)
+      zig.expression(ast, module, parameter.dataType.get, Out)
     current = parameter.next
     if current.isSome: Out.string(module, ", ", output.Target.definition)
   Out.string(module, ")", output.Target.definition)

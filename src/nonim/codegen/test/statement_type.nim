@@ -94,6 +94,45 @@ proc object_generic *() :TestData=
   result.ast.data.modules[result.module].body = some(result.id)
 
 
+proc object_generic_comptime *() :TestData=
+  const input_name   = "Thing"
+  const input_param  = "T"
+  const input_ops    = "ops"
+  const input_optype = "Ops"
+  const input_field  = "data"
+  const input_source = input_name & input_param & input_ops & input_optype & input_field & "567890Z"
+  result = create(input_source)
+  let name_loc     = astTF.Location(start: 0, `end`: input_name.len)
+  let param_loc    = astTF.Location(start: name_loc.`end`, `end`: name_loc.`end` + input_param.len)
+  let ops_loc      = astTF.Location(start: param_loc.`end`, `end`: param_loc.`end` + input_ops.len)
+  let optype_loc   = astTF.Location(start: ops_loc.`end`, `end`: ops_loc.`end` + input_optype.len)
+  let field_loc    = astTF.Location(start: optype_loc.`end`, `end`: optype_loc.`end` + input_field.len)
+  let arg_expr_id  = result.ast.add_expression(astTF.Expression(kind: astTF.eIdentifier, identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: param_loc))))
+  let optype_id    = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(
+    name           : astTF.Identifier(location: optype_loc),
+    instantiation  : some(arg_expr_id),
+  )))
+  let optype_expr  = result.ast.add_expression_type(optype_id)
+  let ops_id       = result.ast.add_binding(astTF.Binding(
+    name           : some(astTF.Identifier(location: ops_loc)),
+    dataType       : some(optype_expr),
+    runtime        : some(false),
+    private        : some(true),
+  ))
+  let generic_id   = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: param_loc)), private: some(true), next: some(ops_id)))
+  let fieldT_id    = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: param_loc))))
+  let fieldT_expr  = result.ast.add_expression_type(fieldT_id)
+  let field_depth  = some(result.ast.add_depth(astTF.Depth(indent: some(1'u64))))
+  let field_id     = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field_loc)), dataType: some(fieldT_expr), depth: field_depth))
+  let type_id      = result.ast.add_type(astTF.Type(kind: astTF.tObject, `object`: astTF.TypeObject(
+    name           : some(astTF.Identifier(location: name_loc)),
+    fields         : some(field_id),
+    generics       : some(generic_id),
+  )))
+  result.id = result.ast.add_statement(astTF.Statement(kind: astTF.sType, `type`: astTF.StatementType(id: type_id)))
+  result.ast.data.modules[result.module].body = some(result.id)
+
+
 proc object_inherit *() :TestData=
   const input_name    = "Circle"
   const input_base    = "Shape"

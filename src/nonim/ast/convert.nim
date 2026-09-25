@@ -2466,13 +2466,25 @@ proc statement_type_generics (state :var State; generics_node :PNode) :Option[as
   var previous = none(astTF.Id)
   for parameter_def in generics_node:
     if parameter_def.kind != nkIdentDefs: continue
-    for name_index in 0 ..< parameter_def.safeLen - 2:
+    let type_index  = parameter_def.safeLen - 2
+    var type_node   = parameter_def[type_index]
+    var is_comptime = false
+    if type_node.kind == nkCommand and type_node.safeLen == 2 and type_node[0].name() == "static":
+      is_comptime = true
+      type_node   = type_node[1]
+    var group_type = none(astTF.Id)
+    if type_node.kind != nkEmpty:
+      group_type = some(state.expression_type(type_node))
+    for name_index in 0 ..< type_index:
       let parameter_name = parameter_def[name_index].name()
       if parameter_name.len == 0: continue
+      let is_last_in_group = name_index == type_index - 1
       let parameter_loc = state.name_add(parameter_name)
       let parameter_id  = state.ast.add_binding(astTF.Binding(
-        name    : some(astTF.Identifier(location: parameter_loc)),
-        private : some(true),
+        name     : some(astTF.Identifier(location: parameter_loc)),
+        dataType : if is_last_in_group: group_type else: none(astTF.Id),
+        runtime  : some(not is_comptime),
+        private  : some(true),
       ))
       if result.isNone: result = some(parameter_id)
       if previous.isSome:
