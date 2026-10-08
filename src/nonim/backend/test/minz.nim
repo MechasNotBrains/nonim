@@ -122,6 +122,10 @@ describe "nonim.minz | Procedures":
     let result = generate_zig(case_input("procedure_return_builtin"))
     result.eq case_expected("procedure_return_builtin")
 
+  it "must generate builtin call as parameter type", proc() =
+    let result = generate_zig(case_input("procedure_param_builtin"))
+    result.eq case_expected("procedure_param_builtin")
+
   it "must generate a function call expression", proc() =
     let result = generate_zig(case_input("expression_call"))
     result.eq case_expected("expression_call")
