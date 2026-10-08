@@ -383,6 +383,10 @@ describe "nonim.minz | Expressions":
     let result = generate_zig(case_input("expression_orelse"))
     result.eq case_expected("expression_orelse")
 
+  it "must generate a return on the right side of orelse", proc() =
+    let result = generate_zig(case_input("expression_orelse_return"))
+    result.eq case_expected("expression_orelse_return")
+
   it "must generate .? optional call", proc() =
     let result = generate_zig(case_input("expression_optional_call"))
     result.eq case_expected("expression_optional_call")

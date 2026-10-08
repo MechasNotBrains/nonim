@@ -666,6 +666,22 @@ proc expression_infix (state :var State; node :PNode) :astTF.Id=
     ))
   let left_node    = node[1]
   let right_node   = node[2]
+  if state.target == Language.Zig and operator_node.name() == "?!":
+    let left_id      = state.expression(left_node)
+    let value_id     = state.expression(right_node)
+    let return_loc   = state.name_add("return")
+    let return_id    = state.ast.add_expression(astTF.Expression(
+      kind      : astTF.eKeyword,
+      keyword   : astTF.ExpressionKeyword(
+        keyword : astTF.Identifier(location: return_loc),
+        value   : some(value_id),  ),  ))
+    let operator_loc = state.name_add("orelse")
+    return state.ast.add_expression(astTF.Expression(
+      kind       : astTF.eAffix,
+      affix      : astTF.ExpressionAffix(
+        left     : some(left_id),
+        right    : some(return_id),
+        operator : operator_loc,  ),  ))
   if operator_node.name() == "..^":
     if right_node.kind == nkIntLit and right_node.intVal == 1:
       let left_id      = state.expression(left_node)
