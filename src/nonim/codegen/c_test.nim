@@ -141,3 +141,4 @@ describe "nonim.codegen.c | Format.Whitespace":
     let test_case = format_whitespace.var_then_proc()
     let result = test_case.ast.C()
     result.modules[0].definitions.eq Expected
+

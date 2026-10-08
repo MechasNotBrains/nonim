@@ -44,3 +44,4 @@ proc processImpl (source :string; baseDir :string; seen :var HashSet[string]; ex
 proc processIncludes *(source :string; inputPath :string; extensions :openArray[string] = @[]) :string=
   var seen = initHashSet[string]()
   return processImpl(source, inputPath.parentDir(), seen, extensions)
+
