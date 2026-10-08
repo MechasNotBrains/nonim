@@ -1037,6 +1037,17 @@ proc expression_catch (state :var State; node :PNode) :astTF.Id=
         right    : some(catch_id),  ),  ))
   result = state.expression_catch_keyword(error_union, capture, handler_id)
 
+proc expression_return (state :var State; node :PNode) :astTF.Id=
+  var value_id    = none(astTF.Id)
+  if node.safeLen > 0 and node[0].kind != nkEmpty:
+    value_id      = some(state.expression(node[0]))
+  let keyword_loc = state.name_add("return")
+  result = state.ast.add_expression(astTF.Expression(
+    kind      : astTF.eKeyword,
+    keyword   : astTF.ExpressionKeyword(
+      keyword : astTF.Identifier(location: keyword_loc),
+      value   : value_id,  ),  ))
+
 proc expression_try (state :var State; node :PNode) :astTF.Id=
   var has_except = false
   for child_index in 1 ..< node.safeLen:
@@ -1496,6 +1507,7 @@ proc expression (state :var State; node :PNode) :astTF.Id=
   of nkObjConstr          : state.expression_obj_constr(node)
   of nkBracket            : state.expression_array(node)
   of nkTryStmt            : state.expression_try(node)
+  of nkReturnStmt         : state.expression_return(node)
   of nkIfExpr, nkIfStmt   : state.expression_conditional(node)
   of nkCaseStmt           : state.expression_case(node)
   of nkPtrTy, nkVarTy     : state.expression_of_type(state.type_node_to_type_id(node))
