@@ -288,6 +288,13 @@ describe "nonim.codegen.zig | Statement.Type.Object.Generic":
     let result = test_case.ast.zig()
     result.modules[0].definitions.eq Expected
 
+describe "nonim.codegen.zig | Statement.Type.Object.Packed":
+  it "must generate a packed struct from the packed pragma", proc() =
+    const Expected = expected("statement_type_packed.zig")
+    let test_case = statement_type.packed_object()
+    let result = test_case.ast.zig()
+    result.modules[0].definitions.eq Expected
+
 describe "nonim.codegen.zig | Statement.Type.Object.Keyword":
   it "must generate a union from the union keyword", proc() =
     const Expected = expected("statement_type_union.zig")

@@ -211,6 +211,35 @@ proc object_inherit_multi *() :TestData=
   result.ast.data.modules[result.module].body = some(result.id)
 
 
+proc packed_object *() :TestData=
+  const input_name   = "Bits"
+  const input_pragma = "packed"
+  const input_field1 = "x"
+  const input_field2 = "y"
+  const input_type   = "u8"
+  const input_source = input_name & input_pragma & input_field1 & input_field2 & input_type & "567890Z"
+  result = create(input_source)
+  let name_loc    = astTF.Location(start: 0, `end`: input_name.len)
+  let pragma_loc  = astTF.Location(start: name_loc.`end`, `end`: name_loc.`end` + input_pragma.len)
+  let field1_loc  = astTF.Location(start: pragma_loc.`end`, `end`: pragma_loc.`end` + input_field1.len)
+  let field2_loc  = astTF.Location(start: field1_loc.`end`, `end`: field1_loc.`end` + input_field2.len)
+  let fieldT_loc  = astTF.Location(start: field2_loc.`end`, `end`: field2_loc.`end` + input_type.len)
+  let fieldT_id   = result.ast.add_type(astTF.Type(kind: astTF.tPrimitive, primitive: astTF.TypePrimitive(name: astTF.Identifier(location: fieldT_loc))))
+  let fieldT_expr = result.ast.add_expression_type(fieldT_id)
+  let field_depth = some(result.ast.add_depth(astTF.Depth(indent: some(1'u64))))
+  let field2_id   = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field2_loc)), dataType: some(fieldT_expr), depth: field_depth))
+  let field1_id   = result.ast.add_binding(astTF.Binding(name: some(astTF.Identifier(location: field1_loc)), dataType: some(fieldT_expr), next: some(field2_id), depth: field_depth))
+  let pragma_key  = result.ast.add_expression(astTF.Expression(kind: astTF.eIdentifier, identifier: astTF.ExpressionIdentifier(name: astTF.Identifier(location: pragma_loc))))
+  let pragma_id   = result.ast.add_pragma(astTF.Pragma(key: pragma_key))
+  let type_id     = result.ast.add_type(astTF.Type(kind: astTF.tObject, `object`: astTF.TypeObject(
+    name    : some(astTF.Identifier(location: name_loc)),
+    fields   : some(field1_id),
+    pragmas : some(pragma_id),
+  )))
+  result.id = result.ast.add_statement(astTF.Statement(kind: astTF.sType, `type`: astTF.StatementType(id: type_id)))
+  result.ast.data.modules[result.module].body = some(result.id)
+
+
 proc union *() :TestData=
   const input_name   = "MyUnion"
   const input_keyw   = "union"

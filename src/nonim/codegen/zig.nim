@@ -539,7 +539,7 @@ func type_object_pragmas (
     let pragma = ast.pragm(current.get)
     let key    = ast.source(module, ast.expression(pragma.key).identifier.name)
     case key
-    of "extern":
+    of "extern", "packed":
       Out.string(module, key, output.Target.definition)
       Out.string(module, " ", output.Target.definition)
     else: discard
