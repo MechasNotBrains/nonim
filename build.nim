@@ -11,6 +11,7 @@ B.unit_test("nonim/test.nim", deps= @[astTF, minibuild, minitest]).build(run=tru
 # Binaries
 B.program("nonim/nimcheck.nim").build()
 B.program("nonim/nimgen.nim").build()
-B.program("nonim/minc.nim", deps= @[astTF, minibuild]).build()
-B.program("nonim/minz.nim", deps= @[astTF, minibuild]).build()
-B.program("nonim.nim",      deps= @[astTF, minibuild]).build()
+B.program("nonim/minc.nim",   deps= @[astTF, minibuild]).build()
+B.program("nonim/minz.nim",   deps= @[astTF, minibuild]).build()
+B.program("nonim/minatf.nim", deps= @[astTF, minibuild]).build()
+B.program("nonim.nim",        deps= @[astTF, minibuild]).build()

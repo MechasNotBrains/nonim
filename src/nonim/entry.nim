@@ -6,6 +6,7 @@ import ./backend/cleanc
 import ./backend/zig
 import ./backend/minc
 import ./backend/minz
+import ./backend/minatf
 
 proc run *() :void=
   let options = cli.options_parse()
@@ -14,3 +15,4 @@ proc run *() :void=
   of Backend.zig    : zig.run(options)
   of Backend.minc   : minc.run(options)
   of Backend.minz   : minz.run(options)
+  of Backend.minatf : minatf.run(options)

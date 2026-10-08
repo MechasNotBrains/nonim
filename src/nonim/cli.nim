@@ -10,6 +10,7 @@ from std/strutils import find, split
 
 
 type Backend *{.pure.}= enum
+  minatf  ## Untyped path: parse only, no semantic analysis. Emits astTF.
   minc    ## Untyped path: parse only, no semantic analysis. Emits C.
   minz    ## Untyped path: parse only, no semantic analysis. Emits Zig.
   cleanc  ## Typed path: full semantic analysis before codegen. Emits C.
@@ -42,7 +43,10 @@ type Options * = object
   dependencies *:seq[tuple[name: string, subdeps: seq[string], path: string]]
 
 
-proc options_parse *(args :seq[string]= commandLineParams(); default_backend :Backend= Backend.cleanc) :Options=
+proc options_parse *(
+    args            : seq[string] = commandLineParams();
+    default_backend : Backend     = Backend.cleanc;
+  ) :Options=
   result = Options(
     backend: default_backend,
     command: Command.codegen,
@@ -72,6 +76,7 @@ proc options_parse *(args :seq[string]= commandLineParams(); default_backend :Ba
       of "zigCache": result.zig.cache = parser.val
       of "backend":
         case parser.val
+        of "minatf": result.backend = Backend.minatf
         of "minc":   result.backend = Backend.minc
         of "minz":   result.backend = Backend.minz
         of "cleanc": result.backend = Backend.cleanc
