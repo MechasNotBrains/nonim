@@ -944,7 +944,8 @@ proc expression_prefix (state :var State; node :PNode) :astTF.Id=
   if operator_node.name() == "@" and node.safeLen >= 3 and node[2].kind == nkStmtList:
     return state.expression_keyword_body(right_node.name(), node[2])
   let operator_loc = state.name_add(operator_node.name())
-  let right_id = if right_node.kind in {nkPtrTy, nkVarTy}: state.expression_type(right_node)
+  let type_prefix = operator_node.name() in ["!", "?"] and right_node.kind == nkBracketExpr
+  let right_id = if right_node.kind in {nkPtrTy, nkVarTy} or type_prefix: state.expression_type(right_node)
                  else: state.expression(right_node)
   result = state.ast.add_expression(astTF.Expression(
     kind       : astTF.eAffix,
