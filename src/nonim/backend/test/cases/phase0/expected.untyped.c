@@ -1,10 +1,10 @@
-static int const max = 10;
-static int count = 0;
-static int const step = 1;
-static int increment (int const value, int const amount) {
+int const max = 10;
+int count = 0;
+int const step = 1;
+int increment (int const value, int const amount) {
   return value + amount;
 }
-static int accumulate (int const limit) {
+int accumulate (int const limit) {
   int total = 0;
   int current = 0;
   while (current < limit) {
@@ -20,7 +20,7 @@ static int accumulate (int const limit) {
   }
   return total;
 }
-static int run () {
+int run () {
   int const output = accumulate(max);
   (void)(count);
   return output;

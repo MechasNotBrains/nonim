@@ -1,1 +1,1 @@
-static cstring const greeting = "hello";
+cstring const greeting = "hello";

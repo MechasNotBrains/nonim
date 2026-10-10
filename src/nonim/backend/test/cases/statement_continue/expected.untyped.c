@@ -1,4 +1,4 @@
-static void skip_negatives (int const n) {
+void skip_negatives (int const n) {
   int current = 0;
   while (current < n) {
     current = current + 1;

@@ -297,10 +297,10 @@ proc has_private_pragma (node :PNode) :bool=
   return node[1].pragma_has("private")
 #___________________
 proc declaration_private (state :State; name_node :PNode; pragma_node :PNode = nil) :bool=
-  ## Visibility rule. minz (untyped Zig) makes everything public by default and
-  ## ignores the `*` export postfix; only a `{.private.}` pragma marks a declaration
-  ## private. Every other backend keeps Nim's `*`-export convention.
-  if state.target == Language.Zig and not state.typed:
+  ## Visibility rule. minz/minc (untyped Zig/C) make everything public by default and
+  ## ignore the `*` export postfix; only a `{.private.}` pragma marks a declaration
+  ## private. Every typed backend keeps Nim's `*`-export convention.
+  if not state.typed:
     return name_node.has_private_pragma() or pragma_node.pragma_has("private")
   return not name_node.exported()
 #___________________
@@ -462,6 +462,24 @@ proc procedure_type (state :var State; node :PNode; name = none(astTF.Identifier
     procedure : astTF.TypeProcedure(id: procedure_id),
   ))
 
+const c_type_words = ["signed", "unsigned", "short", "long", "int", "char", "float", "double"]
+
+proc type_words (node :PNode) :string=
+  if node.kind != nkCommand: return node.name()
+  for index in 0 ..< node.safeLen:
+    if index > 0: result.add(" ")
+    result.add(node[index].type_words())
+
+proc type_words_c (node :PNode) :bool=
+  if node.kind == nkIdent: return node.name() in c_type_words
+  if node.kind != nkCommand: return false
+  for index in 0 ..< node.safeLen:
+    if not node[index].type_words_c(): return false
+  return true
+
+proc type_is_pointer_c (state :State; node :PNode) :bool=
+  not state.typed and state.target == Language.C and node.kind == nkIdent and node.name() == "pointer"
+
 proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astTF.Id=
   ## Single recursive Type builder for any type-position node. Nested element
   ## (array) and target (pointer) types recurse here too, so `array[N, ptr T]`,
@@ -470,7 +488,7 @@ proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astT
   of nkVarTy:
     # `var ptr T` -> mutable pointee; a bare `var T` just unwraps.
     let inner = if node.safeLen > 0: node[0] else: node
-    return state.type_node_to_type_id(inner, mutable = inner.kind == nkPtrTy or mutable)
+    return state.type_node_to_type_id(inner, mutable = inner.kind == nkPtrTy or state.type_is_pointer_c(inner) or mutable)
   of nkPtrTy:
     let target_id = state.type_node_to_type_id(node[0], mutable)
     return state.ast.add_type(astTF.Type(
@@ -497,6 +515,15 @@ proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astT
           mutable : some(is_mutable)  )))
     return state.type_instantiation(node)
   else: discard
+  if state.type_is_pointer_c(node):
+    let void_id = state.ast.add_type(astTF.Type(
+      kind      : astTF.tPrimitive,
+      primitive : astTF.TypePrimitive(name: astTF.Identifier(location: state.name_add("void"))),
+    ))
+    return state.ast.add_type(astTF.Type(
+      kind  : astTF.tPtr,
+      `ptr` : astTF.TypePtr(target: void_id, mutable: some(mutable)),
+    ))
   let name     = state.translate_type(node.name())
   let name_loc = state.name_add(name)
   result = state.ast.add_type(astTF.Type(
@@ -504,7 +531,7 @@ proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astT
     primitive : astTF.TypePrimitive(name: astTF.Identifier(location: name_loc), mutable: some(mutable)),
   ))
 
-proc expression_of_type (state :var State; type_id :astTF.Id) :astTF.Id=
+proc expression_type (state :var State; type_id :astTF.Id) :astTF.Id=
   result = state.ast.add_expression(astTF.Expression(
     kind   : astTF.eType,
     `type` : astTF.ExpressionType(id: type_id),
@@ -514,7 +541,7 @@ proc type_bracket (state :var State; node :PNode) :astTF.Id=
   if node[0].name() in ["array", "slice"]:
     result = state.expression_array_type(node)
   else:
-    result = state.expression_of_type(state.type_instantiation(node))
+    result = state.expression_type(state.type_instantiation(node))
 
 proc type_error (state :var State; node :PNode) :astTF.Id=
   case node.kind
@@ -523,8 +550,15 @@ proc type_error (state :var State; node :PNode) :astTF.Id=
   else        : assert false, "astTF.convert.type_error: Tried to convert a non-affix into an error union expression."
 
 proc expression_type (state :var State; node :PNode) :astTF.Id=
+  if state.type_is_pointer_c(node):
+    return state.expression_type(state.type_node_to_type_id(node))
+  if node.kind == nkCommand and not state.typed and state.target == Language.C and node.type_words_c():
+    return state.ast.add_expression(astTF.Expression(
+      kind       : astTF.eIdentifier,
+      identifier : astTF.ExpressionIdentifier(name: astTF.Identifier(location: state.name_add(node.type_words()))),
+    ))
   result = case node.kind
-    of nkPtrTy, nkVarTy  : state.expression_of_type(state.type_node_to_type_id(node))
+    of nkPtrTy, nkVarTy  : state.expression_type(state.type_node_to_type_id(node))
     of nkBracketExpr     : state.type_bracket(node)
     of nkDotExpr         : state.expression_dot(node)
     of nkPrefix, nkInfix : state.type_error(node)
@@ -546,7 +580,7 @@ proc expression_keyword (state :var State; name :string) :astTF.Id=
   ))
 
 proc expression_dot (state :var State; node :PNode) :astTF.Id=
-  if state.target == Language.Zig and not state.typed and node[1].name() == "addr":
+  if not state.typed and node[1].name() == "addr":
     return state.expression_addr(node[0])
   let left_id      = state.expression(node[0])
   let right_id     = state.expression(node[1])
@@ -788,7 +822,7 @@ proc expression_call (state :var State; node :PNode) :astTF.Id=
   let function_node = node[0]
   if function_node.kind == nkEmpty:
     return state.expression_dot_leading(node)
-  if state.target == Language.Zig and not state.typed and function_node.name() == "addr" and node.safeLen == 2:
+  if not state.typed and function_node.name() == "addr" and node.safeLen == 2:
     return state.expression_addr(node[1])
   if state.target == Language.Zig and not state.typed and node.is_at_prefix("catch") and node.safeLen >= 3:
     let error_union = state.expression(node[1])
@@ -976,7 +1010,7 @@ proc expression_indexed (state :var State; node :PNode) :astTF.Id=
       index       : index_id,  ),  ))
 
 proc expression_array_type (state :var State; node :PNode) :astTF.Id=
-  result = state.expression_of_type(state.type_node_to_type_id(node))
+  result = state.expression_type(state.type_node_to_type_id(node))
 
 
 proc expression_handler (state :var State; handler_node :PNode) :astTF.Id=
@@ -1527,7 +1561,7 @@ proc expression (state :var State; node :PNode) :astTF.Id=
   of nkReturnStmt         : state.expression_return(node)
   of nkIfExpr, nkIfStmt   : state.expression_conditional(node)
   of nkCaseStmt           : state.expression_case(node)
-  of nkPtrTy, nkVarTy     : state.expression_of_type(state.type_node_to_type_id(node))
+  of nkPtrTy, nkVarTy     : state.expression_type(state.type_node_to_type_id(node))
   of nkLambda             : state.expression_lambda(node)
   of nkBracketExpr        :
     if node[0].name() == "array":
@@ -2567,7 +2601,7 @@ proc statement_type (state :var State; node :PNode) =
         kind: astTF.tPrimitive,
         primitive: astTF.TypePrimitive(name: astTF.Identifier(location: backing_loc)),
       ))
-      backing = some(state.expression_of_type(backing_type_id))
+      backing = some(state.expression_type(backing_type_id))
     var first_value = none(astTF.Id)
     var previous_value = none(astTF.Id)
     discard state.scope_push()
@@ -2674,7 +2708,7 @@ proc statement_type (state :var State; node :PNode) =
     ))
     state.statement_chain(statement_id)
   else:
-    let target_id = state.expression(body_node)
+    let target_id = state.expression_type(body_node)
     let type_id = state.ast.add_type(astTF.Type(
       kind: astTF.tAlias,
       alias: astTF.TypeAlias(

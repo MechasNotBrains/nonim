@@ -1,6 +1,6 @@
-static int add (int const x, int const y) {
+int add (int const x, int const y) {
   return x + y;
 }
-static int main () {
+int main () {
   return add(1, 2);
 }

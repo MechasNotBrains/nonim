@@ -1,1 +1,1 @@
-static int const answer = 42;
+int const answer = 42;

@@ -1,3 +1,3 @@
-static int const a = 1;
-static int const b = 2;
-static int const c = 3;
+int const a = 1;
+int const b = 2;
+int const c = 3;

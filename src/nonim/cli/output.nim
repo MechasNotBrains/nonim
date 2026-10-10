@@ -169,6 +169,7 @@ proc run *(options :Options; generate :GenerateProc) =
   opts.dir.cache = options.dir.cache / options.output.splitFile.name
   let output = generate(opts)
   let sources = opts.sources_collect(output)
+  if sources.len == 0: return
   let trg = opts.make_target(sources)
   opts.write_output(output, trg)
   case opts.command

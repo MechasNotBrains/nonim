@@ -1,4 +1,4 @@
-static int find_first (int const n) {
+int find_first (int const n) {
   int current = 0;
   while (true) {
     if (current == n) {

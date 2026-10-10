@@ -1,3 +1,3 @@
-static void nothing () {
+void nothing () {
   (void)(NULL);
 }

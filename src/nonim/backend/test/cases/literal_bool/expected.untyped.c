@@ -1,2 +1,2 @@
-static bool const flag = true;
-static bool const other = false;
+bool const flag = true;
+bool const other = false;

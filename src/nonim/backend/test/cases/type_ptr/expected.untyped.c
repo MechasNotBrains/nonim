@@ -1,1 +1,1 @@
-static int* const nothing = NULL;
+int const* const nothing = NULL;

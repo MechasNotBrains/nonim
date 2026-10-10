@@ -59,11 +59,11 @@ describe "nonim.minc | astTF Phase Landmarks":
     code.eq 0
 
 describe "nonim.minc | Variables":
-  it "must generate static const int from let binding", proc() =
+  it "must generate a public const int from let binding", proc() =
     let result = generate_c(case_input("variable"))
     result.eq case_expected("variable")
 
-  it "must generate static mutable int from var binding", proc() =
+  it "must generate a public mutable int from var binding", proc() =
     let result = generate_c(case_input("variable_var"))
     result.eq case_expected("variable_var")
 
@@ -76,7 +76,7 @@ describe "nonim.minc | Variables":
     result.eq case_expected("variable_multi")
 
 describe "nonim.minc | Procedures":
-  it "must generate a static forward declaration", proc() =
+  it "must generate a public forward declaration", proc() =
     let result = generate_c(case_input("procedure"))
     result.eq case_expected("procedure")
 
@@ -91,6 +91,18 @@ describe "nonim.minc | Procedures":
   it "must generate a function call expression", proc() =
     let result = generate_c(case_input("expression_call"))
     result.eq case_expected("expression_call")
+
+  it "must generate inline procedure", proc() =
+    let result = generate_c(case_input("procedure_inline"))
+    result.eq case_expected("procedure_inline")
+
+  it "must generate extern forward declaration", proc() =
+    let result = generate_c(case_input("procedure_extern"))
+    result.eq case_expected("procedure_extern")
+
+  it "must generate variadic parameter", proc() =
+    let result = generate_c(case_input("procedure_varargs"))
+    result.eq case_expected("procedure_varargs")
 
 describe "nonim.minc | Literals":
   it "must generate bool literals", proc() =
@@ -113,6 +125,10 @@ describe "nonim.minc | Literals":
     let result = generate_c(case_input("literal_char"))
     result.eq case_expected("literal_char")
 
+  it "must generate concatenated lines from triple-quoted string", proc() =
+    let result = generate_c(case_input("literal_string_triple"))
+    result.eq case_expected("literal_string_triple")
+
 describe "nonim.minc | Control Flow":
   it "must generate if/else", proc() =
     let result = generate_c(case_input("control_if"))
@@ -130,10 +146,38 @@ describe "nonim.minc | Control Flow":
     let result = generate_c(case_input("statement_continue"))
     result.eq case_expected("statement_continue")
 
+  it "must generate switch from case/of", proc() =
+    let result = generate_c(case_input("control_case"))
+    result.eq case_expected("control_case")
+
+  it "must generate fall-through labels from multi-value case/of", proc() =
+    let result = generate_c(case_input("control_case_multi"))
+    result.eq case_expected("control_case_multi")
+
+  it "must generate nested switch", proc() =
+    let result = generate_c(case_input("control_case_nested"))
+    result.eq case_expected("control_case_nested")
+
+  it "must generate for loop from exclusive range", proc() =
+    let result = generate_c(case_input("control_for_range"))
+    result.eq case_expected("control_for_range")
+
+  it "must generate for loop from inclusive range", proc() =
+    let result = generate_c(case_input("control_for_range_inclusive"))
+    result.eq case_expected("control_for_range_inclusive")
+
+  it "must generate if/elif/else from single-line branches", proc() =
+    let result = generate_c(case_input("control_if_inline"))
+    result.eq case_expected("control_if_inline")
+
 describe "nonim.minc | Statements":
   it "must generate discard as (void) cast", proc() =
     let result = generate_c(case_input("statement_discard"))
     result.eq case_expected("statement_discard")
+
+  it "must generate empty block from bare discard", proc() =
+    let result = generate_c(case_input("statement_discard_bare"))
+    result.eq case_expected("statement_discard_bare")
 
 describe "nonim.minc | Types":
   it "must generate a struct from object type", proc() =
@@ -148,6 +192,38 @@ describe "nonim.minc | Types":
     let result = generate_c(case_input("type_primitive"))
     result.eq case_expected("type_primitive")
 
+  it "must generate nested pointer type", proc() =
+    let result = generate_c(case_input("type_ptr_nested"))
+    result.eq case_expected("type_ptr_nested")
+
+  it "must generate typedef enum", proc() =
+    let result = generate_c(case_input("type_enum"))
+    result.eq case_expected("type_enum")
+
+  it "must generate typedef enum with explicit values", proc() =
+    let result = generate_c(case_input("type_enum_values"))
+    result.eq case_expected("type_enum_values")
+
+  it "must generate typedef from type alias", proc() =
+    let result = generate_c(case_input("type_alias"))
+    result.eq case_expected("type_alias")
+
+  it "must generate function pointer typedef from procedure type", proc() =
+    let result = generate_c(case_input("type_procedure"))
+    result.eq case_expected("type_procedure")
+
+  it "must generate function pointer struct field", proc() =
+    let result = generate_c(case_input("type_object_procedure_field"))
+    result.eq case_expected("type_object_procedure_field")
+
+  it "must generate array struct field with its length", proc() =
+    let result = generate_c(case_input("type_object_array_field"))
+    result.eq case_expected("type_object_array_field")
+
+  it "must generate typedef from multi-word type", proc() =
+    let result = generate_c(case_input("type_multiword"))
+    result.eq case_expected("type_multiword")
+
 describe "nonim.minc | Expressions":
   it "must generate array indexing", proc() =
     let result = generate_c(case_input("expression_indexed"))
@@ -156,6 +232,51 @@ describe "nonim.minc | Expressions":
   it "must translate Nim operators to C operators", proc() =
     let result = generate_c(case_input("expression_operator"))
     result.eq case_expected("expression_operator")
+
+  it "must generate array literal", proc() =
+    let result = generate_c(case_input("expression_array_literal"))
+    result.eq case_expected("expression_array_literal")
+
+  it "must generate typed compound literal from anonymous object", proc() =
+    let result = generate_c(case_input("expression_object"))
+    result.eq case_expected("expression_object")
+
+  it "must generate compound literal from named constructor", proc() =
+    let result = generate_c(case_input("expression_named_constructor"))
+    result.eq case_expected("expression_named_constructor")
+
+  it "must generate labeled block expression", proc() =
+    let result = generate_c(case_input("expression_block"))
+    result.eq case_expected("expression_block")
+
+  it "must generate unnamed block expression", proc() =
+    let result = generate_c(case_input("expression_block_unnamed"))
+    result.eq case_expected("expression_block_unnamed")
+
+  it "must generate ternary from if expression", proc() =
+    let result = generate_c(case_input("expression_conditional_value"))
+    result.eq case_expected("expression_conditional_value")
+
+  it "must generate chained ternaries from case expression", proc() =
+    let result = generate_c(case_input("expression_case_value"))
+    result.eq case_expected("expression_case_value")
+
+  it "must generate address operator from addr", proc() =
+    let result = generate_c(case_input("expression_addr"))
+    result.eq case_expected("expression_addr")
+
+  it "must generate cast from as", proc() =
+    let result = generate_c(case_input("expression_cast_as"))
+    result.eq case_expected("expression_cast_as")
+
+describe "nonim.minc | Visibility":
+  it "must generate static from private var binding", proc() =
+    let result = generate_c(case_input("variable_var_private"))
+    result.eq case_expected("variable_var_private")
+
+  it "must generate static from private procedure", proc() =
+    let result = generate_c(case_input("procedure_private"))
+    result.eq case_expected("procedure_private")
 
 describe "nonim.minc | Passthrough":
   it "must emit raw code from emit pragma", proc() =

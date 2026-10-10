@@ -1,1 +1,1 @@
-static char const letter = 'a';
+char const letter = 'a';

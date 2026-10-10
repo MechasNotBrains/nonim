@@ -1,2 +1,2 @@
-static int const a = 0;
-static int const b = 0;
+int const a = 0;
+int const b = 0;
