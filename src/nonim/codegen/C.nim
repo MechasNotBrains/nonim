@@ -23,7 +23,7 @@ const Tab = "  "
 func expression *(ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func expression_keyword (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func expression_condition (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
-func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0) :void
+func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0; top_level :bool = false) :void
 func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func expression_fields (ast :astTF.Ast; module :astTF.Id; first :Option[astTF.Id]; Out :var Output) :void
 func type_name (ast :astTF.Ast; module :astTF.Id; expression_id :Option[astTF.Id]; is_const :bool; name :string) :string
@@ -93,7 +93,8 @@ func expression_affix_cast (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out 
 
 func expression_affix (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
-  if ast.source(module, expression.affix.operator) == "as":
+  let operator = ast.source(module, expression.affix.operator)
+  if expression.affix.left.isSome and operator in ["as", "@"]:
     ast.expression_affix_cast(module, id, Out)
     return
   let is_prefix = expression.affix.left.isNone
@@ -113,8 +114,52 @@ func expression_call_constructor (ast :astTF.Ast; id :astTF.Id) :bool=
   let call = ast.data.expressions.get[id].call
   call.arguments.isSome and ast.data.bindings.get[call.arguments.get].name.isSome
 
+func expression_call_builtin (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
+  let name = ast.data.expressions.get[ast.data.expressions.get[id].call.name]
+  if name.kind != astTF.eIdentifier: return ""
+  let text = ast.source(module, name.identifier.name.location)
+  if text.len == 0 or text[0] != '@': return ""
+  return text
+
+func expression_call_raw (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :bool=
+  let call = ast.data.expressions.get[id].call
+  let name = ast.data.expressions.get[call.name]
+  if name.kind != astTF.eIdentifier: return false
+  if ast.source(module, name.identifier.name.location) != "raw": return false
+  if call.arguments.isNone: return false
+  let argument = ast.data.bindings.get[call.arguments.get]
+  argument.next.isNone and argument.value.isSome and ast.data.expressions.get[argument.value.get].kind == astTF.eLiteral
+
+func expression_call_defined (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :bool=
+  let call = ast.data.expressions.get[id].call
+  let name = ast.data.expressions.get[call.name]
+  if name.kind != astTF.eIdentifier: return false
+  if ast.source(module, name.identifier.name.location) != "defined": return false
+  if call.arguments.isNone: return false
+  let argument = ast.data.bindings.get[call.arguments.get]
+  if argument.next.isSome or argument.value.isNone: return false
+  let value = ast.data.expressions.get[argument.value.get]
+  value.kind == astTF.eLiteral and value.literal.kind == astTF.LiteralKind.string
+
+func expression_call_cast (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
+  let target = ast.data.bindings.get[ast.data.expressions.get[id].call.arguments.get]
+  let value  = ast.data.bindings.get[target.next.get]
+  Out.string(module, "(" & ast.type_name(module, target.value, false, "") & ")(", output.Target.definition)
+  ast.expression(module, value.value.get, Out)
+  Out.string(module, ")", output.Target.definition)
+
 func expression_call (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expression = ast.data.expressions.get[id]
+  if ast.expression_call_builtin(module, id) == "@cast":
+    ast.expression_call_cast(module, id, Out)
+    return
+  if ast.expression_call_raw(module, id):
+    ast.expression(module, ast.data.bindings.get[expression.call.arguments.get].value.get, Out)
+    return
+  if ast.expression_call_defined(module, id):
+    let value = ast.data.expressions.get[ast.data.bindings.get[expression.call.arguments.get].value.get]
+    Out.string(module, "defined(" & ast.source(module, value.literal.value, false) & ")", output.Target.definition)
+    return
   if ast.expression_call_tuple(module, id):
     ast.expression_fields(module, expression.call.arguments, Out)
     return
@@ -216,11 +261,40 @@ func expression_conditional_switch (ast :astTF.Ast; module :astTF.Id; id :astTF.
   for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
   Out.string(module, "}\n", output.Target.definition)
 
-func expression_conditional (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
-  let expr = ast.data.expressions.get[id]
-  if expr.conditional.keyword.isSome:
-    ast.expression_conditional_switch(module, id, depth, Out)
+func expression_conditional_comptime_body (ast :astTF.Ast; module :astTF.Id; body :Option[astTF.Id]; depth :int; Out :var Output; top_level :bool) :void=
+  if body.isNone: return
+  if top_level:
+    ast.statement_list(module, body.get, Out, depth + 1, top_level)
     return
+  for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+  Out.string(module, "{\n", output.Target.definition)
+  ast.statement_list(module, body.get, Out, depth + 1)
+  for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+  Out.string(module, "}\n", output.Target.definition)
+
+func expression_conditional_comptime (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output; top_level :bool) :void=
+  let expr = ast.data.expressions.get[id]
+  Out.string(module, "#if ", output.Target.definition)
+  ast.expression(module, expr.conditional.condition, Out)
+  Out.string(module, "\n", output.Target.definition)
+  ast.expression_conditional_comptime_body(module, expr.conditional.body, depth, Out, top_level)
+  var current = expr.conditional.branches
+  while current.isSome:
+    let branch = ast.data.statements.get[current.get].branch
+    for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+    if branch.condition.isSome:
+      Out.string(module, "#elif ", output.Target.definition)
+      ast.expression(module, branch.condition.get, Out)
+      Out.string(module, "\n", output.Target.definition)
+    else:
+      Out.string(module, "#else\n", output.Target.definition)
+    ast.expression_conditional_comptime_body(module, branch.body, depth, Out, top_level)
+    current = branch.next
+  for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+  Out.string(module, "#endif\n", output.Target.definition)
+
+func expression_conditional_runtime (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output) :void=
+  let expr = ast.data.expressions.get[id]
   Out.string(module, "if ", output.Target.definition)
   ast.expression_condition(module, expr.conditional.condition, Out)
   Out.string(module, " {\n", output.Target.definition)
@@ -232,6 +306,15 @@ func expression_conditional (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; dep
     ast.statement_branch(module, expr.conditional.branches.get, Out)
   else:
     Out.string(module, "\n", output.Target.definition)
+
+func expression_conditional (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; depth :int; Out :var Output; top_level :bool = false) :void=
+  let expr = ast.data.expressions.get[id]
+  if expr.conditional.keyword.isSome:
+    ast.expression_conditional_switch(module, id, depth, Out)
+  elif expr.conditional.runtime == some(false):
+    ast.expression_conditional_comptime(module, id, depth, Out, top_level)
+  else:
+    ast.expression_conditional_runtime(module, id, depth, Out)
 
 func expression_indexed (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let expr = ast.data.expressions.get[id]
@@ -430,8 +513,7 @@ func type_is_varargs (ast :astTF.Ast; module :astTF.Id; expression_id :Option[as
   if typ.kind != astTF.tPrimitive: return false
   return ast.source(module, typ.primitive.name.location) == "varargs"
 
-func procedure_arguments (ast :astTF.Ast; module :astTF.Id; first :Option[astTF.Id]) :string=
-  var types   :seq[Option[astTF.Id]]
+func binding_types (ast :astTF.Ast; first :Option[astTF.Id]) :seq[Option[astTF.Id]]=
   var pending = 0
   var scan    = first
   while scan.isSome:
@@ -440,9 +522,12 @@ func procedure_arguments (ast :astTF.Ast; module :astTF.Id; first :Option[astTF.
     if binding.dataType.isNone:
       pending += 1
       continue
-    for untyped_index in 0 .. pending: types.add(binding.dataType)
+    for untyped_index in 0 .. pending: result.add(binding.dataType)
     pending = 0
-  for untyped_index in 0 ..< pending: types.add(none(astTF.Id))
+  for untyped_index in 0 ..< pending: result.add(none(astTF.Id))
+
+func procedure_arguments (ast :astTF.Ast; module :astTF.Id; first :Option[astTF.Id]) :string=
+  let types   = ast.binding_types(first)
   var current = first
   var index   = 0
   while current.isSome:
@@ -459,6 +544,11 @@ func procedure_arguments (ast :astTF.Ast; module :astTF.Id; first :Option[astTF.
 #_______________________________________
 # @section Statements
 #_____________________________
+func expression_undefined (ast :astTF.Ast; module :astTF.Id; id :Option[astTF.Id]) :bool=
+  if id.isNone: return false
+  let expression = ast.data.expressions.get[id.get]
+  expression.kind == astTF.eIdentifier and ast.source(module, expression.identifier.name.location) == "_"
+
 func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0) :void=
   let statement = ast.data.statements.get[id]
   let binding = ast.data.bindings.get[statement.variable.id]
@@ -475,7 +565,7 @@ func statement_variable (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
   let name = if binding.name.isSome: ast.source(module, binding.name.get.location) else: ""
   Out.string(module, ast.type_name(module, binding.dataType, not is_mutable, name), output.Target.definition)
 
-  if binding.value.isSome:
+  if binding.value.isSome and not ast.expression_undefined(module, binding.value):
     Out.string(module, " = ", output.Target.definition)
     let value = ast.data.expressions.get[binding.value.get]
     let is_anonymous = value.kind == astTF.eObject or (value.kind == astTF.eCall and ast.expression_call_tuple(module, binding.value.get))
@@ -538,13 +628,22 @@ func expression_keyword (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :va
 
 
 func statement_type_object (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; name :string; Out :var Output) :void=
+  let obj = ast.data.types.get[id].`object`
+  if ast.pragma_has(module, obj.pragmas, ["stub"]) and obj.link.isSome:
+    let parent = ast.link(astTF.Id(obj.link.get.start)).`type`
+    Out.string(module, "typedef struct " & ast.Type(module, parent, false, "") & " " & name & ";\n", output.Target.definition)
+    return
   Out.string(module, "typedef struct " & name & " {\n", output.Target.definition)
-  var current = ast.data.types.get[id].`object`.fields
+  let first   = ast.data.types.get[id].`object`.fields
+  let types   = ast.binding_types(first)
+  var current = first
+  var index   = 0
   while current.isSome:
     let field = ast.data.bindings.get[current.get]
     let field_name = if field.name.isSome: ast.source(module, field.name.get.location) else: ""
-    Out.string(module, Tab & ast.type_name(module, field.dataType, false, field_name) & ";\n", output.Target.definition)
+    Out.string(module, Tab & ast.type_name(module, types[index], false, field_name) & ";\n", output.Target.definition)
     current = field.next
+    index  += 1
   Out.string(module, "} " & name & ";\n", output.Target.definition)
 
 func statement_type_enum (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; name :string; Out :var Output) :void=
@@ -580,7 +679,17 @@ func statement_discard_bare (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :bo
   if value.kind == astTF.eBlock: return true
   return value.kind == astTF.eIdentifier and ast.source(module, value.identifier.name.location) == "_"
 
-func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0) :void=
+func statement_discard_tuple (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :Option[astTF.Id]=
+  let expr = ast.data.expressions.get[id]
+  if expr.kind != astTF.eKeyword: return none(astTF.Id)
+  if ast.source(module, expr.keyword.keyword.location) != "discard": return none(astTF.Id)
+  if expr.keyword.value.isNone: return none(astTF.Id)
+  let value = ast.data.expressions.get[expr.keyword.value.get]
+  if value.kind == astTF.eObject: return some(value.`object`.fields)
+  if value.kind == astTF.eCall and ast.expression_call_tuple(module, expr.keyword.value.get): return value.call.arguments
+  return none(astTF.Id)
+
+func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0; top_level :bool = false) :void=
   let statement = ast.data.statements.get[id]
   let expr = ast.data.expressions.get[statement.expression.id]
   let depth = ast.statement_indent(statement.expression.depth, block_depth)
@@ -591,9 +700,20 @@ func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :
   if ast.statement_discard_bare(module, statement.expression.id):
     Out.string(module, "{}\n", output.Target.definition)
     return
+  var element_id = ast.statement_discard_tuple(module, statement.expression.id)
+  if element_id.isSome:
+    while element_id.isSome:
+      let element = ast.data.bindings.get[element_id.get]
+      Out.string(module, "(void)(", output.Target.definition)
+      ast.expression(module, element.value.get, Out)
+      Out.string(module, ");\n", output.Target.definition)
+      element_id = element.next
+      if element_id.isSome:
+        for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+    return
   case expr.kind
   of astTF.eLoop:        ast.expression_loop(module, statement.expression.id, depth, Out)
-  of astTF.eConditional: ast.expression_conditional(module, statement.expression.id, depth, Out)
+  of astTF.eConditional: ast.expression_conditional(module, statement.expression.id, depth, Out, top_level)
   else:
     ast.expression(module, statement.expression.id, Out)
     Out.string(module, ";\n", output.Target.definition)
@@ -626,17 +746,37 @@ func statement_comment (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var
     first = false
   Out.string(module, "\n", output.Target.definition)
 
-func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0) :void=
+func statement_pragma (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0) :void=
+  let statement = ast.data.statements.get[id]
+  let pragma    = ast.pragm(statement.pragma.id)
+  if ast.source(module, ast.data.expressions.get[pragma.key].identifier.name.location) != "define": return
+  let depth = ast.statement_indent(statement.pragma.depth, block_depth)
+  for indentation in 0 ..< depth: Out.string(module, Tab, output.Target.definition)
+  Out.string(module, "#define ", output.Target.definition)
+  if pragma.value.isNone:
+    Out.string(module, "\n", output.Target.definition)
+    return
+  let value = ast.data.expressions.get[pragma.value.get]
+  if value.kind == astTF.eAffix and value.affix.left.isSome and ast.source(module, value.affix.operator) == "->":
+    ast.expression(module, value.affix.left.get, Out)
+    Out.string(module, " ", output.Target.definition)
+    ast.expression(module, value.affix.right.get, Out)
+  else:
+    ast.expression(module, pragma.value.get, Out)
+  Out.string(module, "\n", output.Target.definition)
+
+func statement (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0; top_level :bool = false) :void=
   let statement = ast.data.statements.get[id]
   case statement.kind
   of astTF.sVariable:    ast.statement_variable(module, id, Out, block_depth)
   of astTF.sProcedure:   ast.statement_procedure(module, id, Out)
   of astTF.sType:        ast.statement_type(module, id, Out)
   of astTF.sBranch:      ast.statement_branch(module, id, Out)
-  of astTF.sExpression:  ast.statement_expression(module, id, Out, block_depth)
+  of astTF.sExpression:  ast.statement_expression(module, id, Out, block_depth, top_level)
   of astTF.sImport:      ast.statement_import(module, id, Out)
   of astTF.sPassthrough: ast.statement_passthrough(module, id, Out)
   of astTF.sComment:     ast.statement_comment(module, id, Out)
+  of astTF.sPragma:      ast.statement_pragma(module, id, Out, block_depth)
   else:                  assert false, "codegen.C: unsupported statement kind: " & $statement.kind
 
 
@@ -659,11 +799,11 @@ func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var 
   Out.string(module, "\n", output.Target.definition)
 
 
-func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0) :void=
+func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output; block_depth :int = 0; top_level :bool = false) :void=
   var current = some(id)
   while current.isSome:
     let current_id = current.get
-    ast.statement(module, current_id, Out, block_depth)
+    ast.statement(module, current_id, Out, block_depth, top_level)
     let statement = ast.data.statements.get[current_id]
     current = case statement.kind
       of astTF.sVariable:    statement.variable.next
@@ -674,6 +814,7 @@ func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
       of astTF.sType:        statement.`type`.next
       of astTF.sAlias:       statement.alias.next
       of astTF.sExpression:  statement.expression.next
+      of astTF.sPragma:      statement.pragma.next
       of astTF.sBranch:      none(astTF.Id)
       else:                  none(astTF.Id)
 
@@ -691,5 +832,5 @@ func C *(
   for index in 0 ..< ast.data.modules.len:
     let module_body = ast.data.modules[index].body
     if module_body.isSome:
-      ast.statement_list(astTF.Id(index), module_body.get, result)
+      ast.statement_list(astTF.Id(index), module_body.get, result, top_level = true)
 

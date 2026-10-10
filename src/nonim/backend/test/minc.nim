@@ -75,6 +75,10 @@ describe "nonim.minc | Variables":
     let result = generate_c(case_input("variable_multi"))
     result.eq case_expected("variable_multi")
 
+  it "must generate a declaration without initializer from an underscore value", proc() =
+    let result = generate_c(case_input("variable_undefined"))
+    result.eq case_expected("variable_undefined")
+
 describe "nonim.minc | Procedures":
   it "must generate a public forward declaration", proc() =
     let result = generate_c(case_input("procedure"))
@@ -124,6 +128,10 @@ describe "nonim.minc | Literals":
   it "must generate char literal", proc() =
     let result = generate_c(case_input("literal_char"))
     result.eq case_expected("literal_char")
+
+  it "must generate concatenated lines from raw triple-quoted string", proc() =
+    let result = generate_c(case_input("literal_string_raw"))
+    result.eq case_expected("literal_string_raw")
 
   it "must generate concatenated lines from triple-quoted string", proc() =
     let result = generate_c(case_input("literal_string_triple"))
@@ -175,6 +183,10 @@ describe "nonim.minc | Statements":
     let result = generate_c(case_input("statement_discard"))
     result.eq case_expected("statement_discard")
 
+  it "must generate one discard per element from tuple discard", proc() =
+    let result = generate_c(case_input("statement_discard_tuple"))
+    result.eq case_expected("statement_discard_tuple")
+
   it "must generate empty block from bare discard", proc() =
     let result = generate_c(case_input("statement_discard_bare"))
     result.eq case_expected("statement_discard_bare")
@@ -219,6 +231,14 @@ describe "nonim.minc | Types":
   it "must generate array struct field with its length", proc() =
     let result = generate_c(case_input("type_object_array_field"))
     result.eq case_expected("type_object_array_field")
+
+  it "must generate typedef of an existing C struct from stub object", proc() =
+    let result = generate_c(case_input("type_object_stub"))
+    result.eq case_expected("type_object_stub")
+
+  it "must generate struct fields declared in a group", proc() =
+    let result = generate_c(case_input("type_object_fields_grouped"))
+    result.eq case_expected("type_object_fields_grouped")
 
   it "must generate typedef from multi-word type", proc() =
     let result = generate_c(case_input("type_multiword"))
@@ -265,6 +285,18 @@ describe "nonim.minc | Expressions":
     let result = generate_c(case_input("expression_addr"))
     result.eq case_expected("expression_addr")
 
+  it "must generate prefix dereference", proc() =
+    let result = generate_c(case_input("expression_deref"))
+    result.eq case_expected("expression_deref")
+
+  it "must generate cast from infix @", proc() =
+    let result = generate_c(case_input("expression_cast_infix"))
+    result.eq case_expected("expression_cast_infix")
+
+  it "must generate cast from @cast builtin", proc() =
+    let result = generate_c(case_input("expression_cast_builtin"))
+    result.eq case_expected("expression_cast_builtin")
+
   it "must generate cast from as", proc() =
     let result = generate_c(case_input("expression_cast_as"))
     result.eq case_expected("expression_cast_as")
@@ -277,6 +309,15 @@ describe "nonim.minc | Visibility":
   it "must generate static from private procedure", proc() =
     let result = generate_c(case_input("procedure_private"))
     result.eq case_expected("procedure_private")
+
+describe "nonim.minc | Comptime":
+  it "must generate defines from define pragmas", proc() =
+    let result = generate_c(case_input("pragma_define"))
+    result.eq case_expected("pragma_define")
+
+  it "must generate comptime conditionals from when", proc() =
+    let result = generate_c(case_input("statement_when"))
+    result.eq case_expected("statement_when")
 
 describe "nonim.minc | Passthrough":
   it "must emit raw code from emit pragma", proc() =
