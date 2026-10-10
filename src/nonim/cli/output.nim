@@ -15,6 +15,14 @@ from minibuild as B import build, format, format_exec, ReportMode, Dependency, D
 
 type GenerateProc * = proc (options :Options) :Output {.nimcall.}
 
+const clang_format = staticRead("../backend/.clang-format")
+
+proc clang_format_write (options :Options; dir :string) =
+  if options.backend notin {Backend.minc, Backend.cleanc}: return
+  let path = dir/".clang-format"
+  if fileExists(path): return
+  writeFile(path, clang_format)
+
 
 proc make_target *(options :Options; sources :seq[string]) :B.Target=
   var cfg = B.Config()
@@ -55,6 +63,7 @@ proc ext_hdr *(options :Options) :string=
 
 proc write_output *(options :Options; output :Output; trg :B.Target) =
   createDir(options.dir.cache)
+  options.clang_format_write(options.dir.cache)
   let has_code_dir = options.dir.code.len > 0
   if has_code_dir: createDir(options.dir.code)
   let src = options.ext_src()
@@ -122,6 +131,8 @@ proc run_folder (options :Options; generate :GenerateProc) =
   let input_root = options.input.absolutePath()
   let out_root   = if options.output.len > 0 and options.output.absolutePath() != input_root: options.output
                    else: options.input/options.dir.bin
+  createDir(out_root)
+  options.clang_format_write(out_root)
   var files :seq[system.string]
   for path in walkDirRec(options.input):
     if path.splitFile.ext == extension: files.add path.absolutePath()
