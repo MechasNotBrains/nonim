@@ -1,8 +1,8 @@
 #:_________________________________________________________
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
-from std/json import JsonNode, parseJson, to, pairs, hasKey, items, `[]`, getInt, getStr, getBool, `$`
-from std/options import some, get, isNone
+from std/json import JsonNode, parseJson, to, pairs, hasKey, items, `[]`, `[]=`, getInt, getStr, getBool, `$`, pretty, add, newJObject, newJArray, newJString, newJBool, newJInt
+from std/options import Option, some, get, isNone, isSome
 from astTF import nil
 
 
@@ -113,6 +113,10 @@ proc fromJson *(json :string) :astTF.astTF=
     var list :astTF.DataList[astTF.Format]= @[]
     for item in data["formats"].items: list.add item.to(astTF.Format)
     result.data.formats = some(list)
+  if data.hasKey("depths"):
+    var list :astTF.DataList[astTF.Depth]= @[]
+    for item in data["depths"].items: list.add item.to(astTF.Depth)
+    result.data.depths = some(list)
   if data.hasKey("array_elements"):
     var list :astTF.DataList[astTF.ArrayElement]= @[]
     for item in data["array_elements"].items: list.add item.to(astTF.ArrayElement)
@@ -123,4 +127,81 @@ proc fromJson *(json :string) :astTF.astTF=
     result.data.links = some(list)
   if data.hasKey("synthetic"):
     result.data.synthetic = some(data["synthetic"].to(string))
+
+
+proc toJsonNode (value :string) :JsonNode
+proc toJsonNode (value :bool) :JsonNode
+proc toJsonNode (value :SomeInteger) :JsonNode
+proc toJsonNode [T :enum](value :T) :JsonNode
+proc toJsonNode [T](value :seq[T]) :JsonNode
+proc toJsonNode (value :astTF.Type) :JsonNode
+proc toJsonNode (value :astTF.Expression) :JsonNode
+proc toJsonNode (value :astTF.Statement) :JsonNode
+proc toJsonNode [T :object](value :T) :JsonNode
+
+proc toJsonNode (value :string) :JsonNode= newJString(value)
+proc toJsonNode (value :bool) :JsonNode= newJBool(value)
+proc toJsonNode (value :SomeInteger) :JsonNode= newJInt(BiggestInt(value))
+proc toJsonNode [T :enum](value :T) :JsonNode= newJInt(BiggestInt(ord(value)))
+
+proc toJsonNode [T](value :seq[T]) :JsonNode=
+  result = newJArray()
+  for item in value: result.add toJsonNode(item)
+
+proc toJsonNode_variant (key :string; value :JsonNode) :JsonNode=
+  result = newJObject()
+  result[key] = value
+
+proc toJsonNode (value :astTF.Type) :JsonNode=
+  case value.kind
+  of astTF.tPrimitive:   toJsonNode_variant("primitive",   toJsonNode(value.primitive))
+  of astTF.tArray:       toJsonNode_variant("array",       toJsonNode(value.array))
+  of astTF.tPtr:         toJsonNode_variant("ptr",         toJsonNode(value.`ptr`))
+  of astTF.tObject:      toJsonNode_variant("object",      toJsonNode(value.`object`))
+  of astTF.tEnumeration: toJsonNode_variant("enumeration", toJsonNode(value.enumeration))
+  of astTF.tProcedure:   toJsonNode_variant("procedure",   toJsonNode(value.procedure))
+  of astTF.tRange:       toJsonNode_variant("range",       toJsonNode(value.`range`))
+  of astTF.tAlias:       toJsonNode_variant("alias",       toJsonNode(value.alias))
+
+proc toJsonNode (value :astTF.Expression) :JsonNode=
+  case value.kind
+  of astTF.eLiteral:     toJsonNode_variant("literal",     toJsonNode(value.literal))
+  of astTF.eIdentifier:  toJsonNode_variant("identifier",  toJsonNode(value.identifier))
+  of astTF.eAffix:       toJsonNode_variant("affix",       toJsonNode(value.affix))
+  of astTF.eCall:        toJsonNode_variant("call",        toJsonNode(value.call))
+  of astTF.eIndexed:     toJsonNode_variant("indexed",     toJsonNode(value.indexed))
+  of astTF.eBlock:       toJsonNode_variant("block",       toJsonNode(value.`block`))
+  of astTF.eArray:       toJsonNode_variant("array",       toJsonNode(value.array))
+  of astTF.eObject:      toJsonNode_variant("object",      toJsonNode(value.`object`))
+  of astTF.eRange:       toJsonNode_variant("range",       toJsonNode(value.`range`))
+  of astTF.eConditional: toJsonNode_variant("conditional", toJsonNode(value.conditional))
+  of astTF.eLoop:        toJsonNode_variant("loop",        toJsonNode(value.loop))
+  of astTF.eGroup:       toJsonNode_variant("group",       toJsonNode(value.group))
+  of astTF.eType:        toJsonNode_variant("type",        toJsonNode(value.`type`))
+  of astTF.eKeyword:     toJsonNode_variant("keyword",     toJsonNode(value.keyword))
+  of astTF.eProcedure:   toJsonNode_variant("procedure",   toJsonNode(value.procedure))
+
+proc toJsonNode (value :astTF.Statement) :JsonNode=
+  case value.kind
+  of astTF.sExpression:  toJsonNode_variant("expression",  toJsonNode(value.expression))
+  of astTF.sVariable:    toJsonNode_variant("variable",    toJsonNode(value.variable))
+  of astTF.sProcedure:   toJsonNode_variant("procedure",   toJsonNode(value.procedure))
+  of astTF.sComment:     toJsonNode_variant("comment",     toJsonNode(value.comment))
+  of astTF.sImport:      toJsonNode_variant("import",      toJsonNode(value.`import`))
+  of astTF.sPassthrough: toJsonNode_variant("passthrough", toJsonNode(value.passthrough))
+  of astTF.sBranch:      toJsonNode_variant("branch",      toJsonNode(value.branch))
+  of astTF.sPragma:      toJsonNode_variant("pragma",      toJsonNode(value.pragma))
+  of astTF.sAlias:       toJsonNode_variant("alias",       toJsonNode(value.alias))
+  of astTF.sType:        toJsonNode_variant("type",        toJsonNode(value.`type`))
+
+proc toJsonNode [T :object](value :T) :JsonNode=
+  result = newJObject()
+  for name, field in value.fieldPairs:
+    when field is Option:
+      if field.isSome: result[name] = toJsonNode(field.get)
+    else:
+      result[name] = toJsonNode(field)
+
+
+proc toJson *(ast :astTF.astTF) :string= pretty(toJsonNode(ast))
 
