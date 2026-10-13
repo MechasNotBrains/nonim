@@ -1,3 +1,4 @@
+#include "./input.h"
 int const max = 10;
 int count = 0;
 int const step = 1;

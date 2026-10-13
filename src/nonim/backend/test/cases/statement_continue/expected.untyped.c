@@ -1,3 +1,4 @@
+#include "./input.h"
 void skip_negatives (int const n) {
   int current = 0;
   while (current < n) {

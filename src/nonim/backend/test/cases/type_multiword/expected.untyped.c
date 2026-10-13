@@ -1,4 +1,4 @@
-typedef unsigned long long int uNumber;
+#include "./input.h"
 int main () {
   uNumber const num = 0;
   return 0;

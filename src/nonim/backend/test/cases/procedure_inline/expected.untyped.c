@@ -1,3 +1,4 @@
+#include "./input.h"
 inline int add (int const x, int const y) {
   return x + y;
 }

@@ -24,6 +24,10 @@ type Needs = object
   stdbool  :bool
 #___________________
 type Language * = enum C, Zig, Nim
+proc parse *(_:typedesc[Language]; name :string; fallback :Language = Language.Nim) :Language=
+  for language in Language:
+    if ($language).toLowerAscii() == name.toLowerAscii(): return language
+  return fallback
 #___________________
 type State = object
   ast            :astTF.Ast

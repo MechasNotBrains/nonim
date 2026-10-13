@@ -1,3 +1,4 @@
+#include "./input.h"
 int count;
 int start () {
   int value;

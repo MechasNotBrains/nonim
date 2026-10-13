@@ -1,3 +1,4 @@
+#include "./input.h"
 int foo (int const x) {
   switch (x) {
     case 1: /* fall-through */

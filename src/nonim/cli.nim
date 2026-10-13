@@ -16,6 +16,11 @@ type Backend *{.pure.}= enum
   cleanc  ## Typed path: full semantic analysis before codegen. Emits C.
   zig     ## Typed path: full semantic analysis before codegen. Emits Zig.
 
+proc parse *(_:typedesc[Backend]; name :string; fallback :Backend = Backend.minatf) :Backend=
+  for backend in Backend:
+    if $backend == name: return backend
+  return fallback
+
 type Command *{.pure.}= enum
   codegen  ## Generate C code only.
   compile  ## Generate C and compile to binary.
@@ -74,14 +79,7 @@ proc options_parse *(
       of "codeDir":  result.dir.code = parser.val
       of "zigBin":   result.zig.bin = parser.val
       of "zigCache": result.zig.cache = parser.val
-      of "backend":
-        case parser.val
-        of "minatf": result.backend = Backend.minatf
-        of "minc":   result.backend = Backend.minc
-        of "minz":   result.backend = Backend.minz
-        of "cleanc": result.backend = Backend.cleanc
-        of "zig":    result.backend = Backend.zig
-        else: discard
+      of "backend":    result.backend = Backend.parse(parser.val, result.backend)
       of "passC":      result.pass_c.add(parser.val)
       of "dependency":
         let name_sep = parser.val.find(':')

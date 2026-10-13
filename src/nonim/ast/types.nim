@@ -13,6 +13,7 @@ export some, isSome, get, Option
 #___________________
 type Ast * = astTF.astTF
 export astTF.Module
+export astTF.Metadata
 export astTF.Id
 export astTF.Identifier
 export astTF.Location

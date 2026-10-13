@@ -1,3 +1,4 @@
+#include "./input.h"
 void nim_types (int const a, uint32 const b, float32 const c, bool const d) {
   (void)(a);
   (void)(b);

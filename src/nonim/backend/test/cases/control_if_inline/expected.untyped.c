@@ -1,3 +1,4 @@
+#include "./input.h"
 int pick (int const x) {
   int result = 0;
   if (x == 1) {

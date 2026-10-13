@@ -29,7 +29,7 @@ describe "nonim.codegen.c | Expression.Identifier":
     const Expected = expected("expression_identifier_plain.c")
     var test_case = expression_identifier.plain()
     var Out = Output.create()
-    test_case.ast.expression(test_case.module, test_case.id, Out)
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
     Out.modules[test_case.module].definitions.eq Expected
 
 describe "nonim.codegen.c | Expression.Literal":
@@ -37,7 +37,7 @@ describe "nonim.codegen.c | Expression.Literal":
     const Expected = expected("expression_literal_integer.c")
     var test_case = expression_literal.integer()
     var Out = Output.create()
-    test_case.ast.expression(test_case.module, test_case.id, Out)
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
     Out.modules[test_case.module].definitions.eq Expected
 
 describe "nonim.codegen.c | Expression.Affix":
@@ -45,7 +45,7 @@ describe "nonim.codegen.c | Expression.Affix":
     const Expected = expected("expression_affix_binary.c")
     var test_case = expression_affix.binary("+")
     var Out = Output.create()
-    test_case.ast.expression(test_case.module, test_case.id, Out)
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
     Out.modules[test_case.module].definitions.eq Expected
 
 describe "nonim.codegen.c | Expression.Call":
@@ -53,14 +53,14 @@ describe "nonim.codegen.c | Expression.Call":
     const Expected = expected("expression_call_with_arguments.c")
     var test_case = expression_call.with_arguments()
     var Out = Output.create()
-    test_case.ast.expression(test_case.module, test_case.id, Out)
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
     Out.modules[test_case.module].definitions.eq Expected
 
   it "must generate a call without arguments", proc() =
     const Expected = expected("expression_call_without_arguments.c")
     var test_case = expression_call.without_arguments()
     var Out = Output.create()
-    test_case.ast.expression(test_case.module, test_case.id, Out)
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
     Out.modules[test_case.module].definitions.eq Expected
 
 describe "nonim.codegen.c | Statement.Variable":
@@ -119,15 +119,19 @@ describe "nonim.codegen.c | Statement.Comment":
 describe "nonim.codegen.c | Statement.Include":
   it "must generate a global include with angle brackets", proc() =
     const Expected = expected("include_global.c")
+    const Expected_h = expected("include_global.h")
     let test_case = statement_import.include_global()
     let result = test_case.ast.C()
     result.modules[0].definitions.eq Expected
+    result.modules[0].declarations.eq Expected_h
 
   it "must generate a local include with quotes", proc() =
     const Expected = expected("include_local.c")
+    const Expected_h = expected("include_local.h")
     let test_case = statement_import.include_local()
     let result = test_case.ast.C()
     result.modules[0].definitions.eq Expected
+    result.modules[0].declarations.eq Expected_h
 
 describe "nonim.codegen.c | Format.Whitespace":
   it "must normalize whitespace between two procs", proc() =

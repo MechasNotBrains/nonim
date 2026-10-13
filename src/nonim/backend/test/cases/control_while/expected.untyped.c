@@ -1,3 +1,4 @@
+#include "./input.h"
 void countdown (int const n) {
   int current = n;
   while (current > 0) {

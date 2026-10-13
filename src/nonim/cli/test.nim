@@ -31,6 +31,13 @@ describe "nonim.cli | Commands":
     let options = options_parse(@["r", "input.nim"])
     options.command.eq Command.run
 
+describe "nonim.cli | Backend Parsing":
+  it "must parse every backend from its name", proc() =
+    for backend in Backend: Backend.parse($backend).eq backend
+
+  it "must return the fallback for an unknown backend name", proc() =
+    Backend.parse("unknown", Backend.minc).eq Backend.minc
+
 describe "nonim.cli | Backend Selection":
   it "must select minc backend when specified", proc() =
     let options = options_parse(@["--backend:minc", "cc", "input.nim"])

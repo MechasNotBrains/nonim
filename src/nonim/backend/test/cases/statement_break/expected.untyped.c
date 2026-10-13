@@ -1,3 +1,4 @@
+#include "./input.h"
 int find_first (int const n) {
   int current = 0;
   while (true) {

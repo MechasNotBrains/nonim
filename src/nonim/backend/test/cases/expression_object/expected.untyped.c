@@ -1,7 +1,4 @@
-typedef struct Data {
-  int name;
-  bool flag;
-} Data;
+#include "./input.h"
 void foo () {
   Data const x = (Data){.name = 42, .flag = true};
 }

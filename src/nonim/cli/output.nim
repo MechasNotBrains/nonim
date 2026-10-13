@@ -61,34 +61,44 @@ proc ext_hdr *(options :Options) :string=
   else: ".h"
 
 
-proc write_output *(options :Options; output :Output; trg :B.Target) =
+proc module_name (options :Options; module :output.Module) :string=
+  if module.path.len > 0: module.path.changeFileExt("")
+  else: options.output.splitFile.name
+
+proc module_write (path :string; code :string) =
+  createDir(path.parentDir())
+  writeFile(path, code)
+
+proc module_copy (source :string; target :string) =
+  createDir(target.parentDir())
+  copyFile(source, target)
+
+
+proc write_output *(options :Options; output :Output; trg :B.Target; src :string = options.ext_src()) =
   createDir(options.dir.cache)
   options.clang_format_write(options.dir.cache)
   let has_code_dir = options.dir.code.len > 0
   if has_code_dir: createDir(options.dir.code)
-  let src = options.ext_src()
   let hdr = options.ext_hdr()
   for index, module in output.modules:
-    let name = if module.path.len > 0: module.path.splitFile.name
-               else: options.output.splitFile.name
+    let name = options.module_name(module)
     let cache_src = options.dir.cache/name.changeFileExt(src)
     if module.definitions.len > 0:
-      writeFile(cache_src, module.definitions)
+      module_write(cache_src, module.definitions)
       trg.format(cache_src)
-      if has_code_dir: copyFile(cache_src, options.dir.code/name.changeFileExt(src))
+      if has_code_dir: module_copy(cache_src, options.dir.code/name.changeFileExt(src))
     if module.declarations.len > 0:
       let cache_h = options.dir.cache/name.changeFileExt(hdr)
-      writeFile(cache_h, module.declarations)
+      module_write(cache_h, module.declarations)
       trg.format(cache_h)
-      if has_code_dir: copyFile(cache_h, options.dir.code/name.changeFileExt(hdr))
+      if has_code_dir: module_copy(cache_h, options.dir.code/name.changeFileExt(hdr))
 
 
-proc sources_collect *(options :Options; output :Output) :seq[string]=
+proc sources_collect *(options :Options; output :Output; src :string = options.ext_src()) :seq[string]=
   for module in output.modules:
-    let name = if module.path.len > 0: module.path.splitFile.name
-               else: options.output.splitFile.name
+    let name = options.module_name(module)
     if module.definitions.len > 0:
-      result.add(options.dir.cache/name.changeFileExt(options.ext_src()))
+      result.add(options.dir.cache/name.changeFileExt(src))
 
 
 proc link_imports *(options :Options) =
@@ -170,19 +180,13 @@ proc run_folder (options :Options; generate :GenerateProc) =
     stdout.flushFile()
 
 
-proc run *(options :Options; generate :GenerateProc) =
-  if options.input.len == 0:
-    quit("nonim: no input file provided", 1)
-  if options.backend in {Backend.minz, Backend.minc} and dirExists(options.input):
-    options.run_folder(generate)
-    return
+proc run_output *(options :Options; output :Output; src :string) =
   var opts = options
   opts.dir.cache = options.dir.cache / options.output.splitFile.name
-  let output = generate(opts)
-  let sources = opts.sources_collect(output)
+  let sources = opts.sources_collect(output, src)
+  let trg = opts.make_target(if sources.len > 0: sources else: @[opts.dir.cache/opts.output.splitFile.name & src])
+  opts.write_output(output, trg, src)
   if sources.len == 0: return
-  let trg = opts.make_target(sources)
-  opts.write_output(output, trg)
   case opts.command
   of Command.codegen: discard
   of Command.compile:
@@ -191,3 +195,12 @@ proc run *(options :Options; generate :GenerateProc) =
   of Command.run:
     if opts.backend in {Backend.minz, Backend.zig}: opts.link_imports()
     trg.build(run = true)
+
+
+proc run *(options :Options; generate :GenerateProc) =
+  if options.input.len == 0:
+    quit("nonim: no input file provided", 1)
+  if options.backend in {Backend.minz, Backend.minc} and dirExists(options.input):
+    options.run_folder(generate)
+    return
+  options.run_output(generate(options), options.ext_src())

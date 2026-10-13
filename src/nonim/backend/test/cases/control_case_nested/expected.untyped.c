@@ -1,3 +1,4 @@
+#include "./input.h"
 int foo (int const x, int const y) {
   switch (x) {
     case 1: {

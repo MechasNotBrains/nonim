@@ -1,1 +1,2 @@
+#include "./input.h"
 int const x[3] = {[0] = 1, [1] = 2, [2] = 3};

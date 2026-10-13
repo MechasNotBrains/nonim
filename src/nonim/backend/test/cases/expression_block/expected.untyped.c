@@ -1,3 +1,4 @@
+#include "./input.h"
 void foo () {
   int const y = 0;
   { /* blk */
