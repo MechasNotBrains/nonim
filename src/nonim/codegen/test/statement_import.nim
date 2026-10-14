@@ -18,6 +18,7 @@ proc simple *() :TestData=
     `import`: astTF.StatementImport(
       keyword: some(astTF.Identifier(location: keyw_loc)),
       path: path_loc,
+      global: some(true),
     ),
   ))
   result.ast.data.modules[result.module].body = some(result.id)
@@ -35,6 +36,7 @@ proc path_import *() :TestData=
     `import`: astTF.StatementImport(
       keyword: some(astTF.Identifier(location: keyw_loc)),
       path: path_loc,
+      global: some(true),
     ),
   ))
   result.ast.data.modules[result.module].body = some(result.id)
@@ -58,6 +60,7 @@ proc from_symbols *() :TestData=
     `import`: astTF.StatementImport(
       keyword: some(astTF.Identifier(location: keyw_loc)),
       path: path_loc,
+      global: some(true),
       symbols: some(alias1),
     ),
   ))

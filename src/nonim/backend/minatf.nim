@@ -40,7 +40,7 @@ proc atf *(options :Options) :astTF.Ast=
   let backend = options.input.backend()
   let source  = preprocess.processIncludes(readFile(options.input), options.input)
   let root    = Untyped.compile(source, options.input)
-  result = root.convert(backend.backend_convert(), typed=false, options.input)
+  result = root.convert(backend.backend_convert(), typed=false, options.module_path())
   result.metadata = some(astTF.Metadata(language: some(backend.backend_language())))
 
 
@@ -50,11 +50,11 @@ proc extension *(language :string) :string=
   return "." & Language.parse(language).language_name()
 
 proc generate (ast :astTF.Ast; language :string) :Output=
-  if Backend.parse(language).source_ext().len > 0: return ast.nim()
+  if Backend.parse(language).source_ext().len > 0: return ast.nim(mode = BlockMode.none)
   case Language.parse(language)
   of Language.C:   result = ast.C()
   of Language.Zig: result = ast.zig()
-  of Language.Nim: result = ast.nim()
+  of Language.Nim: result = ast.nim(mode = BlockMode.none)
 
 proc language (ast :astTF.Ast) :string=
   if ast.metadata.isNone: return ""

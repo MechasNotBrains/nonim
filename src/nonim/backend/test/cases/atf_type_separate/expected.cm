@@ -1,0 +1,4 @@
+type first * = object
+  value *:int
+type second * = object
+  value *:int

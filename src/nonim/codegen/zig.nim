@@ -1,7 +1,7 @@
 #:_________________________________________________________
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
-from std/os import changeFileExt, lastPathPart
+from std/os import changeFileExt, lastPathPart, splitFile
 from std/options import some, none, isSome, isNone, get, Option
 from std/strutils import split
 import ../ast as astTF
@@ -167,14 +167,13 @@ func comment (
   ) :void=
   let cmnt = ast.comment(id)
   let kind = ast.source(module, cmnt.kind)
-  let doc  = kind in ["##", "///", "/**"]
   let text = ast.source(module, cmnt.text, synthetic=false)
+  let prefix = case kind
+    of "##!"              : "//!"
+    of "##", "///", "/**" : "///"
+    else                  : "//"
   for (id, line) in text.split("\n").pairs():
     if id != 0: Out.string(module, "\n", output.Target.definition)
-    let prefix = # FIX: The kind should have the `!` instead !!!
-      if doc and line.len > 0 and line[0] == '!' : "//"
-      elif doc                                   : "/// "
-      else                                       : "// "
     Out.string(module, prefix, output.Target.definition)
     Out.string(module, line,   output.Target.definition)
 
@@ -1288,6 +1287,10 @@ func statement_branch (
   if stmt.next.isSome:
     discard zig.statement(ast, module, stmt.next.get, Out)
 #___________________
+func statement_import_path (ast :astTF.Ast; module :astTF.Id; stmt :astTF.StatementImport) :system.string=
+  result = ast.source(module, stmt.path, synthetic=false)
+  if not stmt.global.get(false) and result.splitFile.ext.len == 0: result.add ".zig"
+#___________________
 func statement_import_code (
     module  : astTF.Id;
     name    : system.string;
@@ -1318,7 +1321,7 @@ func statement_import_withSymbols (
     Out    : var Output;
   ) :void=
   let stmt = ast.statement(id).`import`
-  let path = ast.source(module, stmt.path, synthetic=false)
+  let path = zig.statement_import_path(ast, module, stmt)
   var current = stmt.symbols
   var first   = true
   while current.isSome:
@@ -1348,7 +1351,7 @@ func statement_import_simple (
     Out    : var Output;
   ) :void=
   let stmt = ast.statement(id).`import`
-  let path = ast.source(module, stmt.path, synthetic=false)
+  let path = zig.statement_import_path(ast, module, stmt)
   let name :string= case stmt.alias.isSome:
     of true  : ast.source(module, stmt.alias.get.location, synthetic=false)
     of false : path.lastPathPart().changeFileExt("") # Last path part should be the name

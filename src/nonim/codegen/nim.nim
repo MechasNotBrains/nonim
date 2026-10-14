@@ -223,13 +223,19 @@ func affix *(
     Out     : var Output;
   ) :void=
   let E = ast.expression(id).affix
+  let operator  = ast.source(module, E.operator, false)
+  let separator = if operator in [".", "@", "->"]: "" else: " "
   if E.left.isSome:
     ast.expression(module, E.left.get, target, Out)
-    Out.string(module, " ", target)
-  Out.string(module, ast.source(module, E.operator, false), target)
-  if E.right.isSome:
-    Out.string(module, " ", target)
-    ast.expression(module, E.right.get, target, Out)
+    Out.string(module, separator, target)
+  Out.string(module, operator, target)
+  if E.right.isNone: return
+  Out.string(module, separator, target)
+  let right = ast.expression(E.right.get)
+  if operator == "." and right.kind == astTF.eIdentifier:
+    Out.string(module, ast.source(module, right.identifier.name.location, right.identifier.name.synthetic.get(false)), target)
+    return
+  ast.expression(module, E.right.get, target, Out)
 #___________________
 func expression_indexed *(
     ast     : astTF.Ast;
@@ -242,6 +248,22 @@ func expression_indexed *(
   ast.expression(module, E.`object`, target, Out)
   Out.string(module, "[", target)
   ast.expression(module, E.index, target, Out)
+  Out.string(module, "]", target)
+#___________________
+func expression_array *(
+    ast     : astTF.Ast;
+    module  : astTF.Id;
+    id      : astTF.Id;
+    target  : output.Target;
+    Out     : var Output;
+  ) :void=
+  var current = ast.expression(id).array.elements
+  Out.string(module, "[", target)
+  while current.isSome:
+    let element = ast.data.array_elements.get[current.get]
+    ast.expression(module, element.element, target, Out)
+    current = element.next
+    if current.isSome: Out.string(module, ", ", target)
   Out.string(module, "]", target)
 #___________________
 func expression *(
@@ -264,6 +286,7 @@ func expression *(
   of astTF.eCall       : ast.call(module, id, target, Out)
   of astTF.eType       : ast.`type`(module, E.`type`.id, target, Out)
   of astTF.eIndexed    : ast.expression_indexed(module, id, target, Out)
+  of astTF.eArray      : ast.expression_array(module, id, target, Out)
   of astTF.eKeyword    : ast.expression_keyword(module, id, target, Out)
   else                 : raise newException(Defect, "unreachable: " & $E.kind)
 
@@ -757,6 +780,7 @@ func statement_passthrough *(
   ) :void=
   let S = ast.statement(id).passthrough
   let text = ast.source(module, S.location, false)
+  for indentation_level in 0 ..< ast.node_depth(S.depth): Out.string(module, indentation, target)
   Out.string(module, "{.emit: \"\"\"" & text & "\"\"\".}", target)
 #___________________
 func statement_comment *(
@@ -769,8 +793,10 @@ func statement_comment *(
   let S = ast.statement(id).comment
   let C = ast.comment(S.id)
   let kind_text = ast.source(module, C.kind.location, C.kind.synthetic.get(false))
-  let prefix = if kind_text == "##" or kind_text == "///" or kind_text == "/**": "## "
-               else: "# "
+  let prefix = case kind_text
+    of "##!"              : "##!"
+    of "##", "///", "/**" : "##"
+    else                  : "#"
   let text = ast.source(module, C.text, false)
   var first = true
   for line in text.split("\n"):
@@ -916,6 +942,9 @@ func statement *(
     block_depth : int = 0;
   ) :void=
   let S = ast.statement(id)
+  let format_id = ast.statement_format(id)
+  if format_id.isSome:
+    for _ in 0..<ast.data.formats.get[format_id.get].newlines.get(0): Out.string(module, "\n", target)
   case S.kind
   of astTF.sPragma      : ast.pragma(module, S.pragma.id, target, Out)
   of astTF.sVariable    : ast.variable(module, id, target, Out, isBlock = false, block_depth = block_depth)

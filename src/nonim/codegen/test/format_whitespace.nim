@@ -32,6 +32,33 @@ proc two_procs *() :TestData=
   result.ast.data.modules[result.module].body = some(result.id)
 
 
+proc two_procs_newlines *() :TestData=
+  const input_proc1 = "foo"
+  const input_proc2 = "bar"
+  const input_source = input_proc1 & input_proc2 & "567890Z"
+  result = create(input_source)
+  let proc1_loc = astTF.Location(start: 0, `end`: input_proc1.len)
+  let proc2_loc = astTF.Location(start: proc1_loc.`end`, `end`: proc1_loc.`end` + input_proc2.len)
+  let proc1_id = result.ast.add_procedure(astTF.Procedure(
+    name: some(astTF.Identifier(location: proc1_loc)),
+    impure: some(true),
+  ))
+  let proc2_id = result.ast.add_procedure(astTF.Procedure(
+    name: some(astTF.Identifier(location: proc2_loc)),
+    impure: some(true),
+  ))
+  let format_id = result.ast.add_format(astTF.Format(newlines: some(2'u64)))
+  let stmt2_id = result.ast.add_statement(astTF.Statement(
+    kind: astTF.sProcedure,
+    procedure: astTF.StatementProcedure(id: proc2_id, fmt: some(format_id)),
+  ))
+  result.id = result.ast.add_statement(astTF.Statement(
+    kind: astTF.sProcedure,
+    procedure: astTF.StatementProcedure(id: proc1_id, next: some(stmt2_id)),
+  ))
+  result.ast.data.modules[result.module].body = some(result.id)
+
+
 proc var_then_proc *() :TestData=
   const input_name = "x"
   const input_type = "int"

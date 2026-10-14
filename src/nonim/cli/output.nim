@@ -152,12 +152,10 @@ proc run_folder (options :Options; generate :GenerateProc) =
   for file in files:
     if file in merged: continue
     var per_file = options
-    per_file.input = file
-    let relative = file.relativePath(input_root)
-    let out_file = out_root/relative.changeFileExt(out_ext)
-    createDir(out_file.parentDir())
+    per_file.input   = file
+    per_file.dir.src = input_root.parentDir()
     if options.verbose:
-      echo "generating:  " & out_file
+      echo "generating:  " & file
     elif not options.quiet:
       stdout.write "."
       stdout.flushFile()
@@ -165,16 +163,24 @@ proc run_folder (options :Options; generate :GenerateProc) =
     if options.verbose:
       for parse_error in output.parse_errors:
         echo "  error:  " & parse_error.message
-    if output.modules.len == 0 or output.modules[0].definitions.len == 0: continue
-    writeFile(out_file, output.modules[0].definitions)
-    let trg = per_file.make_target(@[out_file])
-    if options.verbose:
-      echo "formatting:  " & out_file
-    elif not options.quiet:
-      stdout.write "."
-      stdout.flushFile()
-    trg.format_exec(out_file)
-    processed_count += 1
+    for module in output.modules:
+      let relative = (per_file.dir.src/module.path).relativePath(input_root)
+      let out_file = out_root/relative.changeFileExt(out_ext)
+      let out_hdr  = out_root/relative.changeFileExt(options.ext_hdr())
+      createDir(out_file.parentDir())
+      let trg = per_file.make_target(@[out_file])
+      if module.declarations.len > 0:
+        writeFile(out_hdr, module.declarations)
+        trg.format_exec(out_hdr)
+      if module.definitions.len == 0: continue
+      writeFile(out_file, module.definitions)
+      if options.verbose:
+        echo "formatting:  " & out_file
+      elif not options.quiet:
+        stdout.write "."
+        stdout.flushFile()
+      trg.format_exec(out_file)
+      processed_count += 1
   if not options.verbose and not options.quiet and processed_count > 0:
     stdout.write "\n"
     stdout.flushFile()

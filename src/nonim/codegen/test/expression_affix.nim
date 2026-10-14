@@ -6,9 +6,8 @@
 import ./data
 
 
-proc binary *(operator :string) :TestData=
+proc binary *(operator :string; right :string = "b") :TestData=
   const left = "a"
-  const right = "b"
   let input_source = left & operator & right & "567890Z"
   result = create(input_source)
   let left_loc = astTF.Location(start: 0, `end`: uint64(left.len))

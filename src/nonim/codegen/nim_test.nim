@@ -9,6 +9,7 @@ from ./test/expression_identifier import nil
 import ./test/expression_literal
 import ./test/expression_affix
 import ./test/expression_group
+import ./test/expression_array
 import ./test/expression_call
 import ./test/expression_keyword
 import ./test/pragma
@@ -114,9 +115,49 @@ describe "nonim.codegen.nim | Expression.affix Cases":
     test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
+  it "must generate a dot infix expression without spaces", proc()=
+    const Expected = partial("expression_affix_dot.nim")
+    var test_case = expression_affix.binary(".")
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
+  it "must generate an arrow infix expression without spaces", proc()=
+    const Expected = partial("expression_affix_arrow.nim")
+    var test_case = expression_affix.binary("->")
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
+  it "must generate a keyword on the right of a dot without backticks", proc()=
+    const Expected = partial("expression_affix_dot_keyword.nim")
+    var test_case = expression_affix.binary(".", "addr")
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
+  it "must generate an at infix expression without spaces", proc()=
+    const Expected = partial("expression_affix_at.nim")
+    var test_case = expression_affix.binary("@")
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
   it "must generate a unary prefix expression", proc()=
     const Expected = partial("expression_affix_unary.nim")
     var test_case = expression_affix.prefix("not")
+    var Out = Output.create()
+    test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
+
+#_______________________________________
+# @section Array Expressions
+#_____________________________
+describe "nonim.codegen.nim | Expression.array Cases":
+  it "must generate an array expression with its elements", proc()=
+    const Expected = partial("expression_array_literal.nim")
+    var test_case = expression_array.literal_values()
     var Out = Output.create()
     test_case.ast.expression(test_case.module, test_case.id, Target.definition, Out)
     Out.modules[test_case.module].definitions.eq_str(Expected)
@@ -524,6 +565,12 @@ describe "nonim.codegen.nim | Statement.passthrough Cases":
     let result = test_case.ast.nim()
     result.modules[0].definitions.eq_str(Expected)
 
+  it "must generate a passthrough statement inside a procedure body at its stored depth", proc()=
+    const Expected = expected("statement_passthrough_procedure_body.nim")
+    let test_case = statement_passthrough.procedure_body()
+    let result = test_case.ast.nim()
+    result.modules[0].definitions.eq_str(Expected)
+
   it "must generate a passthrough statement with quotes using triple quotes", proc()=
     const Expected = expected("statement_passthrough_quotes.nim")
     let test_case = statement_passthrough.with_quotes()
@@ -580,6 +627,27 @@ describe "nonim.codegen.nim | Statement.comment Cases":
     test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
     Out.modules[test_case.module].definitions.eq_str(Expected)
 
+  it "must generate a comment whose text starts with a colon without a space after the hash", proc()=
+    const Expected = expected("statement_comment_plate.nim")
+    var test_case = statement_comment.line_from("#", ":_____")
+    var Out = Output.create()
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
+  it "must generate a comment whose text starts with an underscore without a space after the hash", proc()=
+    const Expected = expected("statement_comment_separator.nim")
+    var test_case = statement_comment.line_from("#", "_____")
+    var Out = Output.create()
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
+  it "must generate a module doc comment from the module doc kind", proc()=
+    const Expected = expected("statement_comment_module.nim")
+    var test_case = statement_comment.doc_from("##!", " @fileoverview Cable Connector")
+    var Out = Output.create()
+    test_case.ast.statement(test_case.module, test_case.id, Target.definition, Out, BlockMode.none)
+    Out.modules[test_case.module].definitions.eq_str(Expected)
+
   it "must generate a doc comment from C doc comment", proc()=
     const Expected = expected("statement_comment_doc.nim")
     var test_case = statement_comment.doc_from("///")
@@ -625,6 +693,12 @@ describe "nonim.codegen.nim | Format.Whitespace":
   it "must normalize whitespace between two procs", proc() =
     const Expected = expected("format_two_procs.nim")
     let test_case = format_whitespace.two_procs()
+    let result = test_case.ast.nim()
+    result.modules[0].definitions.eq Expected
+
+  it "must generate the newlines stored in a statement format before the statement", proc() =
+    const Expected = expected("format_two_procs_newlines.nim")
+    let test_case = format_whitespace.two_procs_newlines()
     let result = test_case.ast.nim()
     result.modules[0].definitions.eq Expected
 

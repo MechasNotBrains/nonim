@@ -34,6 +34,7 @@ type Dir * = object
   bin   *:string= "bin"
   cache *:string= "bin/.cache"
   code  *:string= ""
+  src   *:string= ""
 
 type Options * = object
   backend      *:Backend
@@ -115,4 +116,8 @@ proc options_parse *(
   result.quiet = result.quiet and not result.verbose
   if result.output.len == 0 and result.input.len > 0:
     result.output = result.input.changeFileExt("")
+
+proc module_path *(options :Options) :string=
+  let root = if options.dir.src.len > 0: options.dir.src else: options.input.parentDir()
+  options.input.absolutePath().relativePath(root.absolutePath())
 

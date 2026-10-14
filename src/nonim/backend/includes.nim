@@ -35,8 +35,9 @@ proc processImpl (source :string; baseDir :string; seen :var HashSet[string]; ex
       if path.startsWith("@"): path = path[1..^1]
       if path.len > 0:
         let resolved = resolveFile(path, baseDir, extensions)
-        if resolved.len > 0 and not seen.containsOrIncl(resolved):
-          result.add processImpl(readFile(resolved), resolved.parentDir(), seen, extensions)
+        if resolved.len > 0:
+          if not seen.containsOrIncl(resolved):
+            result.add processImpl(readFile(resolved), resolved.parentDir(), seen, extensions)
           continue
     result.add line & "\n"
 

@@ -18,7 +18,7 @@ import ./preprocess
 proc generate *(options :Options) :Output=
   let source    = preprocess.processIncludes(readFile(options.input), options.input)
   let root      = Untyped.compile(source, options.input)
-  let converted = root.convert(Language.C, typed=false, options.input)
+  let converted = root.convert(Language.C, typed=false, options.module_path())
   result = converted.C()
   result.parse_errors = errors.collected
 

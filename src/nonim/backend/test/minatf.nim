@@ -36,6 +36,14 @@ describe "nonim.minatf | astTF to Target":
     minatf.run(options)
     readFile(tmp_dir/"code"/"api"/"utility.h").eq case_expected_h("atf_module_path")
 
+  it "must generate consecutive declarations without merging them into a block", proc() =
+    let source = options_parse(@["--backend:minatf", "cc", cases_dir/"atf_type_separate"/"input.cm"])
+    let input  = tmp_dir/"atf_type_separate"/"input.atf"
+    createDir(input.parentDir())
+    writeFile(input, minatf.atf(source).toJson())
+    let options = options_parse(@["--backend:minatf", "cc", input])
+    minatf.generate(options).modules[0].definitions.eq readFile(cases_dir/"atf_type_separate"/"expected.cm")
+
 proc atf_generate (language :string) =
   let input = tmp_dir/language/"input.atf"
   var ast   = readFile(cases_dir/"atf_target"/"input.atf").fromJson()

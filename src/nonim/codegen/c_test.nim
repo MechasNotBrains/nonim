@@ -110,6 +110,12 @@ describe "nonim.codegen.c | Statement.Comment":
     let result = test_case.ast.C()
     result.modules[0].definitions.eq Expected
 
+  it "must generate a module doc comment from the module doc kind", proc() =
+    const Expected = expected("statement_comment_module.c")
+    let test_case = statement_comment.doc_from("##!", " @fileoverview Cable Connector")
+    let result = test_case.ast.C()
+    result.modules[0].definitions.eq Expected
+
   it "must generate a multi-line doc comment", proc() =
     const Expected = expected("statement_comment_multiline.c")
     let test_case = statement_comment.multiline_from("##")

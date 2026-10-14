@@ -6,8 +6,7 @@
 import ./data
 
 
-proc line_from *(kind :static string) :TestData=
-  const input_text = "this is a comment"
+proc line_from *(kind :static string; input_text :static string = " this is a comment") :TestData=
   const input_source = kind & input_text & "567890Z"
   result = create(input_source)
   let kind_loc = astTF.Location(start: 0, `end`: kind.len)
@@ -23,8 +22,7 @@ proc line_from *(kind :static string) :TestData=
   result.ast.data.modules[result.module].body = some(result.id)
 
 
-proc doc_from *(kind :static string) :TestData=
-  const input_text = "this is a doc comment"
+proc doc_from *(kind :static string; input_text :static string = " this is a doc comment") :TestData=
   const input_source = kind & input_text & "567890Z"
   result = create(input_source)
   let kind_loc = astTF.Location(start: 0, `end`: kind.len)
@@ -41,7 +39,7 @@ proc doc_from *(kind :static string) :TestData=
 
 
 proc multiline_from *(kind :static string) :TestData=
-  const input_text = "first line\nsecond line\nthird line"
+  const input_text = " first line\n second line\n third line"
   const input_source = kind & input_text & "567890Z"
   result = create(input_source)
   let kind_loc = astTF.Location(start: 0, `end`: kind.len)

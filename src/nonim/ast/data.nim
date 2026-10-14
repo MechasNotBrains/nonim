@@ -97,6 +97,14 @@ func add_depth *(
   atf.data.depths.get.add D
   return astTF.Id(atf.data.depths.get.len-1)
 #__________________
+func add_format *(
+    atf : var astTF.astTF;
+    F   : astTF.Format;
+  ) :astTF.Id {.discardable.}=
+  if atf.data.formats.isNone: atf.data.formats = some(astTF.DataList[astTF.Format](@[]))
+  atf.data.formats.get.add F
+  return astTF.Id(atf.data.formats.get.len-1)
+#__________________
 func add_module *(
     atf : var astTF.astTF;
     M   : astTF.Module;

@@ -2,8 +2,8 @@
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
 from std/options import some, none, isSome, isNone, get, Option
-from std/strutils import split
-from std/os import splitFile
+from std/strutils import split, parseEnum, replace
+from std/os import splitFile, changeFileExt
 import ../ast as astTF
 import ./output
 import ./base
@@ -28,6 +28,7 @@ func statement_list (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Ou
 func statement_branch (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void
 func expression_fields (ast :astTF.Ast; module :astTF.Id; first :Option[astTF.Id]; target :output.Target; Out :var Output) :void
 func type_name (ast :astTF.Ast; module :astTF.Id; expression_id :Option[astTF.Id]; is_const :bool; name :string) :string
+func expression_undefined (ast :astTF.Ast; module :astTF.Id; id :Option[astTF.Id]) :bool
 
 func statement_indent (ast :astTF.Ast; stored :Option[astTF.Id]; block_depth :int) :int=
   ## @descr Indentation level of a statement. Falls back to the level of the block that holds it
@@ -115,6 +116,12 @@ func expression_call_constructor (ast :astTF.Ast; id :astTF.Id) :bool=
   let call = ast.data.expressions.get[id].call
   call.arguments.isSome and ast.data.bindings.get[call.arguments.get].name.isSome
 
+func expression_call_constructor_undefined (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :bool=
+  let call = ast.data.expressions.get[id].call
+  if call.arguments.isNone: return false
+  let argument = ast.data.bindings.get[call.arguments.get]
+  argument.next.isNone and argument.name.isNone and ast.expression_undefined(module, argument.value)
+
 func expression_call_builtin (ast :astTF.Ast; module :astTF.Id; id :astTF.Id) :string=
   let name = ast.data.expressions.get[ast.data.expressions.get[id].call.name]
   if name.kind != astTF.eIdentifier: return ""
@@ -169,6 +176,11 @@ func expression_call (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; target :ou
     ast.expression(module, expression.call.name, target, Out)
     Out.string(module, ")", target)
     ast.expression_fields(module, expression.call.arguments, target, Out)
+    return
+  if ast.expression_call_constructor_undefined(module, id):
+    Out.string(module, "(", target)
+    ast.expression(module, expression.call.name, target, Out)
+    Out.string(module, "){0}", target)
     return
   ast.expression(module, expression.call.name, target, Out)
   Out.string(module, "(", target)
@@ -785,7 +797,8 @@ func statement_expression (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :
 
 func statement_import (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let S = ast.statement(id).`import`
-  let path = ast.source(module, S.path)
+  var path = ast.source(module, S.path)
+  if path.splitFile.ext.len == 0: path.add ".h"
   let is_global = S.global.get(true)
   if is_global:
     Out.string(module, "#include <" & path & ">\n", output.Target.declaration)
@@ -794,14 +807,23 @@ func statement_import (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var 
 
 func statement_passthrough (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let S = ast.statement(id).passthrough
-  Out.string(module, ast.source(module, S.location, false) & "\n", output.Target.definition)
+  var targets :set[output.Target]
+  var current = S.pragmas
+  while current.isSome:
+    let pragma = ast.pragm(current.get)
+    targets.incl parseEnum[output.Target](ast.source(module, ast.data.expressions.get[pragma.key].identifier.name.location))
+    current = pragma.next
+  if targets.card == 0: targets.incl output.Target.definition
+  Out.string(module, ast.source(module, S.location, false) & "\n", targets.target_merge())
 
 func statement_comment (ast :astTF.Ast; module :astTF.Id; id :astTF.Id; Out :var Output) :void=
   let S = ast.statement(id).comment
   let C = ast.comment(S.id)
   let kind_text = ast.source(module, C.kind.location, C.kind.synthetic.get(false))
-  let prefix = if kind_text == "##" or kind_text == "///" or kind_text == "/**": "/// "
-               else: "// "
+  let prefix = case kind_text
+    of "##!"              : "//!"
+    of "##", "///", "/**" : "///"
+    else                  : "//"
   let text = ast.source(module, C.text, false)
   var first = true
   for line in text.split("\n"):
@@ -891,8 +913,9 @@ func module (ast :astTF.Ast; module :astTF.Id; Out :var Output) :void=
   if body.isNone: return
   ast.statement_list(module, body.get, Out, top_level = true)
   if Out.modules[module].declarations.len == 0: return
-  let name  = ast.data.modules[module].path.splitFile.name
-  let guard = "H_" & name
+  let path  = ast.data.modules[module].path
+  let name  = path.splitFile.name
+  let guard = "H_" & path.changeFileExt("").replace('/', '_')
   Out.modules[module].declarations = "#ifndef " & guard & "\n#define " & guard & "\n" & Out.modules[module].declarations & "#endif  // " & guard & "\n"
   if Out.modules[module].definitions.len == 0: return
   Out.modules[module].definitions = "#include \"./" & name & ".h\"\n" & Out.modules[module].definitions

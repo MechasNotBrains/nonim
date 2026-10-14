@@ -13,7 +13,8 @@ import minitest
 from ../../../nonim import nil
 import ../../nimc/Untyped
 import ../../ast as astTF
-import ../../backend/preprocess
+import ../../backend/minc
+import ../../cli
 
 
 const cases_dir = currentSourcePath().parentDir()/"cases"
@@ -37,26 +38,6 @@ proc case_input (name :string) :string=
   if fileExists(c_path): return readFile(c_path)
   readFile(cases_dir/name/"input.nim")
 
-proc generate_c_file (name :string) :string=
-  let untyped_c = cases_dir/name/"input.untyped_c.nim"
-  let c_path = cases_dir/name/"input.c.nim"
-  let input_path = if fileExists(untyped_c): untyped_c
-                   elif fileExists(c_path): c_path
-                   else: cases_dir/name/"input.nim"
-  let source = preprocess.processIncludes(readFile(input_path), input_path)
-  let output = nonim.codegen.C(untyped_ast(source))
-  return output.modules[0].definitions
-
-proc generate_h_file (name :string) :string=
-  let untyped_c = cases_dir/name/"input.untyped_c.nim"
-  let c_path = cases_dir/name/"input.c.nim"
-  let input_path = if fileExists(untyped_c): untyped_c
-                   elif fileExists(c_path): c_path
-                   else: cases_dir/name/"input.nim"
-  let source = preprocess.processIncludes(readFile(input_path), input_path)
-  let output = nonim.codegen.C(untyped_ast(source))
-  return output.modules[0].declarations
-
 proc case_expected_c (name :string) :string=
   let untyped_path = cases_dir/name/"expected.untyped.c"
   if fileExists(untyped_path): return readFile(untyped_path)
@@ -66,6 +47,9 @@ proc case_expected_h (name :string) :string=
   let untyped_path = cases_dir/name/"expected.untyped.h"
   if fileExists(untyped_path): return readFile(untyped_path)
   readFile(cases_dir/name/"expected.h")
+
+proc case_expected_module (name :string; file :string) :string=
+  readFile(cases_dir/name/"expected"/file)
 
 
 describe "nonim.minc | astTF Phase Landmarks":
@@ -419,6 +403,15 @@ describe "nonim.minc | Passthrough":
     let result = generate_c(case_input("statement_passthrough"))
     result.eq case_expected_c("statement_passthrough")
 
+  it "must emit raw code into the declarations and definitions it targets", proc() =
+    generate_c(case_input("passthrough_import")).eq case_expected_c("passthrough_import")
+    generate_h(case_input("passthrough_import")).eq case_expected_h("passthrough_import")
+
+describe "nonim.minc | Constructors":
+  it "must generate a typed empty compound literal from a constructor of _", proc() =
+    generate_c(case_input("expression_constructor_undefined")).eq case_expected_c("expression_constructor_undefined")
+    generate_h(case_input("expression_constructor_undefined")).eq case_expected_h("expression_constructor_undefined")
+
 describe "nonim.minc | Comments":
   it "must generate a doc comment", proc() =
     let result = generate_c(case_input("statement_comment"))
@@ -436,11 +429,42 @@ describe "nonim.minc | Includes":
     generate_h(case_input("include_local")).eq case_expected_h("include_local")
 
   it "must inline extensionless include via preprocessor", proc() =
-    let result = generate_c_file("include_recursive")
-    result.eq case_expected_c("include_recursive")
-    generate_h_file("include_recursive").eq case_expected_h("include_recursive")
+    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"include_recursive"/"input.nim"]))
+    output.modules[0].definitions.eq case_expected_c("include_recursive")
+    output.modules[0].declarations.eq case_expected_h("include_recursive")
 
   it "must inline nested recursive includes", proc() =
-    let result = generate_c_file("include_nested")
-    result.eq case_expected_c("include_nested")
-    generate_h_file("include_nested").eq case_expected_h("include_nested")
+    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"include_nested"/"input.nim"]))
+    output.modules[0].definitions.eq case_expected_c("include_nested")
+    output.modules[0].declarations.eq case_expected_h("include_nested")
+
+  it "must inline a shared include only once", proc() =
+    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"include_shared"/"input.nim"]))
+    output.modules[0].definitions.eq case_expected_c("include_shared")
+    output.modules[0].declarations.eq case_expected_h("include_shared")
+
+  it "must inline a shared include reached from nested folders only once", proc() =
+    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"include_shared_nested"/"input.nim"]))
+    output.modules[0].definitions.eq case_expected_c("include_shared_nested")
+    output.modules[0].declarations.eq case_expected_h("include_shared_nested")
+
+describe "nonim.minc | Imports":
+  it "must generate a local header include from a relative import", proc() =
+    generate_c(case_input("import_relative_current")).eq case_expected_c("import_relative_current")
+    generate_h(case_input("import_relative_current")).eq case_expected_h("import_relative_current")
+
+  it "must generate a global header include from an @-prefixed import", proc() =
+    generate_c(case_input("import_module")).eq case_expected_c("import_module")
+    generate_h(case_input("import_module")).eq case_expected_h("import_module")
+
+  it "must generate a local header include from a bare import", proc() =
+    generate_c(case_input("import_bare")).eq case_expected_c("import_bare")
+    generate_h(case_input("import_bare")).eq case_expected_h("import_bare")
+
+  it "must write a header and source pair for every source of a folder", proc() =
+    let dir = "./bin/.tests/minc/folder_pairs"
+    minc.run(options_parse(@["--backend:minc", "cc", cases_dir/"folder_pairs"/"src", dir]))
+    readFile(dir/"input.c").eq case_expected_module("folder_pairs", "input.c")
+    readFile(dir/"input.h").eq case_expected_module("folder_pairs", "input.h")
+    readFile(dir/"helper.c").eq case_expected_module("folder_pairs", "helper.c")
+    readFile(dir/"helper.h").eq case_expected_module("folder_pairs", "helper.h")
