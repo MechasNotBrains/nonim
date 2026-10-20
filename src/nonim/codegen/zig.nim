@@ -1426,7 +1426,9 @@ func statement_expression_keyword_needs_semicolon (
     id     : astTF.Id;
   ) :bool=
   let expr = ast.expression(id).keyword
-  result = ast.source(module, expr.keyword) notin ["block", "test"]
+  let keyw = ast.source(module, expr.keyword)
+  if keyw == "defer" and expr.value.isSome and ast.expression(expr.value.get).kind == eBlock: return false
+  result = keyw notin ["block", "test"]
 #___________________
 func statement_expression_conditional_needs_semicolon (
     ast    : astTF.Ast;

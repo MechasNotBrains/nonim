@@ -237,6 +237,14 @@ describe "nonim.minz | Statements":
     let result = generate_zig(case_input("statement_defer"))
     result.eq case_expected("statement_defer")
 
+  it "must generate defer keyword with a discard body", proc() =
+    let result = generate_zig(case_input("statement_defer_discard"))
+    result.eq case_expected("statement_defer_discard")
+
+  it "must generate defer keyword with a block body", proc() =
+    let result = generate_zig(case_input("statement_defer_block"))
+    result.eq case_expected("statement_defer_block")
+
   it "must generate compound assignment", proc() =
     let result = generate_zig(case_input("statement_compound_assign"))
     result.eq case_expected("statement_compound_assign")

@@ -710,12 +710,13 @@ func type_object *(
   Out.string(module, " ", target)
   if not O.private.get(false): Out.string(module, "*", target)
   if O.generics.isSome: ast.generics(module, O.generics.get, target, Out)
-  if O.pragmas.isSome:
+  let isUnion = O.keyword.isSome and ast.source(module, O.keyword.get.location, O.keyword.get.synthetic.get(false)) == "union"
+  if O.pragmas.isSome or isUnion:
     Out.string(module, "{.", target)
-    if O.keyword.isSome:
-      ast.identifier(module, O.keyword.get, target, Out)
-      Out.string(module, ", ", target)
-    ast.pragma_list(module, O.pragmas.get, target, Out)
+    if isUnion:
+      Out.string(module, "union", target)
+      if O.pragmas.isSome: Out.string(module, ", ", target)
+    if O.pragmas.isSome: ast.pragma_list(module, O.pragmas.get, target, Out)
     Out.string(module, ".}", target)
   if not (O.generics.isSome or O.pragmas.isSome or O.private.get(false)):
     Out.string(module, " ", target)

@@ -1970,7 +1970,24 @@ proc statement_keyword (state :var State; node :PNode) :astTF.Id=
       value = some(block_id)
   elif node.kind == nkDefer and node.safeLen > 0:
     let body = node[0]
-    if body.kind == nkStmtList and body.safeLen > 0:
+    if body.kind == nkStmtList and body.safeLen > 1:
+      discard state.scope_push()
+      let body_id = state.statement_body(body)
+      state.scope_pop()
+      var block_expr = astTF.Expression(kind: astTF.eBlock)
+      block_expr.`block`.body  = some(body_id)
+      block_expr.`block`.depth = some(state.make_depth(body))
+      value = some(state.ast.add_expression(block_expr))
+    elif body.kind == nkStmtList and body.safeLen > 0 and body[0].kind == nkDiscardStmt:
+      let discard_loc = state.name_add("discard")
+      value = some(state.ast.add_expression(astTF.Expression(
+        kind      : astTF.eKeyword,
+        keyword   : astTF.ExpressionKeyword(
+          keyword : astTF.Identifier(location: discard_loc),
+          value   : some(state.expression(body[0][0])),
+        ),
+      )))
+    elif body.kind == nkStmtList and body.safeLen > 0:
       value = some(state.expression(body[0]))
     elif body.kind != nkEmpty:
       value = some(state.expression(body))

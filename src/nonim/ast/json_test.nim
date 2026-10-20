@@ -3,7 +3,7 @@
 #:_________________________________________________________
 from std/os import splitPath, `/`, fileExists, pcDir, parentDir
 from std/strutils import replace
-from std/options import get
+from std/options import get, isNone
 import minitest
 import ./json
 from astTF import nil
@@ -37,6 +37,11 @@ describe "nonim.ast.json | Stores":
   it "must parse the depths store", proc() =
     let input = """{ "root": 0, "data": { "modules": [{ "path": "", "source": "" }], "depths": [{ "indent": 1 }] } }"""
     input.fromJson().data.depths.get[0].indent.get.eq 1'u64
+
+describe "nonim.ast.json | Sentinel":
+  it "must parse an id holding the sentinel value as absent", proc() =
+    let input = """{ "root": 0, "data": { "modules": [{ "path": "", "source": "" }], "comments": [{ "kind": { "location": { "start": 0, "end": 0 }, "synthetic": false }, "text": { "start": 0, "end": 0 }, "next": 9007199254740991 }] } }"""
+    input.fromJson().data.comments.get[0].next.isNone.eq true
 
 describe "nonim.ast.json | write all samples":
   for index in 0 ..< cases.len:

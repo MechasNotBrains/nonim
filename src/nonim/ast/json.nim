@@ -1,7 +1,7 @@
 #:_________________________________________________________
 #  nonim  |  Copyright (C) Ivan Mar (sOkam!)  |  MPL-2.0  :
 #:_________________________________________________________
-from std/json import JsonNode, parseJson, to, pairs, hasKey, items, `[]`, `[]=`, getInt, getStr, getBool, `$`, pretty, add, newJObject, newJArray, newJString, newJBool, newJInt
+from std/json import JsonNode, JsonNodeKind, parseJson, to, pairs, hasKey, items, `[]`, `[]=`, getInt, getBiggestInt, getStr, getBool, `$`, pretty, add, delete, newJObject, newJArray, newJString, newJBool, newJInt
 from std/options import Option, some, get, isNone, isSome
 from astTF import nil
 
@@ -68,9 +68,22 @@ proc fromJsonNode (jsonNode :JsonNode; T :typedesc[astTF.Statement]) :astTF.Stat
   raise newException(ValueError, "unknown statement variant: " & $jsonNode)
 
 
+proc id_null_remove (node :JsonNode) =
+  case node.kind
+  of JArray:
+    for item in node.items: item.id_null_remove()
+  of JObject:
+    var absent :seq[string]
+    for key, value in node.pairs:
+      if value.kind == JInt and value.getBiggestInt() == BiggestInt(astTF.id_Null): absent.add key
+      else: value.id_null_remove()
+    for key in absent: node.delete(key)
+  else: discard
+
 proc fromJson *(json :string) :astTF.astTF=
   result = default(astTF.astTF)
   let root = parseJson(json)
+  root.id_null_remove()
   result.root = root["root"].to(astTF.Id)
   if root.hasKey("metadata"):
     result.metadata = some(root["metadata"].to(astTF.Metadata))

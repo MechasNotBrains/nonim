@@ -1,1 +1,3 @@
-{.emit[declaration, definition]: "#pragma x".}
+proc a () :void=
+  defer: discard foo(x)
+  defer: foo(x)
