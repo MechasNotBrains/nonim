@@ -502,6 +502,11 @@ proc type_node_to_type_id (state :var State; node :PNode; mutable = false) :astT
     ))
   of nkProcTy:
     return state.procedure_type(node)
+  of nkCall:
+    return state.ast.add_type(astTF.Type(
+      kind  : astTF.tAlias,
+      alias : astTF.TypeAlias(target: state.expression_call(node)),
+    ))
   of nkBracketExpr:
     let bracket_name = node[0].name()
     if bracket_name in ["array", "slice"]:
