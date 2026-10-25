@@ -6,6 +6,7 @@
 # nim r --outDir:bin/ --path:bin/.lib/minitest/src --path:bin/.lib/astTF/spec --path:bin/.lib/minibuild/src src/nonim/backend/test/minz.nim
 # @deps std
 from std/os import `/`, parentDir, fileExists, execShellCmd
+from std/tables import `[]`, len
 # @deps nimc
 import "$nim"/compiler/[ast]
 # @deps tests
@@ -672,17 +673,121 @@ describe "nonim.minz | Test Blocks":
 
 describe "nonim.minz | Includes":
   it "must inline a global include from a .zig file", proc() =
-    let result = generate_zig_file("include_global")
-    result.eq case_expected("include_global")
+    let result = generate_zig_file("preprocess_include_global")
+    result.eq case_expected("preprocess_include_global")
 
   it "must inline a local include from a .zig file", proc() =
-    let result = generate_zig_file("include_local")
-    result.eq case_expected("include_local")
+    let result = generate_zig_file("preprocess_include_local")
+    result.eq case_expected("preprocess_include_local")
 
   it "must inline extensionless include via preprocessor", proc() =
-    let result = generate_zig_file("include_recursive")
-    result.eq case_expected("include_recursive")
+    let result = generate_zig_file("preprocess_include_recursive")
+    result.eq case_expected("preprocess_include_recursive")
 
   it "must inline nested recursive includes", proc() =
-    let result = generate_zig_file("include_nested")
-    result.eq case_expected("include_nested")
+    let result = generate_zig_file("preprocess_include_nested")
+    result.eq case_expected("preprocess_include_nested")
+
+describe "nonim.minz | Import Folders":
+  it "must list the folder of a local import", proc() =
+    const source = """
+import ./game/ui
+"""
+    preprocess.importFolders(source).eq @["game"]
+
+  it "must list the folder of a local from-import", proc() =
+    const source = """
+from ./game/ui import screen_bar
+"""
+    preprocess.importFolders(source).eq @["game"]
+
+  it "must list the folder of an import without a leading ./", proc() =
+    const source = """
+import game/ui
+"""
+    preprocess.importFolders(source).eq @["game"]
+
+  it "must list the full subfolder of a nested import", proc() =
+    const source = """
+import ./game/ui/tabs
+"""
+    preprocess.importFolders(source).eq @["game/ui"]
+
+  it "must list the folder of an indented import", proc() =
+    const source = """
+@namespace game:
+  import ./game/ui
+"""
+    preprocess.importFolders(source).eq @["game"]
+
+  it "must list the folder of an aliased import", proc() =
+    const source = """
+import ./game/ui as interface
+"""
+    preprocess.importFolders(source).eq @["game"]
+
+  it "must list the folder of an import with pragmas", proc() =
+    const source = """
+import ./game/ui {.private.}
+"""
+    preprocess.importFolders(source).eq @["game"]
+
+  it "must list the folders of every path in a comma separated import", proc() =
+    const source = """
+import ./game/ui, ./world/tiles
+"""
+    preprocess.importFolders(source).eq @["game", "world"]
+
+  it "must list each folder only once", proc() =
+    const source = """
+import ./game/ui
+import ./game/data
+from ./game/ui import screen_bar
+"""
+    preprocess.importFolders(source).eq @["game"]
+
+  it "must not list a global import", proc() =
+    const source = """
+import @std
+import @mstd/list
+from @library import Thing
+"""
+    preprocess.importFolders(source).len.eq 0
+
+  it "must not list an import from the same folder", proc() =
+    const source = """
+import ./other
+"""
+    preprocess.importFolders(source).len.eq 0
+
+  it "must not list an import outside of the folder", proc() =
+    const source = """
+from ../game import Game
+"""
+    preprocess.importFolders(source).len.eq 0
+
+  it "must not list an import with a file extension", proc() =
+    const source = """
+import ./lib/handwritten.zig
+"""
+    preprocess.importFolders(source).len.eq 0
+
+  it "must not list an include", proc() =
+    const source = """
+include ./game/ui
+"""
+    preprocess.importFolders(source).len.eq 0
+
+describe "nonim.minz | Import Map":
+  it "must map each file to the folders of its imports", proc() =
+    let local_path = cases_dir/"preprocess_import_local"/"input.untyped_zig.nim"
+    let from_path  = cases_dir/"preprocess_import_from"/"input.untyped_zig.nim"
+    let result = preprocess.importMap(@[local_path, from_path])
+    result.len.eq 2
+    result[local_path].eq @["game"]
+    result[from_path].eq @["world", "game"]
+
+  it "must map a file without local imports to an empty list", proc() =
+    let path = cases_dir/"phase0"/"input.untyped_zig.nim"
+    let result = preprocess.importMap(@[path])
+    result[path].len.eq 0

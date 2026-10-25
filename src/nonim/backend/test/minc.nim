@@ -419,34 +419,34 @@ describe "nonim.minc | Comments":
 
 describe "nonim.minc | Includes":
   it "must generate a global include with angle brackets", proc() =
-    let result = generate_c(case_input("include_global"))
-    result.eq case_expected_c("include_global")
-    generate_h(case_input("include_global")).eq case_expected_h("include_global")
+    let result = generate_c(case_input("preprocess_include_global"))
+    result.eq case_expected_c("preprocess_include_global")
+    generate_h(case_input("preprocess_include_global")).eq case_expected_h("preprocess_include_global")
 
   it "must generate a local include with quotes", proc() =
-    let result = generate_c(case_input("include_local"))
-    result.eq case_expected_c("include_local")
-    generate_h(case_input("include_local")).eq case_expected_h("include_local")
+    let result = generate_c(case_input("preprocess_include_local"))
+    result.eq case_expected_c("preprocess_include_local")
+    generate_h(case_input("preprocess_include_local")).eq case_expected_h("preprocess_include_local")
 
   it "must inline extensionless include via preprocessor", proc() =
-    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"include_recursive"/"input.nim"]))
-    output.modules[0].definitions.eq case_expected_c("include_recursive")
-    output.modules[0].declarations.eq case_expected_h("include_recursive")
+    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"preprocess_include_recursive"/"input.nim"]))
+    output.modules[0].definitions.eq case_expected_c("preprocess_include_recursive")
+    output.modules[0].declarations.eq case_expected_h("preprocess_include_recursive")
 
   it "must inline nested recursive includes", proc() =
-    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"include_nested"/"input.nim"]))
-    output.modules[0].definitions.eq case_expected_c("include_nested")
-    output.modules[0].declarations.eq case_expected_h("include_nested")
+    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"preprocess_include_nested"/"input.nim"]))
+    output.modules[0].definitions.eq case_expected_c("preprocess_include_nested")
+    output.modules[0].declarations.eq case_expected_h("preprocess_include_nested")
 
   it "must inline a shared include only once", proc() =
-    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"include_shared"/"input.nim"]))
-    output.modules[0].definitions.eq case_expected_c("include_shared")
-    output.modules[0].declarations.eq case_expected_h("include_shared")
+    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"preprocess_include_shared"/"input.nim"]))
+    output.modules[0].definitions.eq case_expected_c("preprocess_include_shared")
+    output.modules[0].declarations.eq case_expected_h("preprocess_include_shared")
 
   it "must inline a shared include reached from nested folders only once", proc() =
-    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"include_shared_nested"/"input.nim"]))
-    output.modules[0].definitions.eq case_expected_c("include_shared_nested")
-    output.modules[0].declarations.eq case_expected_h("include_shared_nested")
+    let output = minc.generate(options_parse(@["--backend:minc", "cc", cases_dir/"preprocess_include_shared_nested"/"input.nim"]))
+    output.modules[0].definitions.eq case_expected_c("preprocess_include_shared_nested")
+    output.modules[0].declarations.eq case_expected_h("preprocess_include_shared_nested")
 
 describe "nonim.minc | Imports":
   it "must generate a local header include from a relative import", proc() =

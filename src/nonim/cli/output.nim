@@ -6,11 +6,13 @@
 # @deps std
 import std/os
 from std/sets import HashSet, initHashSet, containsOrIncl, contains
-from std/strutils import startsWith, splitLines, strip
+from std/strutils import startsWith, splitLines, strip, split
+from std/tables import pairs
 # @deps nonim
 import ../cli
 import ../codegen/output
 import ../backend/includes
+import ../backend/preprocess
 from minibuild as B import build, format, format_exec, ReportMode, Dependency, Dependencies
 
 type GenerateProc * = proc (options :Options) :Output {.nimcall.}
@@ -118,6 +120,7 @@ proc link_imports *(options :Options) =
     if entry.kind != pcDir: continue
     let dirname = entry.path.lastPathPart()
     let link_path = options.dir.cache/dirname
+    if dirExists(link_path) and not symlinkExists(link_path): continue
     if symlinkExists(link_path): removeFile(link_path)
     createSymlink(entry.path, link_path)
 
@@ -197,11 +200,31 @@ proc run_folder (options :Options; generate :GenerateProc) =
     stdout.flushFile()
 
 
-proc run_output *(options :Options; output :Output; src :string) =
+proc imports_generate *(options :Options; generate :GenerateProc) :seq[string]=
+  for file, folders in preprocess.importMap([options.input]):
+    let source_dir = file.absolutePath().parentDir()
+    for folder in folders:
+      let folder_source = source_dir/folder
+      if not dirExists(folder_source): continue
+      let link_path = options.dir.cache/folder.split('/')[0]
+      if symlinkExists(link_path): removeFile(link_path)
+      var per_folder = options
+      per_folder.input  = folder_source
+      per_folder.output = options.dir.cache/folder
+      per_folder.run_folder(generate)
+      for path in walkDirRec(per_folder.output):
+        if path.splitFile.ext == options.ext_src(): result.add path
+
+
+proc run_output *(options :Options; output :Output; src :string; generate :GenerateProc = nil) =
   var opts = options
   opts.dir.cache = options.dir.cache / options.output.splitFile.name
   let sources = opts.sources_collect(output, src)
-  let trg = opts.make_target(if sources.len > 0: sources else: @[opts.dir.cache/opts.output.splitFile.name & src])
+  var imported :seq[string]= @[]
+  if opts.backend in {Backend.minz, Backend.minc} and generate != nil: imported = opts.imports_generate(generate)
+  var target_sources = if sources.len > 0: sources else: @[opts.dir.cache/opts.output.splitFile.name & src]
+  if opts.backend == Backend.minc: target_sources.add imported
+  let trg = opts.make_target(target_sources)
   opts.write_output(output, trg, src)
   if sources.len == 0: return
   case opts.command
@@ -220,4 +243,4 @@ proc run *(options :Options; generate :GenerateProc) =
   if options.backend in {Backend.minz, Backend.minc} and dirExists(options.input):
     options.run_folder(generate)
     return
-  options.run_output(generate(options), options.ext_src())
+  options.run_output(generate(options), options.ext_src(), generate)
