@@ -7,6 +7,8 @@
 import std/os
 import std/parseopt
 from std/strutils import find, split
+# @deps nonim
+from minibuild import nil
 
 
 type Backend *{.pure.}= enum
@@ -30,6 +32,13 @@ type Zig * = object
   bin   *:string= "zig"
   cache *:string= ""
 
+type System * = minibuild.ConfigSystem
+
+type Files * = object
+  c        *:seq[string]
+  c_dir    *:seq[string]
+  Include  *:seq[string]
+
 type Dir * = object
   bin   *:string= "bin"
   cache *:string= "bin/.cache"
@@ -42,10 +51,13 @@ type Options * = object
   input        *:string
   output       *:string
   dir          *:Dir
+  files        *:Files
   zig          *:Zig
+  system       *:System
   verbose      *:bool
   quiet        *:bool
   pass_c       *:seq[string]
+  link         *:seq[string]
   dependencies *:seq[tuple[name: string, subdeps: seq[string], path: string]]
 
 
@@ -80,8 +92,20 @@ proc options_parse *(
       of "codeDir":  result.dir.code = parser.val
       of "zigBin":   result.zig.bin = parser.val
       of "zigCache": result.zig.cache = parser.val
+      of "os":       result.system.os  = parser.val
+      of "cpu":      result.system.cpu = parser.val
+      of "abi":      result.system.abi = parser.val
+      of "target":
+        let parts = parser.val.split('-')
+        result.system.cpu = parts[0]
+        result.system.os  = if parts.len > 1: parts[1] else: ""
+        result.system.abi = if parts.len > 2: parts[2] else: ""
       of "backend":    result.backend = Backend.parse(parser.val, result.backend)
       of "passC":      result.pass_c.add(parser.val)
+      of "cfile":      result.files.c.add(parser.val)
+      of "cdir":       result.files.c_dir.add(parser.val)
+      of "include":    result.files.Include.add(parser.val)
+      of "link":       result.link.add(parser.val)
       of "dependency":
         let name_sep = parser.val.find(':')
         if name_sep > 0:

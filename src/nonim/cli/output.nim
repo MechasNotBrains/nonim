@@ -30,6 +30,7 @@ proc make_target *(options :Options; sources :seq[string]) :B.Target=
   cfg.dir.bin = options.dir.bin
   cfg.zig.bin = options.zig.bin
   cfg.zig.cache = options.zig.cache
+  cfg.system = options.system
   if options.verbose: cfg.log.level = ReportMode.verbose
   case options.backend
   of Backend.minz, Backend.zig:
@@ -38,6 +39,16 @@ proc make_target *(options :Options; sources :seq[string]) :B.Target=
     cfg.c.format.active = true
   var flags :B.FlagsList
   for flag in options.pass_c: flags.add(flag)
+  for path in options.files.Include: flags.add("-I" & path)
+  if options.backend in {Backend.minc, Backend.cleanc} and B.explicit(options.system):
+    flags.add("-target")
+    flags.add(B.triple(options.system))
+  for lib in options.link: flags.add("-l" & lib)
+  for file in options.files.c: flags.add(file)
+  for dir in options.files.c_dir:
+    for entry in walkDir(dir):
+      if entry.kind == pcFile and entry.path.splitFile.ext == ".c": flags.add(entry.path)
+  let extra = sources[1..^1]
   var deps :B.Dependencies
   if options.backend in {Backend.minz, Backend.zig}:
     for dep in options.dependencies:
@@ -47,7 +58,7 @@ proc make_target *(options :Options; sources :seq[string]) :B.Target=
       flags.add("-M" & dep.name & "=" & dep.path)
     for dep in options.dependencies:
       deps.add(B.Dependency(name: dep.name, url: "", path: ""))
-  result = B.target(B.Kind.Program, sources[0], options.output.splitFile.name, sources[1..^1], cfg, flags, deps)
+  result = B.target(B.Kind.Program, sources[0], options.output.splitFile.name, extra, cfg, flags, deps)
 
 
 proc ext_src *(options :Options) :string=
