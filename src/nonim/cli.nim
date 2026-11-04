@@ -58,6 +58,7 @@ type Options * = object
   quiet        *:bool
   pass_c       *:seq[string]
   link         *:seq[string]
+  link_dir     *:seq[string]
   dependencies *:seq[tuple[name: string, subdeps: seq[string], path: string]]
 
 
@@ -106,6 +107,7 @@ proc options_parse *(
       of "cdir":       result.files.c_dir.add(parser.val)
       of "include":    result.files.Include.add(parser.val)
       of "link":       result.link.add(parser.val)
+      of "linkDir":    result.link_dir.add(parser.val)
       of "dependency":
         let name_sep = parser.val.find(':')
         if name_sep > 0:

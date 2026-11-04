@@ -45,6 +45,7 @@ proc make_target *(options :Options; sources :seq[string]) :B.Target=
   if options.backend in {Backend.minc, Backend.cleanc} and B.explicit(options.system):
     flags.add("-target")
     flags.add(B.triple(options.system))
+  for dir in options.link_dir: flags.add("-L" & dir)
   for lib in options.link: flags.add("-l" & lib)
   for file in options.files.c: flags.add(file)
   for dir in options.files.c_dir:

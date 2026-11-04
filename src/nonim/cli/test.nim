@@ -126,6 +126,14 @@ describe "nonim.cli | Extra Files":
     let options = options_parse(@["--link:c", "--link:glfw", "--link:vulkan", "c", "input.zm"])
     options.link.eq @["c", "glfw", "vulkan"]
 
+  it "must default to no library folders", proc() =
+    let options = options_parse(@["c", "input.zm"])
+    options.link_dir.len.eq 0
+
+  it "must parse every linkDir option", proc() =
+    let options = options_parse(@["--linkDir:./bin/x86_64-linux-gnu", "--linkDir:./bin/.lib", "c", "input.zm"])
+    options.link_dir.eq @["./bin/x86_64-linux-gnu", "./bin/.lib"]
+
   it "must keep input and output positional when extra files are given", proc() =
     let options = options_parse(@["c", "--cfile:a.c", "--include:./bin/.lib", "src/game.zm", "bin/game"])
     options.input.eq "src/game.zm"
